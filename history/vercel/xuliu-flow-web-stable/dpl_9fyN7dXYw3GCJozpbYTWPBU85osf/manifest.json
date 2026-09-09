@@ -1,0 +1,171 @@
+{
+  "project": "xuliu-flow-web-stable",
+  "project_id": "prj_7uFwzfC2VCDdRseGphuEdDv5vU5m",
+  "deployment": {
+    "id": "dpl_9fyN7dXYw3GCJozpbYTWPBU85osf",
+    "url": "xuliu-flow-web-stable-pt5j6dg40-sereni1.vercel.app",
+    "createdAt": 1787464567887,
+    "state": "READY",
+    "target": "production"
+  },
+  "files": [
+    {
+      "path": ".vercelignore",
+      "uid": "d95e9d721141a7ef76d82ed5cb98e24352c6074a",
+      "mode": 33206,
+      "bytes": 151,
+      "sha256": "8926cbfb12849159f8f909a618e37f79e1de10799e4f02b0f18f8f4bee9078dc"
+    },
+    {
+      "path": "app/api/auth/login/route.ts",
+      "uid": "b4ad5c2f77691bb1144ec7e565a74db40b2aa658",
+      "mode": 33206,
+      "bytes": 1610,
+      "sha256": "a882164170bee668b5a1a60a382145efb8d21401c618bccada580948b09c0af5"
+    },
+    {
+      "path": "app/api/auth/logout/route.ts",
+      "uid": "a06d375b13e34acc805b00400eae3bd3376622c6",
+      "mode": 33206,
+      "bytes": 309,
+      "sha256": "8e90998d03a5063306c5084d3b2e10389701cb511383efb981336f4f614713f3"
+    },
+    {
+      "path": "app/api/auth/session/route.ts",
+      "uid": "0698581129ba0ec8e303fb3c22e069cb678844d2",
+      "mode": 33206,
+      "bytes": 618,
+      "sha256": "07b267ee594387db7ca38a97a03e3c8ceaa9df970e0b505af16e75cab865be75"
+    },
+    {
+      "path": "app/api/files/route.ts",
+      "uid": "2e9cc054dad40a86597e8329220cd7883a66b145",
+      "mode": 33206,
+      "bytes": 206,
+      "sha256": "1a937bcb630758de6ea897cb1b7cfbfbe4c8cc9893082980eeb5427d5da880e0"
+    },
+    {
+      "path": "app/api/state/route.ts",
+      "uid": "b98b791c11a0a078319576812e920cb0782186ae",
+      "mode": 33206,
+      "bytes": 3284,
+      "sha256": "747eae86b1933469d8169449133e7c849261906ca5798e452b206126696cbffa"
+    },
+    {
+      "path": "app/AuthenticatedDashboard.tsx",
+      "uid": "261ecd87dcfa1e14cef9c11a5c2b3c7951dc6718",
+      "mode": 33206,
+      "bytes": 3188,
+      "sha256": "c3da44695d422e49569af680320a710c367a17b36022e407ed98b15fba100556"
+    },
+    {
+      "path": "app/DashboardClient.tsx",
+      "uid": "f71f59d6f70d32c4fa2db5836a68f261a6183ab2",
+      "mode": 33206,
+      "bytes": 130020,
+      "sha256": "93c2724b390a7176e4ac509e5eb45768059b167a18fba03bc1c17a3831f9db91"
+    },
+    {
+      "path": "app/globals.css",
+      "uid": "523862276380597734f2b9d7149978ba7fe9a6a2",
+      "mode": 33206,
+      "bytes": 52361,
+      "sha256": "2c230940079af7df281661d3ebc67fecccec7df5bd3c10b852abc92a257ab900"
+    },
+    {
+      "path": "app/layout.tsx",
+      "uid": "ed5157c15c44974c9eaa854d9e2189a94908897f",
+      "mode": 33206,
+      "bytes": 685,
+      "sha256": "0523532f6bd67c5ad861d7aadb03f4c95966e8c44e65fe2049b2b07829e345eb"
+    },
+    {
+      "path": "app/manifest.ts",
+      "uid": "2c348131d0936b7bf1e95a20e7316050ace7362c",
+      "mode": 33206,
+      "bytes": 340,
+      "sha256": "22bf037e5e9afd6e1037a79c681fbe7507e0d0a600867e04d1b4c8535aae0b2b"
+    },
+    {
+      "path": "app/page.tsx",
+      "uid": "9e4b53cc72538d35f0d0fadbc497ab17e3ef947a",
+      "mode": 33206,
+      "bytes": 177,
+      "sha256": "b50cfb67134fe7c6bfbbd5085dd4257f0ef41f404783477a8ea3f77c8b71ed46"
+    },
+    {
+      "path": "app/sw.js/route.ts",
+      "uid": "e1a628a775b2eb46c9075c35800222d3ef7c39c4",
+      "mode": 33206,
+      "bytes": 1113,
+      "sha256": "14b868d34615e86f50b3026598a6bf218126909fb9e58f1cd032eda303860d74"
+    },
+    {
+      "path": "lib/accounts.ts",
+      "uid": "860df003b4d94f68180a11c7fc5253d884fb2b8b",
+      "mode": 33206,
+      "bytes": 1876,
+      "sha256": "7a24fb5f17b16b3fd906a7deedab44ce649817bbbb5652f7dfd583f430057114"
+    },
+    {
+      "path": "lib/password.ts",
+      "uid": "1490ea5bdb7aa05b1abd905ca75a96e01ff999b6",
+      "mode": 33206,
+      "bytes": 1001,
+      "sha256": "97a271e1069dc0fadc8f26980359f526a132c9b4b2aace88e1aa2d01fd6cc8fd"
+    },
+    {
+      "path": "lib/redis.ts",
+      "uid": "142dbf44a3c3d58d98cd09788c1a7564ee3302ca",
+      "mode": 33206,
+      "bytes": 432,
+      "sha256": "8f3e3cdfdba80530a288dea0e43d4d2ed00656210b58d1c0547819cd4cd89982"
+    },
+    {
+      "path": "lib/session.ts",
+      "uid": "18faf731e24c050beed1f11edf8c28f569e0f82f",
+      "mode": 33206,
+      "bytes": 1809,
+      "sha256": "75a3efc991f8616a884cf06db91d08d1aa8ceff26d88899ce7efe1f0b8001dc6"
+    },
+    {
+      "path": "next-env.d.ts",
+      "uid": "915946e261450f4fb6aab2ca862c8b440b748240",
+      "mode": 33206,
+      "bytes": 288,
+      "sha256": "1862ac4bbbc5192d4bf562161df66ea547ed3e67173100656ab606ae9797db2b"
+    },
+    {
+      "path": "next.config.ts",
+      "uid": "970eb1d4a909aced000735db50f929e0c97bec9b",
+      "mode": 33206,
+      "bytes": 103,
+      "sha256": "1114dcd20b5394500de8211f3694e10d17fa5c35b6b54cd38971a1ba6ee61d37"
+    },
+    {
+      "path": "package-lock.json",
+      "uid": "9fb255e0dcdcf86e5a52c0df28b5d0575a1c1377",
+      "mode": 33206,
+      "bytes": 38381,
+      "sha256": "ea0f1bac95476381862d99315edcb5fb57b5f7984a7a60147d803076cec4c531"
+    },
+    {
+      "path": "package.json",
+      "uid": "59cd2b52401b36d1632096886aea72b47c31b811",
+      "mode": 33206,
+      "bytes": 519,
+      "sha256": "64f3a19edabf15d72bb60b2ee0f9e473197fc590a0344baff5b12179ce5829e8"
+    },
+    {
+      "path": "tsconfig.json",
+      "uid": "2fbd76fe709d341f58094b37eb205b21696f9ab2",
+      "mode": 33206,
+      "bytes": 828,
+      "sha256": "ce3d4fe4329684af5b516a3efb62ffb2c8906c736d07740c845f0a309ff1b6eb"
+    }
+  ],
+  "excluded": [],
+  "empty_directories": [],
+  "failures": [],
+  "complete": true
+}

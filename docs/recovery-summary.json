@@ -1,0 +1,53 @@
+{
+  "title": "序流",
+  "source_files": 58,
+  "source_bytes": 675689,
+  "production_deployment": "dpl_68zoKjP3ap1Fefa3Z5ef9R7CzwWy",
+  "vercel_history": [
+    {
+      "project": "xuliu-ai-web",
+      "deployments": 20
+    },
+    {
+      "project": "xuliu-flow-web",
+      "deployments": 1
+    },
+    {
+      "project": "xuliu-flow-web-safe",
+      "deployments": 1
+    },
+    {
+      "project": "xuliu-flow-web-stable",
+      "deployments": 3
+    },
+    {
+      "project": "xuliu-flow-web-v2",
+      "deployments": 1
+    },
+    {
+      "project": "xuliu-flow-web-v3",
+      "deployments": 1
+    },
+    {
+      "project": "xuliu-flow-web-v4",
+      "deployments": 2
+    },
+    {
+      "project": "xuliu-flow-web-v5",
+      "deployments": 2
+    },
+    {
+      "project": "xuliu-flow-web-v6",
+      "deployments": 2
+    }
+  ],
+  "historical_deployments_total": 33,
+  "attachments": {
+    "object_count": 12,
+    "total_bytes": 6433685,
+    "complete": true
+  },
+  "database_tables": [],
+  "redis_key_count": 10,
+  "game_save_excluded": false
+}

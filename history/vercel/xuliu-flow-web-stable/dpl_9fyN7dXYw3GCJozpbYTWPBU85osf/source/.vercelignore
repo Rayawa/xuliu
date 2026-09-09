@@ -1,0 +1,15 @@
+.github
+.openai
+.next
+.npm-cache
+.vercel
+.vercel-cache
+node_modules
+db
+drizzle
+worker
+work
+outputs
+vite.config.ts
+drizzle.config.ts
+postcss.config.mjs

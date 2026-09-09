@@ -1,0 +1,185 @@
+{
+  "project": "xuliu-flow-web-v3",
+  "project_id": "prj_TH1jdfg75j6Cnl43b6M8qD2d8R0d",
+  "deployment": {
+    "id": "dpl_2XPJMUh4MpQFCrnUEp8VSAfZQsX5",
+    "url": "xuliu-flow-web-v3-lvk0u9rk3-sereni1.vercel.app",
+    "createdAt": 1786892845242,
+    "state": "READY",
+    "target": "production"
+  },
+  "files": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "uid": "a82bcfc7d701b6a684994888e78737e2532f3f79",
+      "mode": 33206,
+      "bytes": 320,
+      "sha256": "26f7b4e7df6f7fabf765487953b0d07bc01da1606d826e95add9e3d0080689f9"
+    },
+    {
+      "path": ".vercelignore",
+      "uid": "8d6db3d7271e7369e4946f2422ed6f1f13744ec5",
+      "mode": 33206,
+      "bytes": 99,
+      "sha256": "bad5e2bdd499f73e2493cc6bbe95c032b5fdd5bf45c64dd03919785b8da87935"
+    },
+    {
+      "path": "app/api/files/route.ts",
+      "uid": "2e9cc054dad40a86597e8329220cd7883a66b145",
+      "mode": 33206,
+      "bytes": 206,
+      "sha256": "1a937bcb630758de6ea897cb1b7cfbfbe4c8cc9893082980eeb5427d5da880e0"
+    },
+    {
+      "path": "app/api/state/route.ts",
+      "uid": "83aa484ceeb5c042f2d497d6e22766b0732a4a45",
+      "mode": 33206,
+      "bytes": 388,
+      "sha256": "a7784cd17f9eecb0a6cd7d373a937b67940f5af5e263fa7dd8f736a05e2dc7e2"
+    },
+    {
+      "path": "app/DashboardClient.tsx",
+      "uid": "a6b07b92439c04ef23b8df5d2d165accd6e9fb29",
+      "mode": 33206,
+      "bytes": 76072,
+      "sha256": "24beb405316c64e49b39c232ccb7a6be8cbdc5f03be6d7463c56536db54ab477"
+    },
+    {
+      "path": "app/globals.css",
+      "uid": "1c30190956d0093c3411d600aa3d9d5878c5d651",
+      "mode": 33206,
+      "bytes": 32746,
+      "sha256": "59f876337bc7bbe27f6f2a6becb1793b30dc09d8849dfc40c6cfaefe5694f4ac"
+    },
+    {
+      "path": "app/layout.tsx",
+      "uid": "ed5157c15c44974c9eaa854d9e2189a94908897f",
+      "mode": 33206,
+      "bytes": 685,
+      "sha256": "0523532f6bd67c5ad861d7aadb03f4c95966e8c44e65fe2049b2b07829e345eb"
+    },
+    {
+      "path": "app/manifest.ts",
+      "uid": "2c348131d0936b7bf1e95a20e7316050ace7362c",
+      "mode": 33206,
+      "bytes": 340,
+      "sha256": "22bf037e5e9afd6e1037a79c681fbe7507e0d0a600867e04d1b4c8535aae0b2b"
+    },
+    {
+      "path": "app/page.tsx",
+      "uid": "993f42107597d0db1bd21beddeaa11951aba81b2",
+      "mode": 33206,
+      "bytes": 157,
+      "sha256": "03dcf380f7007c1b7acac92f61851155a9ad1f4f79fc891af429c2c51134421a"
+    },
+    {
+      "path": "app/sw.js/route.ts",
+      "uid": "e1a628a775b2eb46c9075c35800222d3ef7c39c4",
+      "mode": 33206,
+      "bytes": 1113,
+      "sha256": "14b868d34615e86f50b3026598a6bf218126909fb9e58f1cd032eda303860d74"
+    },
+    {
+      "path": "db/index.ts",
+      "uid": "2ea978ab29423dbac3e2252ea2edb6569016da24",
+      "mode": 33206,
+      "bytes": 252,
+      "sha256": "d91a3bcc9b5cfd17a99babf2768eb09d4e10cfe113fda0bc8aeacdd6cbcff5df"
+    },
+    {
+      "path": "db/schema.ts",
+      "uid": "f95838373cf181e8c67bc30e2b18b3d08859f1e5",
+      "mode": 33206,
+      "bytes": 304,
+      "sha256": "3b65aff4465eb9ec38397ea0c8fc9aa528c3c4db4300e1878799d2e283f6f53f"
+    },
+    {
+      "path": "drizzle.config.ts",
+      "uid": "456ef7f41ab62016f7f2cd4de25f75e9f84a214a",
+      "mode": 33206,
+      "bytes": 141,
+      "sha256": "0c50809d2fdd78b4613153f08689105d391631f86778b4477cd2e0cb77088c75"
+    },
+    {
+      "path": "drizzle/0000_xuliu_state.sql",
+      "uid": "148e4c10a507670ee1d04c80865aed7f8dd0390c",
+      "mode": 33206,
+      "bytes": 165,
+      "sha256": "e0000c82f43171132d7bdc357384472cad979b8d08636393582826cb3eefd0ac"
+    },
+    {
+      "path": "drizzle/meta/_journal.json",
+      "uid": "be5dcdc949efa4295459e71554c94271bf1c5749",
+      "mode": 33206,
+      "bytes": 168,
+      "sha256": "1f1fd6b620fe4ce532e2fcd537fd547746f0e31e99a2c4606e0bdd9dd958e89b"
+    },
+    {
+      "path": "next-env.d.ts",
+      "uid": "14dccace0c5605b4ff0893ab4ac82ebd4ff579a3",
+      "mode": 33206,
+      "bytes": 60,
+      "sha256": "430e1a8e18fbff306c267e0d6d60f44d34b2cb7e54f139366615c709de69e2c9"
+    },
+    {
+      "path": "next.config.ts",
+      "uid": "970eb1d4a909aced000735db50f929e0c97bec9b",
+      "mode": 33206,
+      "bytes": 103,
+      "sha256": "1114dcd20b5394500de8211f3694e10d17fa5c35b6b54cd38971a1ba6ee61d37"
+    },
+    {
+      "path": "package.json",
+      "uid": "e7e7daa0aafa9db6c128e059fa05ec05b5018edc",
+      "mode": 33206,
+      "bytes": 463,
+      "sha256": "732aec5332d8ac9a8f2613ab3f5b779d0646a44c61a8b88bfee0857680705ec5"
+    },
+    {
+      "path": "postcss.config.mjs",
+      "uid": "a561f390123328dc1123e3476ece265ae3c4fac2",
+      "mode": 33206,
+      "bytes": 55,
+      "sha256": "96cfd1cf154aed1da9b4c9b4a8e999f81b9935d300c56f8d1490e3d726fa52a0"
+    },
+    {
+      "path": "README.md",
+      "uid": "8c0edec0feb7223c39d509c30227514e5a356e5b",
+      "mode": 33206,
+      "bytes": 1392,
+      "sha256": "f282454abdf6f2d30fe407b0936fd4b1e363d3519b2ee9570374356ab30e14cd"
+    },
+    {
+      "path": "tsconfig.json",
+      "uid": "ce6968f5c6bd87582ef30e005fed4dd84a37fbae",
+      "mode": 33206,
+      "bytes": 623,
+      "sha256": "bc57ab9a023cbe1a875b7bb49844d694a31dab78f8fd7bd0718b3214bd881183"
+    },
+    {
+      "path": "vite.config.ts",
+      "uid": "9a191315922943fa0b6e76c4990503523aa4f335",
+      "mode": 33206,
+      "bytes": 996,
+      "sha256": "f014763cfc034486f21a0805f19ba788a05366d0ed8a827a36ac06ada166dad2"
+    },
+    {
+      "path": "work/preview/index.html",
+      "uid": "dd37c1be955e72b61df5734b6fb93c06802a4baa",
+      "mode": 33206,
+      "bytes": 7216,
+      "sha256": "036be932ff2d11cdd66e254d42b576417312fc5bd62f4f345c588d4776e1e53a"
+    },
+    {
+      "path": "worker/index.ts",
+      "uid": "35fefd555909f24a60141890f7a822f0177d86bc",
+      "mode": 33206,
+      "bytes": 1330,
+      "sha256": "7971734fb69f3ea43a64ac47bf4920ce808afc098092814b6513b0328dd3e3b3"
+    }
+  ],
+  "excluded": [],
+  "empty_directories": [],
+  "failures": [],
+  "complete": true
+}

@@ -1,0 +1,151 @@
+{
+  "project": {
+    "id": "prj_hPiPfQZMonBNfMAwRoaIsEVGfRwx",
+    "name": "xuliu-ai-web",
+    "production": {
+      "id": "dpl_68zoKjP3ap1Fefa3Z5ef9R7CzwWy",
+      "url": "xuliu-ai-m6suhqlwt-sereni1.vercel.app",
+      "createdAt": 1788837116274,
+      "state": "READY"
+    },
+    "latest": [
+      {
+        "id": "dpl_68zoKjP3ap1Fefa3Z5ef9R7CzwWy",
+        "url": "xuliu-ai-m6suhqlwt-sereni1.vercel.app",
+        "createdAt": 1788837116274,
+        "state": "READY"
+      },
+      {
+        "id": "dpl_9PXtX45eBgeChUXga9XrZ8jCUQD5",
+        "url": "xuliu-ai-q3vrcg0p8-sereni1.vercel.app",
+        "createdAt": 1788836518719,
+        "state": "READY"
+      }
+    ]
+  },
+  "retrieved_at": "2026-09-09T13:56:05.343Z",
+  "deployments": [
+    {
+      "id": "dpl_68zoKjP3ap1Fefa3Z5ef9R7CzwWy",
+      "url": "xuliu-ai-m6suhqlwt-sereni1.vercel.app",
+      "createdAt": 1788837116274,
+      "state": "READY",
+      "target": "production",
+      "current_source": "source/"
+    },
+    {
+      "id": "dpl_9PXtX45eBgeChUXga9XrZ8jCUQD5",
+      "files": 58,
+      "excluded": 0,
+      "complete": true
+    },
+    {
+      "id": "dpl_61v3TxKZiFJRrUpxcVRrSWhkNTHe",
+      "files": 58,
+      "excluded": 0,
+      "complete": true
+    },
+    {
+      "id": "dpl_F7HvKFSyktfNRJad7c63jqHJrEyr",
+      "files": 57,
+      "excluded": 0,
+      "complete": true
+    },
+    {
+      "id": "dpl_3gBBsH1b8LQSP3dQvS8YzEcmHfQc",
+      "files": 57,
+      "excluded": 0,
+      "complete": true
+    },
+    {
+      "id": "dpl_BEQ8Uj6KVoteQ9WGSwjZ8VTxbkJm",
+      "files": 57,
+      "excluded": 0,
+      "complete": true
+    },
+    {
+      "id": "dpl_3SnZkn3HR4xgtomHtVGFSB3aZzZu",
+      "files": 56,
+      "excluded": 0,
+      "complete": true
+    },
+    {
+      "id": "dpl_CJ9uwdEDHZY9bjai9sD4NVE1jezR",
+      "files": 55,
+      "excluded": 0,
+      "complete": true
+    },
+    {
+      "id": "dpl_2G5oQrV3DeJZqZgutrgKqEw6Gq3K",
+      "files": 55,
+      "excluded": 0,
+      "complete": true
+    },
+    {
+      "id": "dpl_59ZefUVJhbmpjKPkRXfrJTaceadH",
+      "files": 55,
+      "excluded": 0,
+      "complete": true
+    },
+    {
+      "id": "dpl_BzCyvbSWeXawjS3m9qBMSMR5XnsV",
+      "files": 55,
+      "excluded": 0,
+      "complete": true
+    },
+    {
+      "id": "dpl_Au8SMMbt4RnwigvExnDJZSSmFzmc",
+      "files": 55,
+      "excluded": 0,
+      "complete": true
+    },
+    {
+      "id": "dpl_KcdmFNRHjWXcHvF3UPA1McfVxMTf",
+      "files": 55,
+      "excluded": 0,
+      "complete": true
+    },
+    {
+      "id": "dpl_BwHhELFxsBEbpEfpc3WqEWWefYTR",
+      "files": 55,
+      "excluded": 0,
+      "complete": true
+    },
+    {
+      "id": "dpl_j4xm9Ja2o8M3a2PWbboNsPgrNDwq",
+      "files": 55,
+      "excluded": 0,
+      "complete": true
+    },
+    {
+      "id": "dpl_HfxCSZ2eJzvgdchw1Ek5fjjL3orj",
+      "files": 55,
+      "excluded": 0,
+      "complete": true
+    },
+    {
+      "id": "dpl_D9VrNSCLyiaQSUfGixrTRv9jhz78",
+      "files": 53,
+      "excluded": 0,
+      "complete": true
+    },
+    {
+      "id": "dpl_519WQ9oMrHAgWKzwsX3v84khq8Qs",
+      "files": 50,
+      "excluded": 0,
+      "complete": true
+    },
+    {
+      "id": "dpl_EtwYL7Apmcz2tHkHjBJoVoNMTQj7",
+      "files": 46,
+      "excluded": 0,
+      "complete": true
+    },
+    {
+      "id": "dpl_EJxdAg1zW1XkB4yCwAGuvwNJohHg",
+      "files": 46,
+      "excluded": 0,
+      "complete": true
+    }
+  ]
+}

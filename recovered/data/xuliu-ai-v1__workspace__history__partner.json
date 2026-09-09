@@ -1,0 +1,86 @@
+[
+  {
+    "data": {
+      "version": 5,
+      "tasks": [],
+      "milestones": [],
+      "courses": [
+        {
+          "id": "bxr57557",
+          "title": "细胞生物学",
+          "term": "2026 秋季",
+          "teacher": "",
+          "location": "",
+          "progress": 0,
+          "requirements": "",
+          "schedule": [],
+          "blocks": [
+            {
+              "id": "4i9k1dnm",
+              "type": "heading",
+              "text": "课程资料与笔记"
+            },
+            {
+              "id": "gw590mn0",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        }
+      ],
+      "learning": [],
+      "research": [],
+      "ideas": [],
+      "tools": [],
+      "habits": [],
+      "routines": [],
+      "reminders": [],
+      "media": [],
+      "recipes": [],
+      "pages": [],
+      "daily": {},
+      "timeEntries": [],
+      "finance": {
+        "entries": [],
+        "budgets": {},
+        "expenseCategories": [
+          "餐饮",
+          "交通",
+          "学习",
+          "购物",
+          "居住",
+          "健康",
+          "娱乐",
+          "人情",
+          "其他"
+        ],
+        "incomeCategories": [
+          "工资",
+          "兼职",
+          "奖学金",
+          "报销",
+          "礼金",
+          "其他收入"
+        ]
+      },
+      "themes": {
+        "today": "#718c7c",
+        "timetable": "#6d8291",
+        "tasks": "#7b846d",
+        "calendar": "#6f8295",
+        "review": "#8c7a91",
+        "finance": "#6f7f72",
+        "school": "#657f91",
+        "learning": "#80769a",
+        "thoughts": "#668476",
+        "work": "#8b7658",
+        "ideas": "#8a6f7d",
+        "tools": "#617f78",
+        "life": "#8b706d",
+        "free": "#738287"
+      }
+    },
+    "updatedAt": "2026-09-04T06:12:00.698Z",
+    "revision": 1
+  }
+]

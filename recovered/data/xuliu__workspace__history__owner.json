@@ -1,0 +1,6702 @@
+[
+  {
+    "data": {
+      "version": 4,
+      "tasks": [
+        {
+          "id": "t1",
+          "title": "整理财务管理第三章笔记",
+          "area": "课内",
+          "source": "财务管理",
+          "due": "2026-08-17",
+          "done": false,
+          "today": true,
+          "elapsed": 24
+        },
+        {
+          "id": "t2",
+          "title": "梳理 AI 工具变现方向的三个假设",
+          "area": "工作",
+          "source": "AI 工具研究",
+          "due": "2026-08-17",
+          "done": false,
+          "today": true,
+          "elapsed": 18
+        },
+        {
+          "id": "t3",
+          "title": "完成 20 分钟力量训练",
+          "area": "生活",
+          "source": "运动",
+          "due": "2026-08-17",
+          "done": false,
+          "today": true,
+          "elapsed": 0
+        },
+        {
+          "id": "t4",
+          "title": "复习中级财务会计错题",
+          "area": "课内",
+          "source": "中级财务会计",
+          "due": "2026-08-17",
+          "done": true,
+          "today": true,
+          "elapsed": 38
+        }
+      ],
+      "milestones": [
+        {
+          "id": "m1",
+          "courseId": "c1",
+          "title": "中级财务会计阶段测验",
+          "date": "2026-08-20",
+          "time": "14:00",
+          "location": "教学楼 302",
+          "requirements": "复习第三至第五章，携带计算器",
+          "area": "课内",
+          "done": false
+        },
+        {
+          "id": "m2",
+          "courseId": "c2",
+          "title": "财务管理课程作业",
+          "date": "2026-08-24",
+          "time": "23:00",
+          "location": "线上提交",
+          "requirements": "完成第三章习题并上传 PDF",
+          "area": "课内",
+          "done": false
+        },
+        {
+          "id": "m3",
+          "title": "AI 工具方向第一轮判断",
+          "date": "2026-08-26",
+          "time": "20:00",
+          "location": "个人工作台",
+          "requirements": "形成可行性结论与下一轮验证清单",
+          "area": "工作",
+          "done": false
+        }
+      ],
+      "courses": [
+        {
+          "id": "r6obhzy7",
+          "title": "未命名课程",
+          "term": "2026 秋季",
+          "teacher": "",
+          "location": "",
+          "progress": 0,
+          "requirements": "",
+          "schedule": [],
+          "blocks": [
+            {
+              "id": "j21wwzf5",
+              "type": "heading",
+              "text": "课程资料与笔记"
+            },
+            {
+              "id": "2adb1w6w",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        }
+      ],
+      "learning": [
+        {
+          "id": "l1",
+          "title": "日语",
+          "category": "语言",
+          "progress": 41,
+          "goal": "完成初级课程，建立日常输入和复习系统。",
+          "resources": [
+            {
+              "id": "lr1",
+              "title": "日语入门系统课",
+              "type": "B站课程",
+              "url": "https://www.bilibili.com",
+              "progress": 44
+            }
+          ],
+          "blocks": [
+            {
+              "id": "76dd30iy",
+              "type": "heading",
+              "text": "学习路线与笔记"
+            },
+            {
+              "id": "fek20zyh",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        },
+        {
+          "id": "l2",
+          "title": "摄影",
+          "category": "兴趣",
+          "progress": 28,
+          "goal": "理解构图、用光并持续完成主题拍摄。",
+          "resources": [
+            {
+              "id": "lr2",
+              "title": "摄影构图与用光",
+              "type": "书籍",
+              "url": "",
+              "progress": 28
+            }
+          ],
+          "blocks": [
+            {
+              "id": "aoaxghsl",
+              "type": "heading",
+              "text": "作品练习与复盘"
+            },
+            {
+              "id": "y1t9cdsi",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        },
+        {
+          "id": "l3",
+          "title": "深度学习",
+          "category": "技术",
+          "progress": 16,
+          "goal": "完成基础理论和一个可展示的小项目。",
+          "resources": [
+            {
+              "id": "lr3",
+              "title": "深度学习基础",
+              "type": "在线课程",
+              "url": "",
+              "progress": 16
+            }
+          ],
+          "blocks": [
+            {
+              "id": "56498jl9",
+              "type": "heading",
+              "text": "概念、实验与问题"
+            },
+            {
+              "id": "00mhdwkt",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        }
+      ],
+      "research": [
+        {
+          "id": "w1",
+          "title": "面向学生的 AI 学习工具",
+          "status": "研究中",
+          "summary": "验证低频但刚需的小型工具形态。",
+          "objective": "弄清学生真正愿意长期使用、愿意付费的学习管理能力。",
+          "next": "访谈 5 个真实使用者",
+          "progress": 45,
+          "pages": [
+            {
+              "id": "2oig775e",
+              "title": "研究总览",
+              "blocks": [
+                {
+                  "id": "xv80gbyh",
+                  "type": "heading",
+                  "text": "研究记录"
+                },
+                {
+                  "id": "b29fc4xg",
+                  "type": "text",
+                  "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+                }
+              ]
+            },
+            {
+              "id": "y71mxjm4",
+              "title": "资料与线索",
+              "blocks": [
+                {
+                  "id": "hym2othx",
+                  "type": "heading",
+                  "text": "资料与线索"
+                },
+                {
+                  "id": "5pfkun76",
+                  "type": "text",
+                  "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+                }
+              ]
+            },
+            {
+              "id": "99tp08ot",
+              "title": "阶段结论",
+              "blocks": [
+                {
+                  "id": "rfsouoc1",
+                  "type": "heading",
+                  "text": "阶段结论"
+                },
+                {
+                  "id": "qtr8a5nz",
+                  "type": "text",
+                  "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "w2",
+          "title": "小型自动化工具变现",
+          "status": "收集箱",
+          "summary": "研究个人开发者可持续的小产品模式。",
+          "objective": "找到需求明确、交付轻、可以快速验证的小工具方向。",
+          "next": "拆解 3 个同类产品",
+          "progress": 25,
+          "pages": [
+            {
+              "id": "pxc1cdon",
+              "title": "研究总览",
+              "blocks": [
+                {
+                  "id": "odclrdw5",
+                  "type": "heading",
+                  "text": "市场、案例与证据"
+                },
+                {
+                  "id": "uav964td",
+                  "type": "text",
+                  "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+                }
+              ]
+            },
+            {
+              "id": "u6he8yoz",
+              "title": "资料与线索",
+              "blocks": [
+                {
+                  "id": "azp8xpd7",
+                  "type": "heading",
+                  "text": "资料与线索"
+                },
+                {
+                  "id": "zu0tdqhj",
+                  "type": "text",
+                  "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+                }
+              ]
+            },
+            {
+              "id": "335bezcs",
+              "title": "阶段结论",
+              "blocks": [
+                {
+                  "id": "ddqnu797",
+                  "type": "heading",
+                  "text": "阶段结论"
+                },
+                {
+                  "id": "1jvf3z3k",
+                  "type": "text",
+                  "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "ideas": [
+        {
+          "id": "i1",
+          "title": "把课程节点自动转成复习任务",
+          "note": "根据考试日倒排并分配复习量。",
+          "createdAt": "2026-08-17"
+        },
+        {
+          "id": "i2",
+          "title": "工具集记录每次迭代原因",
+          "note": "不只展示链接，也保留产品演进过程。",
+          "createdAt": "2026-08-17"
+        }
+      ],
+      "tools": [
+        {
+          "id": "tool1",
+          "title": "序流",
+          "status": "迭代中",
+          "description": "个人工作、学习与生活流管理系统\n\n+事项管理",
+          "url": "https://xuliu-flow-web-stable.vercel.app/",
+          "version": "v10",
+          "blocks": [
+            {
+              "id": "htb9bwzg",
+              "type": "heading",
+              "text": "产品说明与迭代记录"
+            },
+            {
+              "id": "95j4dppk",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ],
+          "versions": [
+            {
+              "id": "legacy-tool1",
+              "label": "v10",
+              "url": "https://xuliu-flow-web-stable.vercel.app/",
+              "note": "从原有工具记录迁移",
+              "createdAt": "2026-08-19"
+            }
+          ]
+        },
+        {
+          "id": "xyjn7vdi",
+          "title": "档案馆",
+          "status": "迭代中",
+          "description": "",
+          "url": "https://shiguang-life-archive-rho.vercel.app/?v=15",
+          "version": "v15",
+          "blocks": [
+            {
+              "id": "mq0d1xb6",
+              "type": "heading",
+              "text": "产品说明与迭代记录"
+            },
+            {
+              "id": "mwar9m9v",
+              "type": "text",
+              "text": "v16要改什么：增加详细地点识别，以及其他国家和地区的行政区选择"
+            }
+          ],
+          "versions": [
+            {
+              "id": "legacy-xyjn7vdi",
+              "label": "0.1",
+              "url": "",
+              "note": "从原有工具记录迁移",
+              "createdAt": "2026-08-19"
+            },
+            {
+              "id": "o81zg16h",
+              "label": "v15",
+              "url": "https://shiguang-life-archive-rho.vercel.app/?v=15",
+              "note": "这一版已经实现了定位到区\n",
+              "createdAt": "2026-08-19"
+            }
+          ],
+          "currentVersionId": "o81zg16h"
+        },
+        {
+          "id": "r2lzkbik",
+          "title": "服饰搭配器",
+          "status": "想法",
+          "description": "按照色彩、风格等方式，提供服装搭配建议\n可以内置一个gpt进行图像处理和扫描\n",
+          "url": "",
+          "version": "0.1",
+          "blocks": [
+            {
+              "id": "w2zgcpdc",
+              "type": "heading",
+              "text": "产品说明与迭代记录"
+            },
+            {
+              "id": "wc3aikbx",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        },
+        {
+          "id": "1cuasjh2",
+          "title": "北京去哪儿玩",
+          "status": "想法",
+          "description": "",
+          "url": "",
+          "version": "0.1",
+          "blocks": [
+            {
+              "id": "mnf7rs24",
+              "type": "heading",
+              "text": "产品说明与迭代记录"
+            },
+            {
+              "id": "l3o2zdd4",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        }
+      ],
+      "habits": [
+        {
+          "id": "h1",
+          "title": "23:00 前准备睡觉",
+          "streak": 6,
+          "today": true,
+          "schedule": "每天"
+        },
+        {
+          "id": "h2",
+          "title": "力量训练 20 分钟",
+          "streak": 3,
+          "today": true,
+          "schedule": "周一、三、六"
+        },
+        {
+          "id": "h3",
+          "title": "专注间隔起身休息",
+          "streak": 8,
+          "today": true,
+          "schedule": "每 20 分钟"
+        }
+      ],
+      "routines": [
+        {
+          "id": "routine1",
+          "title": "晨间启动",
+          "note": "喝水、确认今日任务、开始第一段学习"
+        },
+        {
+          "id": "routine2",
+          "title": "晚间收尾",
+          "note": "整理桌面、完成复盘、放下屏幕"
+        }
+      ],
+      "reminders": [
+        {
+          "id": "exercise",
+          "title": "完成今天的运动",
+          "type": "exercise",
+          "times": [
+            "10:30",
+            "17:30",
+            "12:00"
+          ],
+          "enabled": true
+        },
+        {
+          "id": "break",
+          "title": "起身活动，看看远处",
+          "type": "break",
+          "times": [],
+          "intervalMinutes": 20,
+          "enabled": true
+        },
+        {
+          "id": "sleep",
+          "title": "准备结束今天，放下屏幕",
+          "type": "sleep",
+          "times": [
+            "23:00"
+          ],
+          "enabled": true,
+          "lastFired": "2026-08-17-23:00"
+        }
+      ],
+      "media": [
+        {
+          "id": "media1",
+          "title": "摄影的艺术",
+          "kind": "书籍",
+          "status": "正在看",
+          "progress": "38%",
+          "blocks": [
+            {
+              "id": "xj67i5zr",
+              "type": "heading",
+              "text": "阅读摘记"
+            },
+            {
+              "id": "6xmstlhm",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        },
+        {
+          "id": "media2",
+          "title": "葬送的芙莉莲",
+          "kind": "动画",
+          "status": "正在看",
+          "progress": "第 7 集",
+          "blocks": [
+            {
+              "id": "zqxay9qo",
+              "type": "heading",
+              "text": "观看记录"
+            },
+            {
+              "id": "5xdweg9w",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        },
+        {
+          "id": "media3",
+          "title": "财务自由之路",
+          "kind": "书籍",
+          "status": "想看",
+          "progress": "未开始",
+          "blocks": [
+            {
+              "id": "8o7596xe",
+              "type": "heading",
+              "text": "阅读期待"
+            },
+            {
+              "id": "n97ihdk6",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        }
+      ],
+      "recipes": [
+        {
+          "id": "recipe1",
+          "title": "番茄牛肉意面",
+          "ingredients": "牛肉、番茄、意面、洋葱",
+          "note": "下次增加一点罗勒",
+          "blocks": [
+            {
+              "id": "verces6f",
+              "type": "heading",
+              "text": "步骤与调整"
+            },
+            {
+              "id": "nns1hh78",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        }
+      ],
+      "pages": [
+        {
+          "id": "tf1",
+          "space": "thoughts",
+          "parentId": null,
+          "title": "学习方法",
+          "kind": "folder",
+          "blocks": []
+        },
+        {
+          "id": "tf2",
+          "space": "thoughts",
+          "parentId": "tf1",
+          "title": "系统化学习",
+          "kind": "folder",
+          "blocks": []
+        },
+        {
+          "id": "tp1",
+          "space": "thoughts",
+          "parentId": "tf2",
+          "title": "学习系统如何真正运转",
+          "kind": "page",
+          "blocks": [
+            {
+              "id": "jvv4dcm3",
+              "type": "heading",
+              "text": "从节点到每天行动"
+            },
+            {
+              "id": "xzqf8hda",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        },
+        {
+          "id": "tp2",
+          "space": "thoughts",
+          "parentId": "tf1",
+          "title": "复习与反馈",
+          "kind": "page",
+          "blocks": [
+            {
+              "id": "hz4x3q4s",
+              "type": "heading",
+              "text": "复习不是重复阅读"
+            },
+            {
+              "id": "7n0iegom",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        },
+        {
+          "id": "ff1",
+          "space": "free",
+          "parentId": null,
+          "title": "个人档案",
+          "kind": "folder",
+          "blocks": []
+        },
+        {
+          "id": "fp1",
+          "space": "free",
+          "parentId": "ff1",
+          "title": "摄影器材记录",
+          "kind": "page",
+          "blocks": [
+            {
+              "id": "jlulh3ym",
+              "type": "heading",
+              "text": "现有设备与使用感受"
+            },
+            {
+              "id": "czritcgz",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        }
+      ],
+      "daily": {
+        "2026-08-17": {
+          "note": "",
+          "gain": "",
+          "problem": "",
+          "feeling": "",
+          "tomorrow": ""
+        }
+      },
+      "timeEntries": [],
+      "themes": {
+        "today": "#718c7c",
+        "timetable": "#6d8291",
+        "tasks": "#7b846d",
+        "calendar": "#6f8295",
+        "review": "#8c7a91",
+        "school": "#657f91",
+        "learning": "#80769a",
+        "thoughts": "#668476",
+        "work": "#8b7658",
+        "ideas": "#8a6f7d",
+        "tools": "#617f78",
+        "life": "#8b706d",
+        "free": "#738287"
+      }
+    },
+    "updatedAt": "2026-08-22T13:13:50.617Z",
+    "revision": 49
+  },
+  {
+    "data": {
+      "version": 4,
+      "tasks": [
+        {
+          "id": "t1",
+          "title": "整理财务管理第三章笔记",
+          "area": "课内",
+          "source": "财务管理",
+          "due": "2026-08-17",
+          "done": false,
+          "today": true,
+          "elapsed": 24
+        },
+        {
+          "id": "t2",
+          "title": "梳理 AI 工具变现方向的三个假设",
+          "area": "工作",
+          "source": "AI 工具研究",
+          "due": "2026-08-17",
+          "done": false,
+          "today": true,
+          "elapsed": 18
+        },
+        {
+          "id": "t3",
+          "title": "完成 20 分钟力量训练",
+          "area": "生活",
+          "source": "运动",
+          "due": "2026-08-17",
+          "done": false,
+          "today": true,
+          "elapsed": 0
+        },
+        {
+          "id": "t4",
+          "title": "复习中级财务会计错题",
+          "area": "课内",
+          "source": "中级财务会计",
+          "due": "2026-08-17",
+          "done": true,
+          "today": true,
+          "elapsed": 38
+        }
+      ],
+      "milestones": [
+        {
+          "id": "m1",
+          "courseId": "c1",
+          "title": "中级财务会计阶段测验",
+          "date": "2026-08-20",
+          "time": "14:00",
+          "location": "教学楼 302",
+          "requirements": "复习第三至第五章，携带计算器",
+          "area": "课内",
+          "done": false
+        },
+        {
+          "id": "m2",
+          "courseId": "c2",
+          "title": "财务管理课程作业",
+          "date": "2026-08-24",
+          "time": "23:00",
+          "location": "线上提交",
+          "requirements": "完成第三章习题并上传 PDF",
+          "area": "课内",
+          "done": false
+        },
+        {
+          "id": "m3",
+          "title": "AI 工具方向第一轮判断",
+          "date": "2026-08-26",
+          "time": "20:00",
+          "location": "个人工作台",
+          "requirements": "形成可行性结论与下一轮验证清单",
+          "area": "工作",
+          "done": false
+        }
+      ],
+      "courses": [
+        {
+          "id": "r6obhzy7",
+          "title": "未命名课程",
+          "term": "2026 秋季",
+          "teacher": "",
+          "location": "",
+          "progress": 0,
+          "requirements": "",
+          "schedule": [],
+          "blocks": [
+            {
+              "id": "j21wwzf5",
+              "type": "heading",
+              "text": "课程资料与笔记"
+            },
+            {
+              "id": "2adb1w6w",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        }
+      ],
+      "learning": [
+        {
+          "id": "l1",
+          "title": "日语",
+          "category": "语言",
+          "progress": 41,
+          "goal": "完成初级课程，建立日常输入和复习系统。",
+          "resources": [
+            {
+              "id": "lr1",
+              "title": "日语入门系统课",
+              "type": "B站课程",
+              "url": "https://www.bilibili.com",
+              "progress": 44
+            }
+          ],
+          "blocks": [
+            {
+              "id": "76dd30iy",
+              "type": "heading",
+              "text": "学习路线与笔记"
+            },
+            {
+              "id": "fek20zyh",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        },
+        {
+          "id": "l2",
+          "title": "摄影",
+          "category": "兴趣",
+          "progress": 28,
+          "goal": "理解构图、用光并持续完成主题拍摄。",
+          "resources": [
+            {
+              "id": "lr2",
+              "title": "摄影构图与用光",
+              "type": "书籍",
+              "url": "",
+              "progress": 28
+            }
+          ],
+          "blocks": [
+            {
+              "id": "aoaxghsl",
+              "type": "heading",
+              "text": "作品练习与复盘"
+            },
+            {
+              "id": "y1t9cdsi",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        },
+        {
+          "id": "l3",
+          "title": "深度学习",
+          "category": "技术",
+          "progress": 16,
+          "goal": "完成基础理论和一个可展示的小项目。",
+          "resources": [
+            {
+              "id": "lr3",
+              "title": "深度学习基础",
+              "type": "在线课程",
+              "url": "",
+              "progress": 16
+            }
+          ],
+          "blocks": [
+            {
+              "id": "56498jl9",
+              "type": "heading",
+              "text": "概念、实验与问题"
+            },
+            {
+              "id": "00mhdwkt",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        }
+      ],
+      "research": [
+        {
+          "id": "w1",
+          "title": "面向学生的 AI 学习工具",
+          "status": "研究中",
+          "summary": "验证低频但刚需的小型工具形态。",
+          "objective": "弄清学生真正愿意长期使用、愿意付费的学习管理能力。",
+          "next": "访谈 5 个真实使用者",
+          "progress": 45,
+          "pages": [
+            {
+              "id": "2oig775e",
+              "title": "研究总览",
+              "blocks": [
+                {
+                  "id": "xv80gbyh",
+                  "type": "heading",
+                  "text": "研究记录"
+                },
+                {
+                  "id": "b29fc4xg",
+                  "type": "text",
+                  "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+                }
+              ]
+            },
+            {
+              "id": "y71mxjm4",
+              "title": "资料与线索",
+              "blocks": [
+                {
+                  "id": "hym2othx",
+                  "type": "heading",
+                  "text": "资料与线索"
+                },
+                {
+                  "id": "5pfkun76",
+                  "type": "text",
+                  "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+                }
+              ]
+            },
+            {
+              "id": "99tp08ot",
+              "title": "阶段结论",
+              "blocks": [
+                {
+                  "id": "rfsouoc1",
+                  "type": "heading",
+                  "text": "阶段结论"
+                },
+                {
+                  "id": "qtr8a5nz",
+                  "type": "text",
+                  "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "w2",
+          "title": "小型自动化工具变现",
+          "status": "收集箱",
+          "summary": "研究个人开发者可持续的小产品模式。",
+          "objective": "找到需求明确、交付轻、可以快速验证的小工具方向。",
+          "next": "拆解 3 个同类产品",
+          "progress": 25,
+          "pages": [
+            {
+              "id": "pxc1cdon",
+              "title": "研究总览",
+              "blocks": [
+                {
+                  "id": "odclrdw5",
+                  "type": "heading",
+                  "text": "市场、案例与证据"
+                },
+                {
+                  "id": "uav964td",
+                  "type": "text",
+                  "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+                }
+              ]
+            },
+            {
+              "id": "u6he8yoz",
+              "title": "资料与线索",
+              "blocks": [
+                {
+                  "id": "azp8xpd7",
+                  "type": "heading",
+                  "text": "资料与线索"
+                },
+                {
+                  "id": "zu0tdqhj",
+                  "type": "text",
+                  "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+                }
+              ]
+            },
+            {
+              "id": "335bezcs",
+              "title": "阶段结论",
+              "blocks": [
+                {
+                  "id": "ddqnu797",
+                  "type": "heading",
+                  "text": "阶段结论"
+                },
+                {
+                  "id": "1jvf3z3k",
+                  "type": "text",
+                  "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "ideas": [
+        {
+          "id": "i1",
+          "title": "把课程节点自动转成复习任务",
+          "note": "根据考试日倒排并分配复习量。",
+          "createdAt": "2026-08-17"
+        },
+        {
+          "id": "i2",
+          "title": "工具集记录每次迭代原因",
+          "note": "不只展示链接，也保留产品演进过程。",
+          "createdAt": "2026-08-17"
+        }
+      ],
+      "tools": [
+        {
+          "id": "tool1",
+          "title": "序流",
+          "status": "迭代中",
+          "description": "个人工作、学习与生活流管理系统\n\n+事项管理",
+          "url": "https://xuliu-flow-web-stable.vercel.app/",
+          "version": "v10",
+          "blocks": [
+            {
+              "id": "htb9bwzg",
+              "type": "heading",
+              "text": "产品说明与迭代记录"
+            },
+            {
+              "id": "95j4dppk",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ],
+          "versions": [
+            {
+              "id": "legacy-tool1",
+              "label": "v10",
+              "url": "https://xuliu-flow-web-stable.vercel.app/",
+              "note": "从原有工具记录迁移",
+              "createdAt": "2026-08-19"
+            }
+          ]
+        },
+        {
+          "id": "xyjn7vdi",
+          "title": "档案馆",
+          "status": "迭代中",
+          "description": "",
+          "url": "https://shiguang-life-archive-rho.vercel.app/?v=15",
+          "version": "v15",
+          "blocks": [
+            {
+              "id": "mq0d1xb6",
+              "type": "heading",
+              "text": "产品说明与迭代记录"
+            },
+            {
+              "id": "mwar9m9v",
+              "type": "text",
+              "text": "v16要改什么：增加详细地点识别，以及其他国家和地区的行政区选择"
+            }
+          ],
+          "versions": [
+            {
+              "id": "legacy-xyjn7vdi",
+              "label": "0.1",
+              "url": "",
+              "note": "从原有工具记录迁移",
+              "createdAt": "2026-08-19"
+            },
+            {
+              "id": "o81zg16h",
+              "label": "v15",
+              "url": "https://shiguang-life-archive-rho.vercel.app/?v=15",
+              "note": "这一版已经实现了定位到区\n",
+              "createdAt": "2026-08-19"
+            }
+          ],
+          "currentVersionId": "o81zg16h"
+        },
+        {
+          "id": "r2lzkbik",
+          "title": "服饰搭配器",
+          "status": "想法",
+          "description": "按照色彩、风格等方式，提供服装搭配建议\n可以内置一个gpt进行图像处理和扫描\n",
+          "url": "",
+          "version": "0.1",
+          "blocks": [
+            {
+              "id": "w2zgcpdc",
+              "type": "heading",
+              "text": "产品说明与迭代记录"
+            },
+            {
+              "id": "wc3aikbx",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        }
+      ],
+      "habits": [
+        {
+          "id": "h1",
+          "title": "23:00 前准备睡觉",
+          "streak": 6,
+          "today": true,
+          "schedule": "每天"
+        },
+        {
+          "id": "h2",
+          "title": "力量训练 20 分钟",
+          "streak": 3,
+          "today": true,
+          "schedule": "周一、三、六"
+        },
+        {
+          "id": "h3",
+          "title": "专注间隔起身休息",
+          "streak": 8,
+          "today": true,
+          "schedule": "每 20 分钟"
+        }
+      ],
+      "routines": [
+        {
+          "id": "routine1",
+          "title": "晨间启动",
+          "note": "喝水、确认今日任务、开始第一段学习"
+        },
+        {
+          "id": "routine2",
+          "title": "晚间收尾",
+          "note": "整理桌面、完成复盘、放下屏幕"
+        }
+      ],
+      "reminders": [
+        {
+          "id": "exercise",
+          "title": "完成今天的运动",
+          "type": "exercise",
+          "times": [
+            "10:30",
+            "17:30",
+            "12:00"
+          ],
+          "enabled": true
+        },
+        {
+          "id": "break",
+          "title": "起身活动，看看远处",
+          "type": "break",
+          "times": [],
+          "intervalMinutes": 20,
+          "enabled": true
+        },
+        {
+          "id": "sleep",
+          "title": "准备结束今天，放下屏幕",
+          "type": "sleep",
+          "times": [
+            "23:00"
+          ],
+          "enabled": true,
+          "lastFired": "2026-08-17-23:00"
+        }
+      ],
+      "media": [
+        {
+          "id": "media1",
+          "title": "摄影的艺术",
+          "kind": "书籍",
+          "status": "正在看",
+          "progress": "38%",
+          "blocks": [
+            {
+              "id": "xj67i5zr",
+              "type": "heading",
+              "text": "阅读摘记"
+            },
+            {
+              "id": "6xmstlhm",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        },
+        {
+          "id": "media2",
+          "title": "葬送的芙莉莲",
+          "kind": "动画",
+          "status": "正在看",
+          "progress": "第 7 集",
+          "blocks": [
+            {
+              "id": "zqxay9qo",
+              "type": "heading",
+              "text": "观看记录"
+            },
+            {
+              "id": "5xdweg9w",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        },
+        {
+          "id": "media3",
+          "title": "财务自由之路",
+          "kind": "书籍",
+          "status": "想看",
+          "progress": "未开始",
+          "blocks": [
+            {
+              "id": "8o7596xe",
+              "type": "heading",
+              "text": "阅读期待"
+            },
+            {
+              "id": "n97ihdk6",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        }
+      ],
+      "recipes": [
+        {
+          "id": "recipe1",
+          "title": "番茄牛肉意面",
+          "ingredients": "牛肉、番茄、意面、洋葱",
+          "note": "下次增加一点罗勒",
+          "blocks": [
+            {
+              "id": "verces6f",
+              "type": "heading",
+              "text": "步骤与调整"
+            },
+            {
+              "id": "nns1hh78",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        }
+      ],
+      "pages": [
+        {
+          "id": "tf1",
+          "space": "thoughts",
+          "parentId": null,
+          "title": "学习方法",
+          "kind": "folder",
+          "blocks": []
+        },
+        {
+          "id": "tf2",
+          "space": "thoughts",
+          "parentId": "tf1",
+          "title": "系统化学习",
+          "kind": "folder",
+          "blocks": []
+        },
+        {
+          "id": "tp1",
+          "space": "thoughts",
+          "parentId": "tf2",
+          "title": "学习系统如何真正运转",
+          "kind": "page",
+          "blocks": [
+            {
+              "id": "jvv4dcm3",
+              "type": "heading",
+              "text": "从节点到每天行动"
+            },
+            {
+              "id": "xzqf8hda",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        },
+        {
+          "id": "tp2",
+          "space": "thoughts",
+          "parentId": "tf1",
+          "title": "复习与反馈",
+          "kind": "page",
+          "blocks": [
+            {
+              "id": "hz4x3q4s",
+              "type": "heading",
+              "text": "复习不是重复阅读"
+            },
+            {
+              "id": "7n0iegom",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        },
+        {
+          "id": "ff1",
+          "space": "free",
+          "parentId": null,
+          "title": "个人档案",
+          "kind": "folder",
+          "blocks": []
+        },
+        {
+          "id": "fp1",
+          "space": "free",
+          "parentId": "ff1",
+          "title": "摄影器材记录",
+          "kind": "page",
+          "blocks": [
+            {
+              "id": "jlulh3ym",
+              "type": "heading",
+              "text": "现有设备与使用感受"
+            },
+            {
+              "id": "czritcgz",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        }
+      ],
+      "daily": {
+        "2026-08-17": {
+          "note": "",
+          "gain": "",
+          "problem": "",
+          "feeling": "",
+          "tomorrow": ""
+        }
+      },
+      "timeEntries": [],
+      "themes": {
+        "today": "#718c7c",
+        "timetable": "#6d8291",
+        "tasks": "#7b846d",
+        "calendar": "#6f8295",
+        "review": "#8c7a91",
+        "school": "#657f91",
+        "learning": "#80769a",
+        "thoughts": "#668476",
+        "work": "#8b7658",
+        "ideas": "#8a6f7d",
+        "tools": "#617f78",
+        "life": "#8b706d",
+        "free": "#738287"
+      }
+    },
+    "updatedAt": "2026-08-19T13:46:25.443Z",
+    "revision": 48
+  },
+  {
+    "data": {
+      "version": 4,
+      "tasks": [
+        {
+          "id": "t1",
+          "title": "整理财务管理第三章笔记",
+          "area": "课内",
+          "source": "财务管理",
+          "due": "2026-08-17",
+          "done": false,
+          "today": true,
+          "elapsed": 24
+        },
+        {
+          "id": "t2",
+          "title": "梳理 AI 工具变现方向的三个假设",
+          "area": "工作",
+          "source": "AI 工具研究",
+          "due": "2026-08-17",
+          "done": false,
+          "today": true,
+          "elapsed": 18
+        },
+        {
+          "id": "t3",
+          "title": "完成 20 分钟力量训练",
+          "area": "生活",
+          "source": "运动",
+          "due": "2026-08-17",
+          "done": false,
+          "today": true,
+          "elapsed": 0
+        },
+        {
+          "id": "t4",
+          "title": "复习中级财务会计错题",
+          "area": "课内",
+          "source": "中级财务会计",
+          "due": "2026-08-17",
+          "done": true,
+          "today": true,
+          "elapsed": 38
+        }
+      ],
+      "milestones": [
+        {
+          "id": "m1",
+          "courseId": "c1",
+          "title": "中级财务会计阶段测验",
+          "date": "2026-08-20",
+          "time": "14:00",
+          "location": "教学楼 302",
+          "requirements": "复习第三至第五章，携带计算器",
+          "area": "课内",
+          "done": false
+        },
+        {
+          "id": "m2",
+          "courseId": "c2",
+          "title": "财务管理课程作业",
+          "date": "2026-08-24",
+          "time": "23:00",
+          "location": "线上提交",
+          "requirements": "完成第三章习题并上传 PDF",
+          "area": "课内",
+          "done": false
+        },
+        {
+          "id": "m3",
+          "title": "AI 工具方向第一轮判断",
+          "date": "2026-08-26",
+          "time": "20:00",
+          "location": "个人工作台",
+          "requirements": "形成可行性结论与下一轮验证清单",
+          "area": "工作",
+          "done": false
+        }
+      ],
+      "courses": [
+        {
+          "id": "r6obhzy7",
+          "title": "未命名课程",
+          "term": "2026 秋季",
+          "teacher": "",
+          "location": "",
+          "progress": 0,
+          "requirements": "",
+          "schedule": [],
+          "blocks": [
+            {
+              "id": "j21wwzf5",
+              "type": "heading",
+              "text": "课程资料与笔记"
+            },
+            {
+              "id": "2adb1w6w",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        }
+      ],
+      "learning": [
+        {
+          "id": "l1",
+          "title": "日语",
+          "category": "语言",
+          "progress": 41,
+          "goal": "完成初级课程，建立日常输入和复习系统。",
+          "resources": [
+            {
+              "id": "lr1",
+              "title": "日语入门系统课",
+              "type": "B站课程",
+              "url": "https://www.bilibili.com",
+              "progress": 44
+            }
+          ],
+          "blocks": [
+            {
+              "id": "76dd30iy",
+              "type": "heading",
+              "text": "学习路线与笔记"
+            },
+            {
+              "id": "fek20zyh",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        },
+        {
+          "id": "l2",
+          "title": "摄影",
+          "category": "兴趣",
+          "progress": 28,
+          "goal": "理解构图、用光并持续完成主题拍摄。",
+          "resources": [
+            {
+              "id": "lr2",
+              "title": "摄影构图与用光",
+              "type": "书籍",
+              "url": "",
+              "progress": 28
+            }
+          ],
+          "blocks": [
+            {
+              "id": "aoaxghsl",
+              "type": "heading",
+              "text": "作品练习与复盘"
+            },
+            {
+              "id": "y1t9cdsi",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        },
+        {
+          "id": "l3",
+          "title": "深度学习",
+          "category": "技术",
+          "progress": 16,
+          "goal": "完成基础理论和一个可展示的小项目。",
+          "resources": [
+            {
+              "id": "lr3",
+              "title": "深度学习基础",
+              "type": "在线课程",
+              "url": "",
+              "progress": 16
+            }
+          ],
+          "blocks": [
+            {
+              "id": "56498jl9",
+              "type": "heading",
+              "text": "概念、实验与问题"
+            },
+            {
+              "id": "00mhdwkt",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        }
+      ],
+      "research": [
+        {
+          "id": "w1",
+          "title": "面向学生的 AI 学习工具",
+          "status": "研究中",
+          "summary": "验证低频但刚需的小型工具形态。",
+          "objective": "弄清学生真正愿意长期使用、愿意付费的学习管理能力。",
+          "next": "访谈 5 个真实使用者",
+          "progress": 45,
+          "pages": [
+            {
+              "id": "2oig775e",
+              "title": "研究总览",
+              "blocks": [
+                {
+                  "id": "xv80gbyh",
+                  "type": "heading",
+                  "text": "研究记录"
+                },
+                {
+                  "id": "b29fc4xg",
+                  "type": "text",
+                  "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+                }
+              ]
+            },
+            {
+              "id": "y71mxjm4",
+              "title": "资料与线索",
+              "blocks": [
+                {
+                  "id": "hym2othx",
+                  "type": "heading",
+                  "text": "资料与线索"
+                },
+                {
+                  "id": "5pfkun76",
+                  "type": "text",
+                  "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+                }
+              ]
+            },
+            {
+              "id": "99tp08ot",
+              "title": "阶段结论",
+              "blocks": [
+                {
+                  "id": "rfsouoc1",
+                  "type": "heading",
+                  "text": "阶段结论"
+                },
+                {
+                  "id": "qtr8a5nz",
+                  "type": "text",
+                  "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "w2",
+          "title": "小型自动化工具变现",
+          "status": "收集箱",
+          "summary": "研究个人开发者可持续的小产品模式。",
+          "objective": "找到需求明确、交付轻、可以快速验证的小工具方向。",
+          "next": "拆解 3 个同类产品",
+          "progress": 25,
+          "pages": [
+            {
+              "id": "pxc1cdon",
+              "title": "研究总览",
+              "blocks": [
+                {
+                  "id": "odclrdw5",
+                  "type": "heading",
+                  "text": "市场、案例与证据"
+                },
+                {
+                  "id": "uav964td",
+                  "type": "text",
+                  "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+                }
+              ]
+            },
+            {
+              "id": "u6he8yoz",
+              "title": "资料与线索",
+              "blocks": [
+                {
+                  "id": "azp8xpd7",
+                  "type": "heading",
+                  "text": "资料与线索"
+                },
+                {
+                  "id": "zu0tdqhj",
+                  "type": "text",
+                  "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+                }
+              ]
+            },
+            {
+              "id": "335bezcs",
+              "title": "阶段结论",
+              "blocks": [
+                {
+                  "id": "ddqnu797",
+                  "type": "heading",
+                  "text": "阶段结论"
+                },
+                {
+                  "id": "1jvf3z3k",
+                  "type": "text",
+                  "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "ideas": [
+        {
+          "id": "i1",
+          "title": "把课程节点自动转成复习任务",
+          "note": "根据考试日倒排并分配复习量。",
+          "createdAt": "2026-08-17"
+        },
+        {
+          "id": "i2",
+          "title": "工具集记录每次迭代原因",
+          "note": "不只展示链接，也保留产品演进过程。",
+          "createdAt": "2026-08-17"
+        }
+      ],
+      "tools": [
+        {
+          "id": "tool1",
+          "title": "序流",
+          "status": "迭代中",
+          "description": "个人工作、学习与生活流管理系统\n\n+事项管理",
+          "url": "https://xuliu-flow-web-stable.vercel.app/",
+          "version": "v10",
+          "blocks": [
+            {
+              "id": "htb9bwzg",
+              "type": "heading",
+              "text": "产品说明与迭代记录"
+            },
+            {
+              "id": "95j4dppk",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ],
+          "versions": [
+            {
+              "id": "legacy-tool1",
+              "label": "v10",
+              "url": "https://xuliu-flow-web-stable.vercel.app/",
+              "note": "从原有工具记录迁移",
+              "createdAt": "2026-08-19"
+            }
+          ]
+        },
+        {
+          "id": "xyjn7vdi",
+          "title": "档案馆",
+          "status": "迭代中",
+          "description": "+其他国家\n",
+          "url": "https://shiguang-life-archive-rho.vercel.app/?v=15",
+          "version": "v15",
+          "blocks": [
+            {
+              "id": "mq0d1xb6",
+              "type": "heading",
+              "text": "产品说明与迭代记录"
+            },
+            {
+              "id": "mwar9m9v",
+              "type": "text",
+              "text": "v16要改什么：增加详细地点识别，以及其他国家和地区的行政区选择"
+            }
+          ],
+          "versions": [
+            {
+              "id": "legacy-xyjn7vdi",
+              "label": "0.1",
+              "url": "",
+              "note": "从原有工具记录迁移",
+              "createdAt": "2026-08-19"
+            },
+            {
+              "id": "o81zg16h",
+              "label": "v15",
+              "url": "https://shiguang-life-archive-rho.vercel.app/?v=15",
+              "note": "这一版已经实现了定位到区\n",
+              "createdAt": "2026-08-19"
+            }
+          ],
+          "currentVersionId": "o81zg16h"
+        },
+        {
+          "id": "r2lzkbik",
+          "title": "服饰搭配器",
+          "status": "想法",
+          "description": "按照色彩、风格等方式，提供服装搭配建议\n可以内置一个gpt进行图像处理和扫描\n",
+          "url": "",
+          "version": "0.1",
+          "blocks": [
+            {
+              "id": "w2zgcpdc",
+              "type": "heading",
+              "text": "产品说明与迭代记录"
+            },
+            {
+              "id": "wc3aikbx",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        }
+      ],
+      "habits": [
+        {
+          "id": "h1",
+          "title": "23:00 前准备睡觉",
+          "streak": 6,
+          "today": true,
+          "schedule": "每天"
+        },
+        {
+          "id": "h2",
+          "title": "力量训练 20 分钟",
+          "streak": 3,
+          "today": true,
+          "schedule": "周一、三、六"
+        },
+        {
+          "id": "h3",
+          "title": "专注间隔起身休息",
+          "streak": 8,
+          "today": true,
+          "schedule": "每 20 分钟"
+        }
+      ],
+      "routines": [
+        {
+          "id": "routine1",
+          "title": "晨间启动",
+          "note": "喝水、确认今日任务、开始第一段学习"
+        },
+        {
+          "id": "routine2",
+          "title": "晚间收尾",
+          "note": "整理桌面、完成复盘、放下屏幕"
+        }
+      ],
+      "reminders": [
+        {
+          "id": "exercise",
+          "title": "完成今天的运动",
+          "type": "exercise",
+          "times": [
+            "10:30",
+            "17:30",
+            "12:00"
+          ],
+          "enabled": true
+        },
+        {
+          "id": "break",
+          "title": "起身活动，看看远处",
+          "type": "break",
+          "times": [],
+          "intervalMinutes": 20,
+          "enabled": true
+        },
+        {
+          "id": "sleep",
+          "title": "准备结束今天，放下屏幕",
+          "type": "sleep",
+          "times": [
+            "23:00"
+          ],
+          "enabled": true,
+          "lastFired": "2026-08-17-23:00"
+        }
+      ],
+      "media": [
+        {
+          "id": "media1",
+          "title": "摄影的艺术",
+          "kind": "书籍",
+          "status": "正在看",
+          "progress": "38%",
+          "blocks": [
+            {
+              "id": "xj67i5zr",
+              "type": "heading",
+              "text": "阅读摘记"
+            },
+            {
+              "id": "6xmstlhm",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        },
+        {
+          "id": "media2",
+          "title": "葬送的芙莉莲",
+          "kind": "动画",
+          "status": "正在看",
+          "progress": "第 7 集",
+          "blocks": [
+            {
+              "id": "zqxay9qo",
+              "type": "heading",
+              "text": "观看记录"
+            },
+            {
+              "id": "5xdweg9w",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        },
+        {
+          "id": "media3",
+          "title": "财务自由之路",
+          "kind": "书籍",
+          "status": "想看",
+          "progress": "未开始",
+          "blocks": [
+            {
+              "id": "8o7596xe",
+              "type": "heading",
+              "text": "阅读期待"
+            },
+            {
+              "id": "n97ihdk6",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        }
+      ],
+      "recipes": [
+        {
+          "id": "recipe1",
+          "title": "番茄牛肉意面",
+          "ingredients": "牛肉、番茄、意面、洋葱",
+          "note": "下次增加一点罗勒",
+          "blocks": [
+            {
+              "id": "verces6f",
+              "type": "heading",
+              "text": "步骤与调整"
+            },
+            {
+              "id": "nns1hh78",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        }
+      ],
+      "pages": [
+        {
+          "id": "tf1",
+          "space": "thoughts",
+          "parentId": null,
+          "title": "学习方法",
+          "kind": "folder",
+          "blocks": []
+        },
+        {
+          "id": "tf2",
+          "space": "thoughts",
+          "parentId": "tf1",
+          "title": "系统化学习",
+          "kind": "folder",
+          "blocks": []
+        },
+        {
+          "id": "tp1",
+          "space": "thoughts",
+          "parentId": "tf2",
+          "title": "学习系统如何真正运转",
+          "kind": "page",
+          "blocks": [
+            {
+              "id": "jvv4dcm3",
+              "type": "heading",
+              "text": "从节点到每天行动"
+            },
+            {
+              "id": "xzqf8hda",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        },
+        {
+          "id": "tp2",
+          "space": "thoughts",
+          "parentId": "tf1",
+          "title": "复习与反馈",
+          "kind": "page",
+          "blocks": [
+            {
+              "id": "hz4x3q4s",
+              "type": "heading",
+              "text": "复习不是重复阅读"
+            },
+            {
+              "id": "7n0iegom",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        },
+        {
+          "id": "ff1",
+          "space": "free",
+          "parentId": null,
+          "title": "个人档案",
+          "kind": "folder",
+          "blocks": []
+        },
+        {
+          "id": "fp1",
+          "space": "free",
+          "parentId": "ff1",
+          "title": "摄影器材记录",
+          "kind": "page",
+          "blocks": [
+            {
+              "id": "jlulh3ym",
+              "type": "heading",
+              "text": "现有设备与使用感受"
+            },
+            {
+              "id": "czritcgz",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        }
+      ],
+      "daily": {
+        "2026-08-17": {
+          "note": "",
+          "gain": "",
+          "problem": "",
+          "feeling": "",
+          "tomorrow": ""
+        }
+      },
+      "timeEntries": [],
+      "themes": {
+        "today": "#718c7c",
+        "timetable": "#6d8291",
+        "tasks": "#7b846d",
+        "calendar": "#6f8295",
+        "review": "#8c7a91",
+        "school": "#657f91",
+        "learning": "#80769a",
+        "thoughts": "#668476",
+        "work": "#8b7658",
+        "ideas": "#8a6f7d",
+        "tools": "#617f78",
+        "life": "#8b706d",
+        "free": "#738287"
+      }
+    },
+    "updatedAt": "2026-08-19T13:46:19.390Z",
+    "revision": 47
+  },
+  {
+    "data": {
+      "version": 4,
+      "tasks": [
+        {
+          "id": "t1",
+          "title": "整理财务管理第三章笔记",
+          "area": "课内",
+          "source": "财务管理",
+          "due": "2026-08-17",
+          "done": false,
+          "today": true,
+          "elapsed": 24
+        },
+        {
+          "id": "t2",
+          "title": "梳理 AI 工具变现方向的三个假设",
+          "area": "工作",
+          "source": "AI 工具研究",
+          "due": "2026-08-17",
+          "done": false,
+          "today": true,
+          "elapsed": 18
+        },
+        {
+          "id": "t3",
+          "title": "完成 20 分钟力量训练",
+          "area": "生活",
+          "source": "运动",
+          "due": "2026-08-17",
+          "done": false,
+          "today": true,
+          "elapsed": 0
+        },
+        {
+          "id": "t4",
+          "title": "复习中级财务会计错题",
+          "area": "课内",
+          "source": "中级财务会计",
+          "due": "2026-08-17",
+          "done": true,
+          "today": true,
+          "elapsed": 38
+        }
+      ],
+      "milestones": [
+        {
+          "id": "m1",
+          "courseId": "c1",
+          "title": "中级财务会计阶段测验",
+          "date": "2026-08-20",
+          "time": "14:00",
+          "location": "教学楼 302",
+          "requirements": "复习第三至第五章，携带计算器",
+          "area": "课内",
+          "done": false
+        },
+        {
+          "id": "m2",
+          "courseId": "c2",
+          "title": "财务管理课程作业",
+          "date": "2026-08-24",
+          "time": "23:00",
+          "location": "线上提交",
+          "requirements": "完成第三章习题并上传 PDF",
+          "area": "课内",
+          "done": false
+        },
+        {
+          "id": "m3",
+          "title": "AI 工具方向第一轮判断",
+          "date": "2026-08-26",
+          "time": "20:00",
+          "location": "个人工作台",
+          "requirements": "形成可行性结论与下一轮验证清单",
+          "area": "工作",
+          "done": false
+        }
+      ],
+      "courses": [
+        {
+          "id": "r6obhzy7",
+          "title": "未命名课程",
+          "term": "2026 秋季",
+          "teacher": "",
+          "location": "",
+          "progress": 0,
+          "requirements": "",
+          "schedule": [],
+          "blocks": [
+            {
+              "id": "j21wwzf5",
+              "type": "heading",
+              "text": "课程资料与笔记"
+            },
+            {
+              "id": "2adb1w6w",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        }
+      ],
+      "learning": [
+        {
+          "id": "l1",
+          "title": "日语",
+          "category": "语言",
+          "progress": 41,
+          "goal": "完成初级课程，建立日常输入和复习系统。",
+          "resources": [
+            {
+              "id": "lr1",
+              "title": "日语入门系统课",
+              "type": "B站课程",
+              "url": "https://www.bilibili.com",
+              "progress": 44
+            }
+          ],
+          "blocks": [
+            {
+              "id": "76dd30iy",
+              "type": "heading",
+              "text": "学习路线与笔记"
+            },
+            {
+              "id": "fek20zyh",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        },
+        {
+          "id": "l2",
+          "title": "摄影",
+          "category": "兴趣",
+          "progress": 28,
+          "goal": "理解构图、用光并持续完成主题拍摄。",
+          "resources": [
+            {
+              "id": "lr2",
+              "title": "摄影构图与用光",
+              "type": "书籍",
+              "url": "",
+              "progress": 28
+            }
+          ],
+          "blocks": [
+            {
+              "id": "aoaxghsl",
+              "type": "heading",
+              "text": "作品练习与复盘"
+            },
+            {
+              "id": "y1t9cdsi",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        },
+        {
+          "id": "l3",
+          "title": "深度学习",
+          "category": "技术",
+          "progress": 16,
+          "goal": "完成基础理论和一个可展示的小项目。",
+          "resources": [
+            {
+              "id": "lr3",
+              "title": "深度学习基础",
+              "type": "在线课程",
+              "url": "",
+              "progress": 16
+            }
+          ],
+          "blocks": [
+            {
+              "id": "56498jl9",
+              "type": "heading",
+              "text": "概念、实验与问题"
+            },
+            {
+              "id": "00mhdwkt",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        }
+      ],
+      "research": [
+        {
+          "id": "w1",
+          "title": "面向学生的 AI 学习工具",
+          "status": "研究中",
+          "summary": "验证低频但刚需的小型工具形态。",
+          "objective": "弄清学生真正愿意长期使用、愿意付费的学习管理能力。",
+          "next": "访谈 5 个真实使用者",
+          "progress": 45,
+          "pages": [
+            {
+              "id": "2oig775e",
+              "title": "研究总览",
+              "blocks": [
+                {
+                  "id": "xv80gbyh",
+                  "type": "heading",
+                  "text": "研究记录"
+                },
+                {
+                  "id": "b29fc4xg",
+                  "type": "text",
+                  "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+                }
+              ]
+            },
+            {
+              "id": "y71mxjm4",
+              "title": "资料与线索",
+              "blocks": [
+                {
+                  "id": "hym2othx",
+                  "type": "heading",
+                  "text": "资料与线索"
+                },
+                {
+                  "id": "5pfkun76",
+                  "type": "text",
+                  "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+                }
+              ]
+            },
+            {
+              "id": "99tp08ot",
+              "title": "阶段结论",
+              "blocks": [
+                {
+                  "id": "rfsouoc1",
+                  "type": "heading",
+                  "text": "阶段结论"
+                },
+                {
+                  "id": "qtr8a5nz",
+                  "type": "text",
+                  "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "w2",
+          "title": "小型自动化工具变现",
+          "status": "收集箱",
+          "summary": "研究个人开发者可持续的小产品模式。",
+          "objective": "找到需求明确、交付轻、可以快速验证的小工具方向。",
+          "next": "拆解 3 个同类产品",
+          "progress": 25,
+          "pages": [
+            {
+              "id": "pxc1cdon",
+              "title": "研究总览",
+              "blocks": [
+                {
+                  "id": "odclrdw5",
+                  "type": "heading",
+                  "text": "市场、案例与证据"
+                },
+                {
+                  "id": "uav964td",
+                  "type": "text",
+                  "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+                }
+              ]
+            },
+            {
+              "id": "u6he8yoz",
+              "title": "资料与线索",
+              "blocks": [
+                {
+                  "id": "azp8xpd7",
+                  "type": "heading",
+                  "text": "资料与线索"
+                },
+                {
+                  "id": "zu0tdqhj",
+                  "type": "text",
+                  "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+                }
+              ]
+            },
+            {
+              "id": "335bezcs",
+              "title": "阶段结论",
+              "blocks": [
+                {
+                  "id": "ddqnu797",
+                  "type": "heading",
+                  "text": "阶段结论"
+                },
+                {
+                  "id": "1jvf3z3k",
+                  "type": "text",
+                  "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "ideas": [
+        {
+          "id": "i1",
+          "title": "把课程节点自动转成复习任务",
+          "note": "根据考试日倒排并分配复习量。",
+          "createdAt": "2026-08-17"
+        },
+        {
+          "id": "i2",
+          "title": "工具集记录每次迭代原因",
+          "note": "不只展示链接，也保留产品演进过程。",
+          "createdAt": "2026-08-17"
+        }
+      ],
+      "tools": [
+        {
+          "id": "tool1",
+          "title": "序流",
+          "status": "迭代中",
+          "description": "个人工作、学习与生活流管理系统\n\n+事项管理",
+          "url": "https://xuliu-flow-web-stable.vercel.app/",
+          "version": "v10",
+          "blocks": [
+            {
+              "id": "htb9bwzg",
+              "type": "heading",
+              "text": "产品说明与迭代记录"
+            },
+            {
+              "id": "95j4dppk",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ],
+          "versions": [
+            {
+              "id": "legacy-tool1",
+              "label": "v10",
+              "url": "https://xuliu-flow-web-stable.vercel.app/",
+              "note": "从原有工具记录迁移",
+              "createdAt": "2026-08-19"
+            }
+          ]
+        },
+        {
+          "id": "xyjn7vdi",
+          "title": "档案馆",
+          "status": "迭代中",
+          "description": "+其他国家\n",
+          "url": "https://shiguang-life-archive-rho.vercel.app/?v=15",
+          "version": "v15",
+          "blocks": [
+            {
+              "id": "mq0d1xb6",
+              "type": "heading",
+              "text": "产品说明与迭代记录"
+            },
+            {
+              "id": "mwar9m9v",
+              "type": "text",
+              "text": "v16要改什么：增加详细地点识别，以及其他国家和地区的行政区识别"
+            }
+          ],
+          "versions": [
+            {
+              "id": "legacy-xyjn7vdi",
+              "label": "0.1",
+              "url": "",
+              "note": "从原有工具记录迁移",
+              "createdAt": "2026-08-19"
+            },
+            {
+              "id": "o81zg16h",
+              "label": "v15",
+              "url": "https://shiguang-life-archive-rho.vercel.app/?v=15",
+              "note": "这一版已经实现了定位到区\n",
+              "createdAt": "2026-08-19"
+            }
+          ],
+          "currentVersionId": "o81zg16h"
+        },
+        {
+          "id": "r2lzkbik",
+          "title": "服饰搭配器",
+          "status": "想法",
+          "description": "按照色彩、风格等方式，提供服装搭配建议\n可以内置一个gpt进行图像处理和扫描\n",
+          "url": "",
+          "version": "0.1",
+          "blocks": [
+            {
+              "id": "w2zgcpdc",
+              "type": "heading",
+              "text": "产品说明与迭代记录"
+            },
+            {
+              "id": "wc3aikbx",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        }
+      ],
+      "habits": [
+        {
+          "id": "h1",
+          "title": "23:00 前准备睡觉",
+          "streak": 6,
+          "today": true,
+          "schedule": "每天"
+        },
+        {
+          "id": "h2",
+          "title": "力量训练 20 分钟",
+          "streak": 3,
+          "today": true,
+          "schedule": "周一、三、六"
+        },
+        {
+          "id": "h3",
+          "title": "专注间隔起身休息",
+          "streak": 8,
+          "today": true,
+          "schedule": "每 20 分钟"
+        }
+      ],
+      "routines": [
+        {
+          "id": "routine1",
+          "title": "晨间启动",
+          "note": "喝水、确认今日任务、开始第一段学习"
+        },
+        {
+          "id": "routine2",
+          "title": "晚间收尾",
+          "note": "整理桌面、完成复盘、放下屏幕"
+        }
+      ],
+      "reminders": [
+        {
+          "id": "exercise",
+          "title": "完成今天的运动",
+          "type": "exercise",
+          "times": [
+            "10:30",
+            "17:30",
+            "12:00"
+          ],
+          "enabled": true
+        },
+        {
+          "id": "break",
+          "title": "起身活动，看看远处",
+          "type": "break",
+          "times": [],
+          "intervalMinutes": 20,
+          "enabled": true
+        },
+        {
+          "id": "sleep",
+          "title": "准备结束今天，放下屏幕",
+          "type": "sleep",
+          "times": [
+            "23:00"
+          ],
+          "enabled": true,
+          "lastFired": "2026-08-17-23:00"
+        }
+      ],
+      "media": [
+        {
+          "id": "media1",
+          "title": "摄影的艺术",
+          "kind": "书籍",
+          "status": "正在看",
+          "progress": "38%",
+          "blocks": [
+            {
+              "id": "xj67i5zr",
+              "type": "heading",
+              "text": "阅读摘记"
+            },
+            {
+              "id": "6xmstlhm",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        },
+        {
+          "id": "media2",
+          "title": "葬送的芙莉莲",
+          "kind": "动画",
+          "status": "正在看",
+          "progress": "第 7 集",
+          "blocks": [
+            {
+              "id": "zqxay9qo",
+              "type": "heading",
+              "text": "观看记录"
+            },
+            {
+              "id": "5xdweg9w",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        },
+        {
+          "id": "media3",
+          "title": "财务自由之路",
+          "kind": "书籍",
+          "status": "想看",
+          "progress": "未开始",
+          "blocks": [
+            {
+              "id": "8o7596xe",
+              "type": "heading",
+              "text": "阅读期待"
+            },
+            {
+              "id": "n97ihdk6",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        }
+      ],
+      "recipes": [
+        {
+          "id": "recipe1",
+          "title": "番茄牛肉意面",
+          "ingredients": "牛肉、番茄、意面、洋葱",
+          "note": "下次增加一点罗勒",
+          "blocks": [
+            {
+              "id": "verces6f",
+              "type": "heading",
+              "text": "步骤与调整"
+            },
+            {
+              "id": "nns1hh78",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        }
+      ],
+      "pages": [
+        {
+          "id": "tf1",
+          "space": "thoughts",
+          "parentId": null,
+          "title": "学习方法",
+          "kind": "folder",
+          "blocks": []
+        },
+        {
+          "id": "tf2",
+          "space": "thoughts",
+          "parentId": "tf1",
+          "title": "系统化学习",
+          "kind": "folder",
+          "blocks": []
+        },
+        {
+          "id": "tp1",
+          "space": "thoughts",
+          "parentId": "tf2",
+          "title": "学习系统如何真正运转",
+          "kind": "page",
+          "blocks": [
+            {
+              "id": "jvv4dcm3",
+              "type": "heading",
+              "text": "从节点到每天行动"
+            },
+            {
+              "id": "xzqf8hda",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        },
+        {
+          "id": "tp2",
+          "space": "thoughts",
+          "parentId": "tf1",
+          "title": "复习与反馈",
+          "kind": "page",
+          "blocks": [
+            {
+              "id": "hz4x3q4s",
+              "type": "heading",
+              "text": "复习不是重复阅读"
+            },
+            {
+              "id": "7n0iegom",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        },
+        {
+          "id": "ff1",
+          "space": "free",
+          "parentId": null,
+          "title": "个人档案",
+          "kind": "folder",
+          "blocks": []
+        },
+        {
+          "id": "fp1",
+          "space": "free",
+          "parentId": "ff1",
+          "title": "摄影器材记录",
+          "kind": "page",
+          "blocks": [
+            {
+              "id": "jlulh3ym",
+              "type": "heading",
+              "text": "现有设备与使用感受"
+            },
+            {
+              "id": "czritcgz",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        }
+      ],
+      "daily": {
+        "2026-08-17": {
+          "note": "",
+          "gain": "",
+          "problem": "",
+          "feeling": "",
+          "tomorrow": ""
+        }
+      },
+      "timeEntries": [],
+      "themes": {
+        "today": "#718c7c",
+        "timetable": "#6d8291",
+        "tasks": "#7b846d",
+        "calendar": "#6f8295",
+        "review": "#8c7a91",
+        "school": "#657f91",
+        "learning": "#80769a",
+        "thoughts": "#668476",
+        "work": "#8b7658",
+        "ideas": "#8a6f7d",
+        "tools": "#617f78",
+        "life": "#8b706d",
+        "free": "#738287"
+      }
+    },
+    "updatedAt": "2026-08-19T13:46:16.459Z",
+    "revision": 46
+  },
+  {
+    "data": {
+      "version": 4,
+      "tasks": [
+        {
+          "id": "t1",
+          "title": "整理财务管理第三章笔记",
+          "area": "课内",
+          "source": "财务管理",
+          "due": "2026-08-17",
+          "done": false,
+          "today": true,
+          "elapsed": 24
+        },
+        {
+          "id": "t2",
+          "title": "梳理 AI 工具变现方向的三个假设",
+          "area": "工作",
+          "source": "AI 工具研究",
+          "due": "2026-08-17",
+          "done": false,
+          "today": true,
+          "elapsed": 18
+        },
+        {
+          "id": "t3",
+          "title": "完成 20 分钟力量训练",
+          "area": "生活",
+          "source": "运动",
+          "due": "2026-08-17",
+          "done": false,
+          "today": true,
+          "elapsed": 0
+        },
+        {
+          "id": "t4",
+          "title": "复习中级财务会计错题",
+          "area": "课内",
+          "source": "中级财务会计",
+          "due": "2026-08-17",
+          "done": true,
+          "today": true,
+          "elapsed": 38
+        }
+      ],
+      "milestones": [
+        {
+          "id": "m1",
+          "courseId": "c1",
+          "title": "中级财务会计阶段测验",
+          "date": "2026-08-20",
+          "time": "14:00",
+          "location": "教学楼 302",
+          "requirements": "复习第三至第五章，携带计算器",
+          "area": "课内",
+          "done": false
+        },
+        {
+          "id": "m2",
+          "courseId": "c2",
+          "title": "财务管理课程作业",
+          "date": "2026-08-24",
+          "time": "23:00",
+          "location": "线上提交",
+          "requirements": "完成第三章习题并上传 PDF",
+          "area": "课内",
+          "done": false
+        },
+        {
+          "id": "m3",
+          "title": "AI 工具方向第一轮判断",
+          "date": "2026-08-26",
+          "time": "20:00",
+          "location": "个人工作台",
+          "requirements": "形成可行性结论与下一轮验证清单",
+          "area": "工作",
+          "done": false
+        }
+      ],
+      "courses": [
+        {
+          "id": "r6obhzy7",
+          "title": "未命名课程",
+          "term": "2026 秋季",
+          "teacher": "",
+          "location": "",
+          "progress": 0,
+          "requirements": "",
+          "schedule": [],
+          "blocks": [
+            {
+              "id": "j21wwzf5",
+              "type": "heading",
+              "text": "课程资料与笔记"
+            },
+            {
+              "id": "2adb1w6w",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        }
+      ],
+      "learning": [
+        {
+          "id": "l1",
+          "title": "日语",
+          "category": "语言",
+          "progress": 41,
+          "goal": "完成初级课程，建立日常输入和复习系统。",
+          "resources": [
+            {
+              "id": "lr1",
+              "title": "日语入门系统课",
+              "type": "B站课程",
+              "url": "https://www.bilibili.com",
+              "progress": 44
+            }
+          ],
+          "blocks": [
+            {
+              "id": "76dd30iy",
+              "type": "heading",
+              "text": "学习路线与笔记"
+            },
+            {
+              "id": "fek20zyh",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        },
+        {
+          "id": "l2",
+          "title": "摄影",
+          "category": "兴趣",
+          "progress": 28,
+          "goal": "理解构图、用光并持续完成主题拍摄。",
+          "resources": [
+            {
+              "id": "lr2",
+              "title": "摄影构图与用光",
+              "type": "书籍",
+              "url": "",
+              "progress": 28
+            }
+          ],
+          "blocks": [
+            {
+              "id": "aoaxghsl",
+              "type": "heading",
+              "text": "作品练习与复盘"
+            },
+            {
+              "id": "y1t9cdsi",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        },
+        {
+          "id": "l3",
+          "title": "深度学习",
+          "category": "技术",
+          "progress": 16,
+          "goal": "完成基础理论和一个可展示的小项目。",
+          "resources": [
+            {
+              "id": "lr3",
+              "title": "深度学习基础",
+              "type": "在线课程",
+              "url": "",
+              "progress": 16
+            }
+          ],
+          "blocks": [
+            {
+              "id": "56498jl9",
+              "type": "heading",
+              "text": "概念、实验与问题"
+            },
+            {
+              "id": "00mhdwkt",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        }
+      ],
+      "research": [
+        {
+          "id": "w1",
+          "title": "面向学生的 AI 学习工具",
+          "status": "研究中",
+          "summary": "验证低频但刚需的小型工具形态。",
+          "objective": "弄清学生真正愿意长期使用、愿意付费的学习管理能力。",
+          "next": "访谈 5 个真实使用者",
+          "progress": 45,
+          "pages": [
+            {
+              "id": "2oig775e",
+              "title": "研究总览",
+              "blocks": [
+                {
+                  "id": "xv80gbyh",
+                  "type": "heading",
+                  "text": "研究记录"
+                },
+                {
+                  "id": "b29fc4xg",
+                  "type": "text",
+                  "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+                }
+              ]
+            },
+            {
+              "id": "y71mxjm4",
+              "title": "资料与线索",
+              "blocks": [
+                {
+                  "id": "hym2othx",
+                  "type": "heading",
+                  "text": "资料与线索"
+                },
+                {
+                  "id": "5pfkun76",
+                  "type": "text",
+                  "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+                }
+              ]
+            },
+            {
+              "id": "99tp08ot",
+              "title": "阶段结论",
+              "blocks": [
+                {
+                  "id": "rfsouoc1",
+                  "type": "heading",
+                  "text": "阶段结论"
+                },
+                {
+                  "id": "qtr8a5nz",
+                  "type": "text",
+                  "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "w2",
+          "title": "小型自动化工具变现",
+          "status": "收集箱",
+          "summary": "研究个人开发者可持续的小产品模式。",
+          "objective": "找到需求明确、交付轻、可以快速验证的小工具方向。",
+          "next": "拆解 3 个同类产品",
+          "progress": 25,
+          "pages": [
+            {
+              "id": "pxc1cdon",
+              "title": "研究总览",
+              "blocks": [
+                {
+                  "id": "odclrdw5",
+                  "type": "heading",
+                  "text": "市场、案例与证据"
+                },
+                {
+                  "id": "uav964td",
+                  "type": "text",
+                  "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+                }
+              ]
+            },
+            {
+              "id": "u6he8yoz",
+              "title": "资料与线索",
+              "blocks": [
+                {
+                  "id": "azp8xpd7",
+                  "type": "heading",
+                  "text": "资料与线索"
+                },
+                {
+                  "id": "zu0tdqhj",
+                  "type": "text",
+                  "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+                }
+              ]
+            },
+            {
+              "id": "335bezcs",
+              "title": "阶段结论",
+              "blocks": [
+                {
+                  "id": "ddqnu797",
+                  "type": "heading",
+                  "text": "阶段结论"
+                },
+                {
+                  "id": "1jvf3z3k",
+                  "type": "text",
+                  "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "ideas": [
+        {
+          "id": "i1",
+          "title": "把课程节点自动转成复习任务",
+          "note": "根据考试日倒排并分配复习量。",
+          "createdAt": "2026-08-17"
+        },
+        {
+          "id": "i2",
+          "title": "工具集记录每次迭代原因",
+          "note": "不只展示链接，也保留产品演进过程。",
+          "createdAt": "2026-08-17"
+        }
+      ],
+      "tools": [
+        {
+          "id": "tool1",
+          "title": "序流",
+          "status": "迭代中",
+          "description": "个人工作、学习与生活流管理系统\n\n+事项管理",
+          "url": "https://xuliu-flow-web-stable.vercel.app/",
+          "version": "v10",
+          "blocks": [
+            {
+              "id": "htb9bwzg",
+              "type": "heading",
+              "text": "产品说明与迭代记录"
+            },
+            {
+              "id": "95j4dppk",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ],
+          "versions": [
+            {
+              "id": "legacy-tool1",
+              "label": "v10",
+              "url": "https://xuliu-flow-web-stable.vercel.app/",
+              "note": "从原有工具记录迁移",
+              "createdAt": "2026-08-19"
+            }
+          ]
+        },
+        {
+          "id": "xyjn7vdi",
+          "title": "档案馆",
+          "status": "迭代中",
+          "description": "+其他国家\n",
+          "url": "https://shiguang-life-archive-rho.vercel.app/?v=15",
+          "version": "v15",
+          "blocks": [
+            {
+              "id": "mq0d1xb6",
+              "type": "heading",
+              "text": "产品说明与迭代记录"
+            },
+            {
+              "id": "mwar9m9v",
+              "type": "text",
+              "text": "v16要改什么：增加详细地点识别，以及其他国家和地区的"
+            }
+          ],
+          "versions": [
+            {
+              "id": "legacy-xyjn7vdi",
+              "label": "0.1",
+              "url": "",
+              "note": "从原有工具记录迁移",
+              "createdAt": "2026-08-19"
+            },
+            {
+              "id": "o81zg16h",
+              "label": "v15",
+              "url": "https://shiguang-life-archive-rho.vercel.app/?v=15",
+              "note": "这一版已经实现了定位到区\n",
+              "createdAt": "2026-08-19"
+            }
+          ],
+          "currentVersionId": "o81zg16h"
+        },
+        {
+          "id": "r2lzkbik",
+          "title": "服饰搭配器",
+          "status": "想法",
+          "description": "按照色彩、风格等方式，提供服装搭配建议\n可以内置一个gpt进行图像处理和扫描\n",
+          "url": "",
+          "version": "0.1",
+          "blocks": [
+            {
+              "id": "w2zgcpdc",
+              "type": "heading",
+              "text": "产品说明与迭代记录"
+            },
+            {
+              "id": "wc3aikbx",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        }
+      ],
+      "habits": [
+        {
+          "id": "h1",
+          "title": "23:00 前准备睡觉",
+          "streak": 6,
+          "today": true,
+          "schedule": "每天"
+        },
+        {
+          "id": "h2",
+          "title": "力量训练 20 分钟",
+          "streak": 3,
+          "today": true,
+          "schedule": "周一、三、六"
+        },
+        {
+          "id": "h3",
+          "title": "专注间隔起身休息",
+          "streak": 8,
+          "today": true,
+          "schedule": "每 20 分钟"
+        }
+      ],
+      "routines": [
+        {
+          "id": "routine1",
+          "title": "晨间启动",
+          "note": "喝水、确认今日任务、开始第一段学习"
+        },
+        {
+          "id": "routine2",
+          "title": "晚间收尾",
+          "note": "整理桌面、完成复盘、放下屏幕"
+        }
+      ],
+      "reminders": [
+        {
+          "id": "exercise",
+          "title": "完成今天的运动",
+          "type": "exercise",
+          "times": [
+            "10:30",
+            "17:30",
+            "12:00"
+          ],
+          "enabled": true
+        },
+        {
+          "id": "break",
+          "title": "起身活动，看看远处",
+          "type": "break",
+          "times": [],
+          "intervalMinutes": 20,
+          "enabled": true
+        },
+        {
+          "id": "sleep",
+          "title": "准备结束今天，放下屏幕",
+          "type": "sleep",
+          "times": [
+            "23:00"
+          ],
+          "enabled": true,
+          "lastFired": "2026-08-17-23:00"
+        }
+      ],
+      "media": [
+        {
+          "id": "media1",
+          "title": "摄影的艺术",
+          "kind": "书籍",
+          "status": "正在看",
+          "progress": "38%",
+          "blocks": [
+            {
+              "id": "xj67i5zr",
+              "type": "heading",
+              "text": "阅读摘记"
+            },
+            {
+              "id": "6xmstlhm",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        },
+        {
+          "id": "media2",
+          "title": "葬送的芙莉莲",
+          "kind": "动画",
+          "status": "正在看",
+          "progress": "第 7 集",
+          "blocks": [
+            {
+              "id": "zqxay9qo",
+              "type": "heading",
+              "text": "观看记录"
+            },
+            {
+              "id": "5xdweg9w",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        },
+        {
+          "id": "media3",
+          "title": "财务自由之路",
+          "kind": "书籍",
+          "status": "想看",
+          "progress": "未开始",
+          "blocks": [
+            {
+              "id": "8o7596xe",
+              "type": "heading",
+              "text": "阅读期待"
+            },
+            {
+              "id": "n97ihdk6",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        }
+      ],
+      "recipes": [
+        {
+          "id": "recipe1",
+          "title": "番茄牛肉意面",
+          "ingredients": "牛肉、番茄、意面、洋葱",
+          "note": "下次增加一点罗勒",
+          "blocks": [
+            {
+              "id": "verces6f",
+              "type": "heading",
+              "text": "步骤与调整"
+            },
+            {
+              "id": "nns1hh78",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        }
+      ],
+      "pages": [
+        {
+          "id": "tf1",
+          "space": "thoughts",
+          "parentId": null,
+          "title": "学习方法",
+          "kind": "folder",
+          "blocks": []
+        },
+        {
+          "id": "tf2",
+          "space": "thoughts",
+          "parentId": "tf1",
+          "title": "系统化学习",
+          "kind": "folder",
+          "blocks": []
+        },
+        {
+          "id": "tp1",
+          "space": "thoughts",
+          "parentId": "tf2",
+          "title": "学习系统如何真正运转",
+          "kind": "page",
+          "blocks": [
+            {
+              "id": "jvv4dcm3",
+              "type": "heading",
+              "text": "从节点到每天行动"
+            },
+            {
+              "id": "xzqf8hda",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        },
+        {
+          "id": "tp2",
+          "space": "thoughts",
+          "parentId": "tf1",
+          "title": "复习与反馈",
+          "kind": "page",
+          "blocks": [
+            {
+              "id": "hz4x3q4s",
+              "type": "heading",
+              "text": "复习不是重复阅读"
+            },
+            {
+              "id": "7n0iegom",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        },
+        {
+          "id": "ff1",
+          "space": "free",
+          "parentId": null,
+          "title": "个人档案",
+          "kind": "folder",
+          "blocks": []
+        },
+        {
+          "id": "fp1",
+          "space": "free",
+          "parentId": "ff1",
+          "title": "摄影器材记录",
+          "kind": "page",
+          "blocks": [
+            {
+              "id": "jlulh3ym",
+              "type": "heading",
+              "text": "现有设备与使用感受"
+            },
+            {
+              "id": "czritcgz",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        }
+      ],
+      "daily": {
+        "2026-08-17": {
+          "note": "",
+          "gain": "",
+          "problem": "",
+          "feeling": "",
+          "tomorrow": ""
+        }
+      },
+      "timeEntries": [],
+      "themes": {
+        "today": "#718c7c",
+        "timetable": "#6d8291",
+        "tasks": "#7b846d",
+        "calendar": "#6f8295",
+        "review": "#8c7a91",
+        "school": "#657f91",
+        "learning": "#80769a",
+        "thoughts": "#668476",
+        "work": "#8b7658",
+        "ideas": "#8a6f7d",
+        "tools": "#617f78",
+        "life": "#8b706d",
+        "free": "#738287"
+      }
+    },
+    "updatedAt": "2026-08-19T13:46:12.976Z",
+    "revision": 45
+  },
+  {
+    "data": {
+      "version": 4,
+      "tasks": [
+        {
+          "id": "t1",
+          "title": "整理财务管理第三章笔记",
+          "area": "课内",
+          "source": "财务管理",
+          "due": "2026-08-17",
+          "done": false,
+          "today": true,
+          "elapsed": 24
+        },
+        {
+          "id": "t2",
+          "title": "梳理 AI 工具变现方向的三个假设",
+          "area": "工作",
+          "source": "AI 工具研究",
+          "due": "2026-08-17",
+          "done": false,
+          "today": true,
+          "elapsed": 18
+        },
+        {
+          "id": "t3",
+          "title": "完成 20 分钟力量训练",
+          "area": "生活",
+          "source": "运动",
+          "due": "2026-08-17",
+          "done": false,
+          "today": true,
+          "elapsed": 0
+        },
+        {
+          "id": "t4",
+          "title": "复习中级财务会计错题",
+          "area": "课内",
+          "source": "中级财务会计",
+          "due": "2026-08-17",
+          "done": true,
+          "today": true,
+          "elapsed": 38
+        }
+      ],
+      "milestones": [
+        {
+          "id": "m1",
+          "courseId": "c1",
+          "title": "中级财务会计阶段测验",
+          "date": "2026-08-20",
+          "time": "14:00",
+          "location": "教学楼 302",
+          "requirements": "复习第三至第五章，携带计算器",
+          "area": "课内",
+          "done": false
+        },
+        {
+          "id": "m2",
+          "courseId": "c2",
+          "title": "财务管理课程作业",
+          "date": "2026-08-24",
+          "time": "23:00",
+          "location": "线上提交",
+          "requirements": "完成第三章习题并上传 PDF",
+          "area": "课内",
+          "done": false
+        },
+        {
+          "id": "m3",
+          "title": "AI 工具方向第一轮判断",
+          "date": "2026-08-26",
+          "time": "20:00",
+          "location": "个人工作台",
+          "requirements": "形成可行性结论与下一轮验证清单",
+          "area": "工作",
+          "done": false
+        }
+      ],
+      "courses": [
+        {
+          "id": "r6obhzy7",
+          "title": "未命名课程",
+          "term": "2026 秋季",
+          "teacher": "",
+          "location": "",
+          "progress": 0,
+          "requirements": "",
+          "schedule": [],
+          "blocks": [
+            {
+              "id": "j21wwzf5",
+              "type": "heading",
+              "text": "课程资料与笔记"
+            },
+            {
+              "id": "2adb1w6w",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        }
+      ],
+      "learning": [
+        {
+          "id": "l1",
+          "title": "日语",
+          "category": "语言",
+          "progress": 41,
+          "goal": "完成初级课程，建立日常输入和复习系统。",
+          "resources": [
+            {
+              "id": "lr1",
+              "title": "日语入门系统课",
+              "type": "B站课程",
+              "url": "https://www.bilibili.com",
+              "progress": 44
+            }
+          ],
+          "blocks": [
+            {
+              "id": "76dd30iy",
+              "type": "heading",
+              "text": "学习路线与笔记"
+            },
+            {
+              "id": "fek20zyh",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        },
+        {
+          "id": "l2",
+          "title": "摄影",
+          "category": "兴趣",
+          "progress": 28,
+          "goal": "理解构图、用光并持续完成主题拍摄。",
+          "resources": [
+            {
+              "id": "lr2",
+              "title": "摄影构图与用光",
+              "type": "书籍",
+              "url": "",
+              "progress": 28
+            }
+          ],
+          "blocks": [
+            {
+              "id": "aoaxghsl",
+              "type": "heading",
+              "text": "作品练习与复盘"
+            },
+            {
+              "id": "y1t9cdsi",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        },
+        {
+          "id": "l3",
+          "title": "深度学习",
+          "category": "技术",
+          "progress": 16,
+          "goal": "完成基础理论和一个可展示的小项目。",
+          "resources": [
+            {
+              "id": "lr3",
+              "title": "深度学习基础",
+              "type": "在线课程",
+              "url": "",
+              "progress": 16
+            }
+          ],
+          "blocks": [
+            {
+              "id": "56498jl9",
+              "type": "heading",
+              "text": "概念、实验与问题"
+            },
+            {
+              "id": "00mhdwkt",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        }
+      ],
+      "research": [
+        {
+          "id": "w1",
+          "title": "面向学生的 AI 学习工具",
+          "status": "研究中",
+          "summary": "验证低频但刚需的小型工具形态。",
+          "objective": "弄清学生真正愿意长期使用、愿意付费的学习管理能力。",
+          "next": "访谈 5 个真实使用者",
+          "progress": 45,
+          "pages": [
+            {
+              "id": "2oig775e",
+              "title": "研究总览",
+              "blocks": [
+                {
+                  "id": "xv80gbyh",
+                  "type": "heading",
+                  "text": "研究记录"
+                },
+                {
+                  "id": "b29fc4xg",
+                  "type": "text",
+                  "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+                }
+              ]
+            },
+            {
+              "id": "y71mxjm4",
+              "title": "资料与线索",
+              "blocks": [
+                {
+                  "id": "hym2othx",
+                  "type": "heading",
+                  "text": "资料与线索"
+                },
+                {
+                  "id": "5pfkun76",
+                  "type": "text",
+                  "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+                }
+              ]
+            },
+            {
+              "id": "99tp08ot",
+              "title": "阶段结论",
+              "blocks": [
+                {
+                  "id": "rfsouoc1",
+                  "type": "heading",
+                  "text": "阶段结论"
+                },
+                {
+                  "id": "qtr8a5nz",
+                  "type": "text",
+                  "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "w2",
+          "title": "小型自动化工具变现",
+          "status": "收集箱",
+          "summary": "研究个人开发者可持续的小产品模式。",
+          "objective": "找到需求明确、交付轻、可以快速验证的小工具方向。",
+          "next": "拆解 3 个同类产品",
+          "progress": 25,
+          "pages": [
+            {
+              "id": "pxc1cdon",
+              "title": "研究总览",
+              "blocks": [
+                {
+                  "id": "odclrdw5",
+                  "type": "heading",
+                  "text": "市场、案例与证据"
+                },
+                {
+                  "id": "uav964td",
+                  "type": "text",
+                  "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+                }
+              ]
+            },
+            {
+              "id": "u6he8yoz",
+              "title": "资料与线索",
+              "blocks": [
+                {
+                  "id": "azp8xpd7",
+                  "type": "heading",
+                  "text": "资料与线索"
+                },
+                {
+                  "id": "zu0tdqhj",
+                  "type": "text",
+                  "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+                }
+              ]
+            },
+            {
+              "id": "335bezcs",
+              "title": "阶段结论",
+              "blocks": [
+                {
+                  "id": "ddqnu797",
+                  "type": "heading",
+                  "text": "阶段结论"
+                },
+                {
+                  "id": "1jvf3z3k",
+                  "type": "text",
+                  "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "ideas": [
+        {
+          "id": "i1",
+          "title": "把课程节点自动转成复习任务",
+          "note": "根据考试日倒排并分配复习量。",
+          "createdAt": "2026-08-17"
+        },
+        {
+          "id": "i2",
+          "title": "工具集记录每次迭代原因",
+          "note": "不只展示链接，也保留产品演进过程。",
+          "createdAt": "2026-08-17"
+        }
+      ],
+      "tools": [
+        {
+          "id": "tool1",
+          "title": "序流",
+          "status": "迭代中",
+          "description": "个人工作、学习与生活流管理系统\n\n+事项管理",
+          "url": "https://xuliu-flow-web-stable.vercel.app/",
+          "version": "v10",
+          "blocks": [
+            {
+              "id": "htb9bwzg",
+              "type": "heading",
+              "text": "产品说明与迭代记录"
+            },
+            {
+              "id": "95j4dppk",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ],
+          "versions": [
+            {
+              "id": "legacy-tool1",
+              "label": "v10",
+              "url": "https://xuliu-flow-web-stable.vercel.app/",
+              "note": "从原有工具记录迁移",
+              "createdAt": "2026-08-19"
+            }
+          ]
+        },
+        {
+          "id": "xyjn7vdi",
+          "title": "档案馆",
+          "status": "迭代中",
+          "description": "+其他国家\n",
+          "url": "https://shiguang-life-archive-rho.vercel.app/?v=15",
+          "version": "v15",
+          "blocks": [
+            {
+              "id": "mq0d1xb6",
+              "type": "heading",
+              "text": "产品说明与迭代记录"
+            },
+            {
+              "id": "mwar9m9v",
+              "type": "text",
+              "text": "v16要改什么：增加详细地点识别，以及"
+            }
+          ],
+          "versions": [
+            {
+              "id": "legacy-xyjn7vdi",
+              "label": "0.1",
+              "url": "",
+              "note": "从原有工具记录迁移",
+              "createdAt": "2026-08-19"
+            },
+            {
+              "id": "o81zg16h",
+              "label": "v15",
+              "url": "https://shiguang-life-archive-rho.vercel.app/?v=15",
+              "note": "这一版已经实现了定位到区\n",
+              "createdAt": "2026-08-19"
+            }
+          ],
+          "currentVersionId": "o81zg16h"
+        },
+        {
+          "id": "r2lzkbik",
+          "title": "服饰搭配器",
+          "status": "想法",
+          "description": "按照色彩、风格等方式，提供服装搭配建议\n可以内置一个gpt进行图像处理和扫描\n",
+          "url": "",
+          "version": "0.1",
+          "blocks": [
+            {
+              "id": "w2zgcpdc",
+              "type": "heading",
+              "text": "产品说明与迭代记录"
+            },
+            {
+              "id": "wc3aikbx",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        }
+      ],
+      "habits": [
+        {
+          "id": "h1",
+          "title": "23:00 前准备睡觉",
+          "streak": 6,
+          "today": true,
+          "schedule": "每天"
+        },
+        {
+          "id": "h2",
+          "title": "力量训练 20 分钟",
+          "streak": 3,
+          "today": true,
+          "schedule": "周一、三、六"
+        },
+        {
+          "id": "h3",
+          "title": "专注间隔起身休息",
+          "streak": 8,
+          "today": true,
+          "schedule": "每 20 分钟"
+        }
+      ],
+      "routines": [
+        {
+          "id": "routine1",
+          "title": "晨间启动",
+          "note": "喝水、确认今日任务、开始第一段学习"
+        },
+        {
+          "id": "routine2",
+          "title": "晚间收尾",
+          "note": "整理桌面、完成复盘、放下屏幕"
+        }
+      ],
+      "reminders": [
+        {
+          "id": "exercise",
+          "title": "完成今天的运动",
+          "type": "exercise",
+          "times": [
+            "10:30",
+            "17:30",
+            "12:00"
+          ],
+          "enabled": true
+        },
+        {
+          "id": "break",
+          "title": "起身活动，看看远处",
+          "type": "break",
+          "times": [],
+          "intervalMinutes": 20,
+          "enabled": true
+        },
+        {
+          "id": "sleep",
+          "title": "准备结束今天，放下屏幕",
+          "type": "sleep",
+          "times": [
+            "23:00"
+          ],
+          "enabled": true,
+          "lastFired": "2026-08-17-23:00"
+        }
+      ],
+      "media": [
+        {
+          "id": "media1",
+          "title": "摄影的艺术",
+          "kind": "书籍",
+          "status": "正在看",
+          "progress": "38%",
+          "blocks": [
+            {
+              "id": "xj67i5zr",
+              "type": "heading",
+              "text": "阅读摘记"
+            },
+            {
+              "id": "6xmstlhm",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        },
+        {
+          "id": "media2",
+          "title": "葬送的芙莉莲",
+          "kind": "动画",
+          "status": "正在看",
+          "progress": "第 7 集",
+          "blocks": [
+            {
+              "id": "zqxay9qo",
+              "type": "heading",
+              "text": "观看记录"
+            },
+            {
+              "id": "5xdweg9w",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        },
+        {
+          "id": "media3",
+          "title": "财务自由之路",
+          "kind": "书籍",
+          "status": "想看",
+          "progress": "未开始",
+          "blocks": [
+            {
+              "id": "8o7596xe",
+              "type": "heading",
+              "text": "阅读期待"
+            },
+            {
+              "id": "n97ihdk6",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        }
+      ],
+      "recipes": [
+        {
+          "id": "recipe1",
+          "title": "番茄牛肉意面",
+          "ingredients": "牛肉、番茄、意面、洋葱",
+          "note": "下次增加一点罗勒",
+          "blocks": [
+            {
+              "id": "verces6f",
+              "type": "heading",
+              "text": "步骤与调整"
+            },
+            {
+              "id": "nns1hh78",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        }
+      ],
+      "pages": [
+        {
+          "id": "tf1",
+          "space": "thoughts",
+          "parentId": null,
+          "title": "学习方法",
+          "kind": "folder",
+          "blocks": []
+        },
+        {
+          "id": "tf2",
+          "space": "thoughts",
+          "parentId": "tf1",
+          "title": "系统化学习",
+          "kind": "folder",
+          "blocks": []
+        },
+        {
+          "id": "tp1",
+          "space": "thoughts",
+          "parentId": "tf2",
+          "title": "学习系统如何真正运转",
+          "kind": "page",
+          "blocks": [
+            {
+              "id": "jvv4dcm3",
+              "type": "heading",
+              "text": "从节点到每天行动"
+            },
+            {
+              "id": "xzqf8hda",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        },
+        {
+          "id": "tp2",
+          "space": "thoughts",
+          "parentId": "tf1",
+          "title": "复习与反馈",
+          "kind": "page",
+          "blocks": [
+            {
+              "id": "hz4x3q4s",
+              "type": "heading",
+              "text": "复习不是重复阅读"
+            },
+            {
+              "id": "7n0iegom",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        },
+        {
+          "id": "ff1",
+          "space": "free",
+          "parentId": null,
+          "title": "个人档案",
+          "kind": "folder",
+          "blocks": []
+        },
+        {
+          "id": "fp1",
+          "space": "free",
+          "parentId": "ff1",
+          "title": "摄影器材记录",
+          "kind": "page",
+          "blocks": [
+            {
+              "id": "jlulh3ym",
+              "type": "heading",
+              "text": "现有设备与使用感受"
+            },
+            {
+              "id": "czritcgz",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        }
+      ],
+      "daily": {
+        "2026-08-17": {
+          "note": "",
+          "gain": "",
+          "problem": "",
+          "feeling": "",
+          "tomorrow": ""
+        }
+      },
+      "timeEntries": [],
+      "themes": {
+        "today": "#718c7c",
+        "timetable": "#6d8291",
+        "tasks": "#7b846d",
+        "calendar": "#6f8295",
+        "review": "#8c7a91",
+        "school": "#657f91",
+        "learning": "#80769a",
+        "thoughts": "#668476",
+        "work": "#8b7658",
+        "ideas": "#8a6f7d",
+        "tools": "#617f78",
+        "life": "#8b706d",
+        "free": "#738287"
+      }
+    },
+    "updatedAt": "2026-08-19T13:46:07.786Z",
+    "revision": 44
+  },
+  {
+    "data": {
+      "version": 4,
+      "tasks": [
+        {
+          "id": "t1",
+          "title": "整理财务管理第三章笔记",
+          "area": "课内",
+          "source": "财务管理",
+          "due": "2026-08-17",
+          "done": false,
+          "today": true,
+          "elapsed": 24
+        },
+        {
+          "id": "t2",
+          "title": "梳理 AI 工具变现方向的三个假设",
+          "area": "工作",
+          "source": "AI 工具研究",
+          "due": "2026-08-17",
+          "done": false,
+          "today": true,
+          "elapsed": 18
+        },
+        {
+          "id": "t3",
+          "title": "完成 20 分钟力量训练",
+          "area": "生活",
+          "source": "运动",
+          "due": "2026-08-17",
+          "done": false,
+          "today": true,
+          "elapsed": 0
+        },
+        {
+          "id": "t4",
+          "title": "复习中级财务会计错题",
+          "area": "课内",
+          "source": "中级财务会计",
+          "due": "2026-08-17",
+          "done": true,
+          "today": true,
+          "elapsed": 38
+        }
+      ],
+      "milestones": [
+        {
+          "id": "m1",
+          "courseId": "c1",
+          "title": "中级财务会计阶段测验",
+          "date": "2026-08-20",
+          "time": "14:00",
+          "location": "教学楼 302",
+          "requirements": "复习第三至第五章，携带计算器",
+          "area": "课内",
+          "done": false
+        },
+        {
+          "id": "m2",
+          "courseId": "c2",
+          "title": "财务管理课程作业",
+          "date": "2026-08-24",
+          "time": "23:00",
+          "location": "线上提交",
+          "requirements": "完成第三章习题并上传 PDF",
+          "area": "课内",
+          "done": false
+        },
+        {
+          "id": "m3",
+          "title": "AI 工具方向第一轮判断",
+          "date": "2026-08-26",
+          "time": "20:00",
+          "location": "个人工作台",
+          "requirements": "形成可行性结论与下一轮验证清单",
+          "area": "工作",
+          "done": false
+        }
+      ],
+      "courses": [
+        {
+          "id": "r6obhzy7",
+          "title": "未命名课程",
+          "term": "2026 秋季",
+          "teacher": "",
+          "location": "",
+          "progress": 0,
+          "requirements": "",
+          "schedule": [],
+          "blocks": [
+            {
+              "id": "j21wwzf5",
+              "type": "heading",
+              "text": "课程资料与笔记"
+            },
+            {
+              "id": "2adb1w6w",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        }
+      ],
+      "learning": [
+        {
+          "id": "l1",
+          "title": "日语",
+          "category": "语言",
+          "progress": 41,
+          "goal": "完成初级课程，建立日常输入和复习系统。",
+          "resources": [
+            {
+              "id": "lr1",
+              "title": "日语入门系统课",
+              "type": "B站课程",
+              "url": "https://www.bilibili.com",
+              "progress": 44
+            }
+          ],
+          "blocks": [
+            {
+              "id": "76dd30iy",
+              "type": "heading",
+              "text": "学习路线与笔记"
+            },
+            {
+              "id": "fek20zyh",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        },
+        {
+          "id": "l2",
+          "title": "摄影",
+          "category": "兴趣",
+          "progress": 28,
+          "goal": "理解构图、用光并持续完成主题拍摄。",
+          "resources": [
+            {
+              "id": "lr2",
+              "title": "摄影构图与用光",
+              "type": "书籍",
+              "url": "",
+              "progress": 28
+            }
+          ],
+          "blocks": [
+            {
+              "id": "aoaxghsl",
+              "type": "heading",
+              "text": "作品练习与复盘"
+            },
+            {
+              "id": "y1t9cdsi",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        },
+        {
+          "id": "l3",
+          "title": "深度学习",
+          "category": "技术",
+          "progress": 16,
+          "goal": "完成基础理论和一个可展示的小项目。",
+          "resources": [
+            {
+              "id": "lr3",
+              "title": "深度学习基础",
+              "type": "在线课程",
+              "url": "",
+              "progress": 16
+            }
+          ],
+          "blocks": [
+            {
+              "id": "56498jl9",
+              "type": "heading",
+              "text": "概念、实验与问题"
+            },
+            {
+              "id": "00mhdwkt",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        }
+      ],
+      "research": [
+        {
+          "id": "w1",
+          "title": "面向学生的 AI 学习工具",
+          "status": "研究中",
+          "summary": "验证低频但刚需的小型工具形态。",
+          "objective": "弄清学生真正愿意长期使用、愿意付费的学习管理能力。",
+          "next": "访谈 5 个真实使用者",
+          "progress": 45,
+          "pages": [
+            {
+              "id": "2oig775e",
+              "title": "研究总览",
+              "blocks": [
+                {
+                  "id": "xv80gbyh",
+                  "type": "heading",
+                  "text": "研究记录"
+                },
+                {
+                  "id": "b29fc4xg",
+                  "type": "text",
+                  "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+                }
+              ]
+            },
+            {
+              "id": "y71mxjm4",
+              "title": "资料与线索",
+              "blocks": [
+                {
+                  "id": "hym2othx",
+                  "type": "heading",
+                  "text": "资料与线索"
+                },
+                {
+                  "id": "5pfkun76",
+                  "type": "text",
+                  "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+                }
+              ]
+            },
+            {
+              "id": "99tp08ot",
+              "title": "阶段结论",
+              "blocks": [
+                {
+                  "id": "rfsouoc1",
+                  "type": "heading",
+                  "text": "阶段结论"
+                },
+                {
+                  "id": "qtr8a5nz",
+                  "type": "text",
+                  "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "w2",
+          "title": "小型自动化工具变现",
+          "status": "收集箱",
+          "summary": "研究个人开发者可持续的小产品模式。",
+          "objective": "找到需求明确、交付轻、可以快速验证的小工具方向。",
+          "next": "拆解 3 个同类产品",
+          "progress": 25,
+          "pages": [
+            {
+              "id": "pxc1cdon",
+              "title": "研究总览",
+              "blocks": [
+                {
+                  "id": "odclrdw5",
+                  "type": "heading",
+                  "text": "市场、案例与证据"
+                },
+                {
+                  "id": "uav964td",
+                  "type": "text",
+                  "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+                }
+              ]
+            },
+            {
+              "id": "u6he8yoz",
+              "title": "资料与线索",
+              "blocks": [
+                {
+                  "id": "azp8xpd7",
+                  "type": "heading",
+                  "text": "资料与线索"
+                },
+                {
+                  "id": "zu0tdqhj",
+                  "type": "text",
+                  "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+                }
+              ]
+            },
+            {
+              "id": "335bezcs",
+              "title": "阶段结论",
+              "blocks": [
+                {
+                  "id": "ddqnu797",
+                  "type": "heading",
+                  "text": "阶段结论"
+                },
+                {
+                  "id": "1jvf3z3k",
+                  "type": "text",
+                  "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "ideas": [
+        {
+          "id": "i1",
+          "title": "把课程节点自动转成复习任务",
+          "note": "根据考试日倒排并分配复习量。",
+          "createdAt": "2026-08-17"
+        },
+        {
+          "id": "i2",
+          "title": "工具集记录每次迭代原因",
+          "note": "不只展示链接，也保留产品演进过程。",
+          "createdAt": "2026-08-17"
+        }
+      ],
+      "tools": [
+        {
+          "id": "tool1",
+          "title": "序流",
+          "status": "迭代中",
+          "description": "个人工作、学习与生活流管理系统\n\n+事项管理",
+          "url": "https://xuliu-flow-web-stable.vercel.app/",
+          "version": "v10",
+          "blocks": [
+            {
+              "id": "htb9bwzg",
+              "type": "heading",
+              "text": "产品说明与迭代记录"
+            },
+            {
+              "id": "95j4dppk",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ],
+          "versions": [
+            {
+              "id": "legacy-tool1",
+              "label": "v10",
+              "url": "https://xuliu-flow-web-stable.vercel.app/",
+              "note": "从原有工具记录迁移",
+              "createdAt": "2026-08-19"
+            }
+          ]
+        },
+        {
+          "id": "xyjn7vdi",
+          "title": "档案馆",
+          "status": "迭代中",
+          "description": "+其他国家\n",
+          "url": "https://shiguang-life-archive-rho.vercel.app/?v=15",
+          "version": "v15",
+          "blocks": [
+            {
+              "id": "mq0d1xb6",
+              "type": "heading",
+              "text": "产品说明与迭代记录"
+            },
+            {
+              "id": "mwar9m9v",
+              "type": "text",
+              "text": "v16要改什么：增加详细地点识别，zai"
+            }
+          ],
+          "versions": [
+            {
+              "id": "legacy-xyjn7vdi",
+              "label": "0.1",
+              "url": "",
+              "note": "从原有工具记录迁移",
+              "createdAt": "2026-08-19"
+            },
+            {
+              "id": "o81zg16h",
+              "label": "v15",
+              "url": "https://shiguang-life-archive-rho.vercel.app/?v=15",
+              "note": "这一版已经实现了定位到区\n",
+              "createdAt": "2026-08-19"
+            }
+          ],
+          "currentVersionId": "o81zg16h"
+        },
+        {
+          "id": "r2lzkbik",
+          "title": "服饰搭配器",
+          "status": "想法",
+          "description": "按照色彩、风格等方式，提供服装搭配建议\n可以内置一个gpt进行图像处理和扫描\n",
+          "url": "",
+          "version": "0.1",
+          "blocks": [
+            {
+              "id": "w2zgcpdc",
+              "type": "heading",
+              "text": "产品说明与迭代记录"
+            },
+            {
+              "id": "wc3aikbx",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        }
+      ],
+      "habits": [
+        {
+          "id": "h1",
+          "title": "23:00 前准备睡觉",
+          "streak": 6,
+          "today": true,
+          "schedule": "每天"
+        },
+        {
+          "id": "h2",
+          "title": "力量训练 20 分钟",
+          "streak": 3,
+          "today": true,
+          "schedule": "周一、三、六"
+        },
+        {
+          "id": "h3",
+          "title": "专注间隔起身休息",
+          "streak": 8,
+          "today": true,
+          "schedule": "每 20 分钟"
+        }
+      ],
+      "routines": [
+        {
+          "id": "routine1",
+          "title": "晨间启动",
+          "note": "喝水、确认今日任务、开始第一段学习"
+        },
+        {
+          "id": "routine2",
+          "title": "晚间收尾",
+          "note": "整理桌面、完成复盘、放下屏幕"
+        }
+      ],
+      "reminders": [
+        {
+          "id": "exercise",
+          "title": "完成今天的运动",
+          "type": "exercise",
+          "times": [
+            "10:30",
+            "17:30",
+            "12:00"
+          ],
+          "enabled": true
+        },
+        {
+          "id": "break",
+          "title": "起身活动，看看远处",
+          "type": "break",
+          "times": [],
+          "intervalMinutes": 20,
+          "enabled": true
+        },
+        {
+          "id": "sleep",
+          "title": "准备结束今天，放下屏幕",
+          "type": "sleep",
+          "times": [
+            "23:00"
+          ],
+          "enabled": true,
+          "lastFired": "2026-08-17-23:00"
+        }
+      ],
+      "media": [
+        {
+          "id": "media1",
+          "title": "摄影的艺术",
+          "kind": "书籍",
+          "status": "正在看",
+          "progress": "38%",
+          "blocks": [
+            {
+              "id": "xj67i5zr",
+              "type": "heading",
+              "text": "阅读摘记"
+            },
+            {
+              "id": "6xmstlhm",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        },
+        {
+          "id": "media2",
+          "title": "葬送的芙莉莲",
+          "kind": "动画",
+          "status": "正在看",
+          "progress": "第 7 集",
+          "blocks": [
+            {
+              "id": "zqxay9qo",
+              "type": "heading",
+              "text": "观看记录"
+            },
+            {
+              "id": "5xdweg9w",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        },
+        {
+          "id": "media3",
+          "title": "财务自由之路",
+          "kind": "书籍",
+          "status": "想看",
+          "progress": "未开始",
+          "blocks": [
+            {
+              "id": "8o7596xe",
+              "type": "heading",
+              "text": "阅读期待"
+            },
+            {
+              "id": "n97ihdk6",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        }
+      ],
+      "recipes": [
+        {
+          "id": "recipe1",
+          "title": "番茄牛肉意面",
+          "ingredients": "牛肉、番茄、意面、洋葱",
+          "note": "下次增加一点罗勒",
+          "blocks": [
+            {
+              "id": "verces6f",
+              "type": "heading",
+              "text": "步骤与调整"
+            },
+            {
+              "id": "nns1hh78",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        }
+      ],
+      "pages": [
+        {
+          "id": "tf1",
+          "space": "thoughts",
+          "parentId": null,
+          "title": "学习方法",
+          "kind": "folder",
+          "blocks": []
+        },
+        {
+          "id": "tf2",
+          "space": "thoughts",
+          "parentId": "tf1",
+          "title": "系统化学习",
+          "kind": "folder",
+          "blocks": []
+        },
+        {
+          "id": "tp1",
+          "space": "thoughts",
+          "parentId": "tf2",
+          "title": "学习系统如何真正运转",
+          "kind": "page",
+          "blocks": [
+            {
+              "id": "jvv4dcm3",
+              "type": "heading",
+              "text": "从节点到每天行动"
+            },
+            {
+              "id": "xzqf8hda",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        },
+        {
+          "id": "tp2",
+          "space": "thoughts",
+          "parentId": "tf1",
+          "title": "复习与反馈",
+          "kind": "page",
+          "blocks": [
+            {
+              "id": "hz4x3q4s",
+              "type": "heading",
+              "text": "复习不是重复阅读"
+            },
+            {
+              "id": "7n0iegom",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        },
+        {
+          "id": "ff1",
+          "space": "free",
+          "parentId": null,
+          "title": "个人档案",
+          "kind": "folder",
+          "blocks": []
+        },
+        {
+          "id": "fp1",
+          "space": "free",
+          "parentId": "ff1",
+          "title": "摄影器材记录",
+          "kind": "page",
+          "blocks": [
+            {
+              "id": "jlulh3ym",
+              "type": "heading",
+              "text": "现有设备与使用感受"
+            },
+            {
+              "id": "czritcgz",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        }
+      ],
+      "daily": {
+        "2026-08-17": {
+          "note": "",
+          "gain": "",
+          "problem": "",
+          "feeling": "",
+          "tomorrow": ""
+        }
+      },
+      "timeEntries": [],
+      "themes": {
+        "today": "#718c7c",
+        "timetable": "#6d8291",
+        "tasks": "#7b846d",
+        "calendar": "#6f8295",
+        "review": "#8c7a91",
+        "school": "#657f91",
+        "learning": "#80769a",
+        "thoughts": "#668476",
+        "work": "#8b7658",
+        "ideas": "#8a6f7d",
+        "tools": "#617f78",
+        "life": "#8b706d",
+        "free": "#738287"
+      }
+    },
+    "updatedAt": "2026-08-19T13:46:05.618Z",
+    "revision": 43
+  },
+  {
+    "data": {
+      "version": 4,
+      "tasks": [
+        {
+          "id": "t1",
+          "title": "整理财务管理第三章笔记",
+          "area": "课内",
+          "source": "财务管理",
+          "due": "2026-08-17",
+          "done": false,
+          "today": true,
+          "elapsed": 24
+        },
+        {
+          "id": "t2",
+          "title": "梳理 AI 工具变现方向的三个假设",
+          "area": "工作",
+          "source": "AI 工具研究",
+          "due": "2026-08-17",
+          "done": false,
+          "today": true,
+          "elapsed": 18
+        },
+        {
+          "id": "t3",
+          "title": "完成 20 分钟力量训练",
+          "area": "生活",
+          "source": "运动",
+          "due": "2026-08-17",
+          "done": false,
+          "today": true,
+          "elapsed": 0
+        },
+        {
+          "id": "t4",
+          "title": "复习中级财务会计错题",
+          "area": "课内",
+          "source": "中级财务会计",
+          "due": "2026-08-17",
+          "done": true,
+          "today": true,
+          "elapsed": 38
+        }
+      ],
+      "milestones": [
+        {
+          "id": "m1",
+          "courseId": "c1",
+          "title": "中级财务会计阶段测验",
+          "date": "2026-08-20",
+          "time": "14:00",
+          "location": "教学楼 302",
+          "requirements": "复习第三至第五章，携带计算器",
+          "area": "课内",
+          "done": false
+        },
+        {
+          "id": "m2",
+          "courseId": "c2",
+          "title": "财务管理课程作业",
+          "date": "2026-08-24",
+          "time": "23:00",
+          "location": "线上提交",
+          "requirements": "完成第三章习题并上传 PDF",
+          "area": "课内",
+          "done": false
+        },
+        {
+          "id": "m3",
+          "title": "AI 工具方向第一轮判断",
+          "date": "2026-08-26",
+          "time": "20:00",
+          "location": "个人工作台",
+          "requirements": "形成可行性结论与下一轮验证清单",
+          "area": "工作",
+          "done": false
+        }
+      ],
+      "courses": [
+        {
+          "id": "r6obhzy7",
+          "title": "未命名课程",
+          "term": "2026 秋季",
+          "teacher": "",
+          "location": "",
+          "progress": 0,
+          "requirements": "",
+          "schedule": [],
+          "blocks": [
+            {
+              "id": "j21wwzf5",
+              "type": "heading",
+              "text": "课程资料与笔记"
+            },
+            {
+              "id": "2adb1w6w",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        }
+      ],
+      "learning": [
+        {
+          "id": "l1",
+          "title": "日语",
+          "category": "语言",
+          "progress": 41,
+          "goal": "完成初级课程，建立日常输入和复习系统。",
+          "resources": [
+            {
+              "id": "lr1",
+              "title": "日语入门系统课",
+              "type": "B站课程",
+              "url": "https://www.bilibili.com",
+              "progress": 44
+            }
+          ],
+          "blocks": [
+            {
+              "id": "76dd30iy",
+              "type": "heading",
+              "text": "学习路线与笔记"
+            },
+            {
+              "id": "fek20zyh",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        },
+        {
+          "id": "l2",
+          "title": "摄影",
+          "category": "兴趣",
+          "progress": 28,
+          "goal": "理解构图、用光并持续完成主题拍摄。",
+          "resources": [
+            {
+              "id": "lr2",
+              "title": "摄影构图与用光",
+              "type": "书籍",
+              "url": "",
+              "progress": 28
+            }
+          ],
+          "blocks": [
+            {
+              "id": "aoaxghsl",
+              "type": "heading",
+              "text": "作品练习与复盘"
+            },
+            {
+              "id": "y1t9cdsi",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        },
+        {
+          "id": "l3",
+          "title": "深度学习",
+          "category": "技术",
+          "progress": 16,
+          "goal": "完成基础理论和一个可展示的小项目。",
+          "resources": [
+            {
+              "id": "lr3",
+              "title": "深度学习基础",
+              "type": "在线课程",
+              "url": "",
+              "progress": 16
+            }
+          ],
+          "blocks": [
+            {
+              "id": "56498jl9",
+              "type": "heading",
+              "text": "概念、实验与问题"
+            },
+            {
+              "id": "00mhdwkt",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        }
+      ],
+      "research": [
+        {
+          "id": "w1",
+          "title": "面向学生的 AI 学习工具",
+          "status": "研究中",
+          "summary": "验证低频但刚需的小型工具形态。",
+          "objective": "弄清学生真正愿意长期使用、愿意付费的学习管理能力。",
+          "next": "访谈 5 个真实使用者",
+          "progress": 45,
+          "pages": [
+            {
+              "id": "2oig775e",
+              "title": "研究总览",
+              "blocks": [
+                {
+                  "id": "xv80gbyh",
+                  "type": "heading",
+                  "text": "研究记录"
+                },
+                {
+                  "id": "b29fc4xg",
+                  "type": "text",
+                  "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+                }
+              ]
+            },
+            {
+              "id": "y71mxjm4",
+              "title": "资料与线索",
+              "blocks": [
+                {
+                  "id": "hym2othx",
+                  "type": "heading",
+                  "text": "资料与线索"
+                },
+                {
+                  "id": "5pfkun76",
+                  "type": "text",
+                  "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+                }
+              ]
+            },
+            {
+              "id": "99tp08ot",
+              "title": "阶段结论",
+              "blocks": [
+                {
+                  "id": "rfsouoc1",
+                  "type": "heading",
+                  "text": "阶段结论"
+                },
+                {
+                  "id": "qtr8a5nz",
+                  "type": "text",
+                  "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "w2",
+          "title": "小型自动化工具变现",
+          "status": "收集箱",
+          "summary": "研究个人开发者可持续的小产品模式。",
+          "objective": "找到需求明确、交付轻、可以快速验证的小工具方向。",
+          "next": "拆解 3 个同类产品",
+          "progress": 25,
+          "pages": [
+            {
+              "id": "pxc1cdon",
+              "title": "研究总览",
+              "blocks": [
+                {
+                  "id": "odclrdw5",
+                  "type": "heading",
+                  "text": "市场、案例与证据"
+                },
+                {
+                  "id": "uav964td",
+                  "type": "text",
+                  "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+                }
+              ]
+            },
+            {
+              "id": "u6he8yoz",
+              "title": "资料与线索",
+              "blocks": [
+                {
+                  "id": "azp8xpd7",
+                  "type": "heading",
+                  "text": "资料与线索"
+                },
+                {
+                  "id": "zu0tdqhj",
+                  "type": "text",
+                  "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+                }
+              ]
+            },
+            {
+              "id": "335bezcs",
+              "title": "阶段结论",
+              "blocks": [
+                {
+                  "id": "ddqnu797",
+                  "type": "heading",
+                  "text": "阶段结论"
+                },
+                {
+                  "id": "1jvf3z3k",
+                  "type": "text",
+                  "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "ideas": [
+        {
+          "id": "i1",
+          "title": "把课程节点自动转成复习任务",
+          "note": "根据考试日倒排并分配复习量。",
+          "createdAt": "2026-08-17"
+        },
+        {
+          "id": "i2",
+          "title": "工具集记录每次迭代原因",
+          "note": "不只展示链接，也保留产品演进过程。",
+          "createdAt": "2026-08-17"
+        }
+      ],
+      "tools": [
+        {
+          "id": "tool1",
+          "title": "序流",
+          "status": "迭代中",
+          "description": "个人工作、学习与生活流管理系统\n\n+事项管理",
+          "url": "https://xuliu-flow-web-stable.vercel.app/",
+          "version": "v10",
+          "blocks": [
+            {
+              "id": "htb9bwzg",
+              "type": "heading",
+              "text": "产品说明与迭代记录"
+            },
+            {
+              "id": "95j4dppk",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ],
+          "versions": [
+            {
+              "id": "legacy-tool1",
+              "label": "v10",
+              "url": "https://xuliu-flow-web-stable.vercel.app/",
+              "note": "从原有工具记录迁移",
+              "createdAt": "2026-08-19"
+            }
+          ]
+        },
+        {
+          "id": "xyjn7vdi",
+          "title": "档案馆",
+          "status": "迭代中",
+          "description": "+其他国家\n",
+          "url": "https://shiguang-life-archive-rho.vercel.app/?v=15",
+          "version": "v15",
+          "blocks": [
+            {
+              "id": "mq0d1xb6",
+              "type": "heading",
+              "text": "产品说明与迭代记录"
+            },
+            {
+              "id": "mwar9m9v",
+              "type": "text",
+              "text": "v16要改什么：增加详细地点识别，"
+            }
+          ],
+          "versions": [
+            {
+              "id": "legacy-xyjn7vdi",
+              "label": "0.1",
+              "url": "",
+              "note": "从原有工具记录迁移",
+              "createdAt": "2026-08-19"
+            },
+            {
+              "id": "o81zg16h",
+              "label": "v15",
+              "url": "https://shiguang-life-archive-rho.vercel.app/?v=15",
+              "note": "这一版已经实现了定位到区\n",
+              "createdAt": "2026-08-19"
+            }
+          ],
+          "currentVersionId": "o81zg16h"
+        },
+        {
+          "id": "r2lzkbik",
+          "title": "服饰搭配器",
+          "status": "想法",
+          "description": "按照色彩、风格等方式，提供服装搭配建议\n可以内置一个gpt进行图像处理和扫描\n",
+          "url": "",
+          "version": "0.1",
+          "blocks": [
+            {
+              "id": "w2zgcpdc",
+              "type": "heading",
+              "text": "产品说明与迭代记录"
+            },
+            {
+              "id": "wc3aikbx",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        }
+      ],
+      "habits": [
+        {
+          "id": "h1",
+          "title": "23:00 前准备睡觉",
+          "streak": 6,
+          "today": true,
+          "schedule": "每天"
+        },
+        {
+          "id": "h2",
+          "title": "力量训练 20 分钟",
+          "streak": 3,
+          "today": true,
+          "schedule": "周一、三、六"
+        },
+        {
+          "id": "h3",
+          "title": "专注间隔起身休息",
+          "streak": 8,
+          "today": true,
+          "schedule": "每 20 分钟"
+        }
+      ],
+      "routines": [
+        {
+          "id": "routine1",
+          "title": "晨间启动",
+          "note": "喝水、确认今日任务、开始第一段学习"
+        },
+        {
+          "id": "routine2",
+          "title": "晚间收尾",
+          "note": "整理桌面、完成复盘、放下屏幕"
+        }
+      ],
+      "reminders": [
+        {
+          "id": "exercise",
+          "title": "完成今天的运动",
+          "type": "exercise",
+          "times": [
+            "10:30",
+            "17:30",
+            "12:00"
+          ],
+          "enabled": true
+        },
+        {
+          "id": "break",
+          "title": "起身活动，看看远处",
+          "type": "break",
+          "times": [],
+          "intervalMinutes": 20,
+          "enabled": true
+        },
+        {
+          "id": "sleep",
+          "title": "准备结束今天，放下屏幕",
+          "type": "sleep",
+          "times": [
+            "23:00"
+          ],
+          "enabled": true,
+          "lastFired": "2026-08-17-23:00"
+        }
+      ],
+      "media": [
+        {
+          "id": "media1",
+          "title": "摄影的艺术",
+          "kind": "书籍",
+          "status": "正在看",
+          "progress": "38%",
+          "blocks": [
+            {
+              "id": "xj67i5zr",
+              "type": "heading",
+              "text": "阅读摘记"
+            },
+            {
+              "id": "6xmstlhm",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        },
+        {
+          "id": "media2",
+          "title": "葬送的芙莉莲",
+          "kind": "动画",
+          "status": "正在看",
+          "progress": "第 7 集",
+          "blocks": [
+            {
+              "id": "zqxay9qo",
+              "type": "heading",
+              "text": "观看记录"
+            },
+            {
+              "id": "5xdweg9w",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        },
+        {
+          "id": "media3",
+          "title": "财务自由之路",
+          "kind": "书籍",
+          "status": "想看",
+          "progress": "未开始",
+          "blocks": [
+            {
+              "id": "8o7596xe",
+              "type": "heading",
+              "text": "阅读期待"
+            },
+            {
+              "id": "n97ihdk6",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        }
+      ],
+      "recipes": [
+        {
+          "id": "recipe1",
+          "title": "番茄牛肉意面",
+          "ingredients": "牛肉、番茄、意面、洋葱",
+          "note": "下次增加一点罗勒",
+          "blocks": [
+            {
+              "id": "verces6f",
+              "type": "heading",
+              "text": "步骤与调整"
+            },
+            {
+              "id": "nns1hh78",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        }
+      ],
+      "pages": [
+        {
+          "id": "tf1",
+          "space": "thoughts",
+          "parentId": null,
+          "title": "学习方法",
+          "kind": "folder",
+          "blocks": []
+        },
+        {
+          "id": "tf2",
+          "space": "thoughts",
+          "parentId": "tf1",
+          "title": "系统化学习",
+          "kind": "folder",
+          "blocks": []
+        },
+        {
+          "id": "tp1",
+          "space": "thoughts",
+          "parentId": "tf2",
+          "title": "学习系统如何真正运转",
+          "kind": "page",
+          "blocks": [
+            {
+              "id": "jvv4dcm3",
+              "type": "heading",
+              "text": "从节点到每天行动"
+            },
+            {
+              "id": "xzqf8hda",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        },
+        {
+          "id": "tp2",
+          "space": "thoughts",
+          "parentId": "tf1",
+          "title": "复习与反馈",
+          "kind": "page",
+          "blocks": [
+            {
+              "id": "hz4x3q4s",
+              "type": "heading",
+              "text": "复习不是重复阅读"
+            },
+            {
+              "id": "7n0iegom",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        },
+        {
+          "id": "ff1",
+          "space": "free",
+          "parentId": null,
+          "title": "个人档案",
+          "kind": "folder",
+          "blocks": []
+        },
+        {
+          "id": "fp1",
+          "space": "free",
+          "parentId": "ff1",
+          "title": "摄影器材记录",
+          "kind": "page",
+          "blocks": [
+            {
+              "id": "jlulh3ym",
+              "type": "heading",
+              "text": "现有设备与使用感受"
+            },
+            {
+              "id": "czritcgz",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        }
+      ],
+      "daily": {
+        "2026-08-17": {
+          "note": "",
+          "gain": "",
+          "problem": "",
+          "feeling": "",
+          "tomorrow": ""
+        }
+      },
+      "timeEntries": [],
+      "themes": {
+        "today": "#718c7c",
+        "timetable": "#6d8291",
+        "tasks": "#7b846d",
+        "calendar": "#6f8295",
+        "review": "#8c7a91",
+        "school": "#657f91",
+        "learning": "#80769a",
+        "thoughts": "#668476",
+        "work": "#8b7658",
+        "ideas": "#8a6f7d",
+        "tools": "#617f78",
+        "life": "#8b706d",
+        "free": "#738287"
+      }
+    },
+    "updatedAt": "2026-08-19T13:46:04.344Z",
+    "revision": 42
+  },
+  {
+    "data": {
+      "version": 4,
+      "tasks": [
+        {
+          "id": "t1",
+          "title": "整理财务管理第三章笔记",
+          "area": "课内",
+          "source": "财务管理",
+          "due": "2026-08-17",
+          "done": false,
+          "today": true,
+          "elapsed": 24
+        },
+        {
+          "id": "t2",
+          "title": "梳理 AI 工具变现方向的三个假设",
+          "area": "工作",
+          "source": "AI 工具研究",
+          "due": "2026-08-17",
+          "done": false,
+          "today": true,
+          "elapsed": 18
+        },
+        {
+          "id": "t3",
+          "title": "完成 20 分钟力量训练",
+          "area": "生活",
+          "source": "运动",
+          "due": "2026-08-17",
+          "done": false,
+          "today": true,
+          "elapsed": 0
+        },
+        {
+          "id": "t4",
+          "title": "复习中级财务会计错题",
+          "area": "课内",
+          "source": "中级财务会计",
+          "due": "2026-08-17",
+          "done": true,
+          "today": true,
+          "elapsed": 38
+        }
+      ],
+      "milestones": [
+        {
+          "id": "m1",
+          "courseId": "c1",
+          "title": "中级财务会计阶段测验",
+          "date": "2026-08-20",
+          "time": "14:00",
+          "location": "教学楼 302",
+          "requirements": "复习第三至第五章，携带计算器",
+          "area": "课内",
+          "done": false
+        },
+        {
+          "id": "m2",
+          "courseId": "c2",
+          "title": "财务管理课程作业",
+          "date": "2026-08-24",
+          "time": "23:00",
+          "location": "线上提交",
+          "requirements": "完成第三章习题并上传 PDF",
+          "area": "课内",
+          "done": false
+        },
+        {
+          "id": "m3",
+          "title": "AI 工具方向第一轮判断",
+          "date": "2026-08-26",
+          "time": "20:00",
+          "location": "个人工作台",
+          "requirements": "形成可行性结论与下一轮验证清单",
+          "area": "工作",
+          "done": false
+        }
+      ],
+      "courses": [
+        {
+          "id": "r6obhzy7",
+          "title": "未命名课程",
+          "term": "2026 秋季",
+          "teacher": "",
+          "location": "",
+          "progress": 0,
+          "requirements": "",
+          "schedule": [],
+          "blocks": [
+            {
+              "id": "j21wwzf5",
+              "type": "heading",
+              "text": "课程资料与笔记"
+            },
+            {
+              "id": "2adb1w6w",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        }
+      ],
+      "learning": [
+        {
+          "id": "l1",
+          "title": "日语",
+          "category": "语言",
+          "progress": 41,
+          "goal": "完成初级课程，建立日常输入和复习系统。",
+          "resources": [
+            {
+              "id": "lr1",
+              "title": "日语入门系统课",
+              "type": "B站课程",
+              "url": "https://www.bilibili.com",
+              "progress": 44
+            }
+          ],
+          "blocks": [
+            {
+              "id": "76dd30iy",
+              "type": "heading",
+              "text": "学习路线与笔记"
+            },
+            {
+              "id": "fek20zyh",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        },
+        {
+          "id": "l2",
+          "title": "摄影",
+          "category": "兴趣",
+          "progress": 28,
+          "goal": "理解构图、用光并持续完成主题拍摄。",
+          "resources": [
+            {
+              "id": "lr2",
+              "title": "摄影构图与用光",
+              "type": "书籍",
+              "url": "",
+              "progress": 28
+            }
+          ],
+          "blocks": [
+            {
+              "id": "aoaxghsl",
+              "type": "heading",
+              "text": "作品练习与复盘"
+            },
+            {
+              "id": "y1t9cdsi",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        },
+        {
+          "id": "l3",
+          "title": "深度学习",
+          "category": "技术",
+          "progress": 16,
+          "goal": "完成基础理论和一个可展示的小项目。",
+          "resources": [
+            {
+              "id": "lr3",
+              "title": "深度学习基础",
+              "type": "在线课程",
+              "url": "",
+              "progress": 16
+            }
+          ],
+          "blocks": [
+            {
+              "id": "56498jl9",
+              "type": "heading",
+              "text": "概念、实验与问题"
+            },
+            {
+              "id": "00mhdwkt",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        }
+      ],
+      "research": [
+        {
+          "id": "w1",
+          "title": "面向学生的 AI 学习工具",
+          "status": "研究中",
+          "summary": "验证低频但刚需的小型工具形态。",
+          "objective": "弄清学生真正愿意长期使用、愿意付费的学习管理能力。",
+          "next": "访谈 5 个真实使用者",
+          "progress": 45,
+          "pages": [
+            {
+              "id": "2oig775e",
+              "title": "研究总览",
+              "blocks": [
+                {
+                  "id": "xv80gbyh",
+                  "type": "heading",
+                  "text": "研究记录"
+                },
+                {
+                  "id": "b29fc4xg",
+                  "type": "text",
+                  "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+                }
+              ]
+            },
+            {
+              "id": "y71mxjm4",
+              "title": "资料与线索",
+              "blocks": [
+                {
+                  "id": "hym2othx",
+                  "type": "heading",
+                  "text": "资料与线索"
+                },
+                {
+                  "id": "5pfkun76",
+                  "type": "text",
+                  "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+                }
+              ]
+            },
+            {
+              "id": "99tp08ot",
+              "title": "阶段结论",
+              "blocks": [
+                {
+                  "id": "rfsouoc1",
+                  "type": "heading",
+                  "text": "阶段结论"
+                },
+                {
+                  "id": "qtr8a5nz",
+                  "type": "text",
+                  "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "w2",
+          "title": "小型自动化工具变现",
+          "status": "收集箱",
+          "summary": "研究个人开发者可持续的小产品模式。",
+          "objective": "找到需求明确、交付轻、可以快速验证的小工具方向。",
+          "next": "拆解 3 个同类产品",
+          "progress": 25,
+          "pages": [
+            {
+              "id": "pxc1cdon",
+              "title": "研究总览",
+              "blocks": [
+                {
+                  "id": "odclrdw5",
+                  "type": "heading",
+                  "text": "市场、案例与证据"
+                },
+                {
+                  "id": "uav964td",
+                  "type": "text",
+                  "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+                }
+              ]
+            },
+            {
+              "id": "u6he8yoz",
+              "title": "资料与线索",
+              "blocks": [
+                {
+                  "id": "azp8xpd7",
+                  "type": "heading",
+                  "text": "资料与线索"
+                },
+                {
+                  "id": "zu0tdqhj",
+                  "type": "text",
+                  "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+                }
+              ]
+            },
+            {
+              "id": "335bezcs",
+              "title": "阶段结论",
+              "blocks": [
+                {
+                  "id": "ddqnu797",
+                  "type": "heading",
+                  "text": "阶段结论"
+                },
+                {
+                  "id": "1jvf3z3k",
+                  "type": "text",
+                  "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "ideas": [
+        {
+          "id": "i1",
+          "title": "把课程节点自动转成复习任务",
+          "note": "根据考试日倒排并分配复习量。",
+          "createdAt": "2026-08-17"
+        },
+        {
+          "id": "i2",
+          "title": "工具集记录每次迭代原因",
+          "note": "不只展示链接，也保留产品演进过程。",
+          "createdAt": "2026-08-17"
+        }
+      ],
+      "tools": [
+        {
+          "id": "tool1",
+          "title": "序流",
+          "status": "迭代中",
+          "description": "个人工作、学习与生活流管理系统\n\n+事项管理",
+          "url": "https://xuliu-flow-web-stable.vercel.app/",
+          "version": "v10",
+          "blocks": [
+            {
+              "id": "htb9bwzg",
+              "type": "heading",
+              "text": "产品说明与迭代记录"
+            },
+            {
+              "id": "95j4dppk",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ],
+          "versions": [
+            {
+              "id": "legacy-tool1",
+              "label": "v10",
+              "url": "https://xuliu-flow-web-stable.vercel.app/",
+              "note": "从原有工具记录迁移",
+              "createdAt": "2026-08-19"
+            }
+          ]
+        },
+        {
+          "id": "xyjn7vdi",
+          "title": "档案馆",
+          "status": "迭代中",
+          "description": "+其他国家\n",
+          "url": "https://shiguang-life-archive-rho.vercel.app/?v=15",
+          "version": "v15",
+          "blocks": [
+            {
+              "id": "mq0d1xb6",
+              "type": "heading",
+              "text": "产品说明与迭代记录"
+            },
+            {
+              "id": "mwar9m9v",
+              "type": "text",
+              "text": "v16要改什么："
+            }
+          ],
+          "versions": [
+            {
+              "id": "legacy-xyjn7vdi",
+              "label": "0.1",
+              "url": "",
+              "note": "从原有工具记录迁移",
+              "createdAt": "2026-08-19"
+            },
+            {
+              "id": "o81zg16h",
+              "label": "v15",
+              "url": "https://shiguang-life-archive-rho.vercel.app/?v=15",
+              "note": "这一版已经实现了定位到区\n",
+              "createdAt": "2026-08-19"
+            }
+          ],
+          "currentVersionId": "o81zg16h"
+        },
+        {
+          "id": "r2lzkbik",
+          "title": "服饰搭配器",
+          "status": "想法",
+          "description": "按照色彩、风格等方式，提供服装搭配建议\n可以内置一个gpt进行图像处理和扫描\n",
+          "url": "",
+          "version": "0.1",
+          "blocks": [
+            {
+              "id": "w2zgcpdc",
+              "type": "heading",
+              "text": "产品说明与迭代记录"
+            },
+            {
+              "id": "wc3aikbx",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        }
+      ],
+      "habits": [
+        {
+          "id": "h1",
+          "title": "23:00 前准备睡觉",
+          "streak": 6,
+          "today": true,
+          "schedule": "每天"
+        },
+        {
+          "id": "h2",
+          "title": "力量训练 20 分钟",
+          "streak": 3,
+          "today": true,
+          "schedule": "周一、三、六"
+        },
+        {
+          "id": "h3",
+          "title": "专注间隔起身休息",
+          "streak": 8,
+          "today": true,
+          "schedule": "每 20 分钟"
+        }
+      ],
+      "routines": [
+        {
+          "id": "routine1",
+          "title": "晨间启动",
+          "note": "喝水、确认今日任务、开始第一段学习"
+        },
+        {
+          "id": "routine2",
+          "title": "晚间收尾",
+          "note": "整理桌面、完成复盘、放下屏幕"
+        }
+      ],
+      "reminders": [
+        {
+          "id": "exercise",
+          "title": "完成今天的运动",
+          "type": "exercise",
+          "times": [
+            "10:30",
+            "17:30",
+            "12:00"
+          ],
+          "enabled": true
+        },
+        {
+          "id": "break",
+          "title": "起身活动，看看远处",
+          "type": "break",
+          "times": [],
+          "intervalMinutes": 20,
+          "enabled": true
+        },
+        {
+          "id": "sleep",
+          "title": "准备结束今天，放下屏幕",
+          "type": "sleep",
+          "times": [
+            "23:00"
+          ],
+          "enabled": true,
+          "lastFired": "2026-08-17-23:00"
+        }
+      ],
+      "media": [
+        {
+          "id": "media1",
+          "title": "摄影的艺术",
+          "kind": "书籍",
+          "status": "正在看",
+          "progress": "38%",
+          "blocks": [
+            {
+              "id": "xj67i5zr",
+              "type": "heading",
+              "text": "阅读摘记"
+            },
+            {
+              "id": "6xmstlhm",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        },
+        {
+          "id": "media2",
+          "title": "葬送的芙莉莲",
+          "kind": "动画",
+          "status": "正在看",
+          "progress": "第 7 集",
+          "blocks": [
+            {
+              "id": "zqxay9qo",
+              "type": "heading",
+              "text": "观看记录"
+            },
+            {
+              "id": "5xdweg9w",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        },
+        {
+          "id": "media3",
+          "title": "财务自由之路",
+          "kind": "书籍",
+          "status": "想看",
+          "progress": "未开始",
+          "blocks": [
+            {
+              "id": "8o7596xe",
+              "type": "heading",
+              "text": "阅读期待"
+            },
+            {
+              "id": "n97ihdk6",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        }
+      ],
+      "recipes": [
+        {
+          "id": "recipe1",
+          "title": "番茄牛肉意面",
+          "ingredients": "牛肉、番茄、意面、洋葱",
+          "note": "下次增加一点罗勒",
+          "blocks": [
+            {
+              "id": "verces6f",
+              "type": "heading",
+              "text": "步骤与调整"
+            },
+            {
+              "id": "nns1hh78",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        }
+      ],
+      "pages": [
+        {
+          "id": "tf1",
+          "space": "thoughts",
+          "parentId": null,
+          "title": "学习方法",
+          "kind": "folder",
+          "blocks": []
+        },
+        {
+          "id": "tf2",
+          "space": "thoughts",
+          "parentId": "tf1",
+          "title": "系统化学习",
+          "kind": "folder",
+          "blocks": []
+        },
+        {
+          "id": "tp1",
+          "space": "thoughts",
+          "parentId": "tf2",
+          "title": "学习系统如何真正运转",
+          "kind": "page",
+          "blocks": [
+            {
+              "id": "jvv4dcm3",
+              "type": "heading",
+              "text": "从节点到每天行动"
+            },
+            {
+              "id": "xzqf8hda",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        },
+        {
+          "id": "tp2",
+          "space": "thoughts",
+          "parentId": "tf1",
+          "title": "复习与反馈",
+          "kind": "page",
+          "blocks": [
+            {
+              "id": "hz4x3q4s",
+              "type": "heading",
+              "text": "复习不是重复阅读"
+            },
+            {
+              "id": "7n0iegom",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        },
+        {
+          "id": "ff1",
+          "space": "free",
+          "parentId": null,
+          "title": "个人档案",
+          "kind": "folder",
+          "blocks": []
+        },
+        {
+          "id": "fp1",
+          "space": "free",
+          "parentId": "ff1",
+          "title": "摄影器材记录",
+          "kind": "page",
+          "blocks": [
+            {
+              "id": "jlulh3ym",
+              "type": "heading",
+              "text": "现有设备与使用感受"
+            },
+            {
+              "id": "czritcgz",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        }
+      ],
+      "daily": {
+        "2026-08-17": {
+          "note": "",
+          "gain": "",
+          "problem": "",
+          "feeling": "",
+          "tomorrow": ""
+        }
+      },
+      "timeEntries": [],
+      "themes": {
+        "today": "#718c7c",
+        "timetable": "#6d8291",
+        "tasks": "#7b846d",
+        "calendar": "#6f8295",
+        "review": "#8c7a91",
+        "school": "#657f91",
+        "learning": "#80769a",
+        "thoughts": "#668476",
+        "work": "#8b7658",
+        "ideas": "#8a6f7d",
+        "tools": "#617f78",
+        "life": "#8b706d",
+        "free": "#738287"
+      }
+    },
+    "updatedAt": "2026-08-19T13:45:58.293Z",
+    "revision": 41
+  },
+  {
+    "data": {
+      "version": 4,
+      "tasks": [
+        {
+          "id": "t1",
+          "title": "整理财务管理第三章笔记",
+          "area": "课内",
+          "source": "财务管理",
+          "due": "2026-08-17",
+          "done": false,
+          "today": true,
+          "elapsed": 24
+        },
+        {
+          "id": "t2",
+          "title": "梳理 AI 工具变现方向的三个假设",
+          "area": "工作",
+          "source": "AI 工具研究",
+          "due": "2026-08-17",
+          "done": false,
+          "today": true,
+          "elapsed": 18
+        },
+        {
+          "id": "t3",
+          "title": "完成 20 分钟力量训练",
+          "area": "生活",
+          "source": "运动",
+          "due": "2026-08-17",
+          "done": false,
+          "today": true,
+          "elapsed": 0
+        },
+        {
+          "id": "t4",
+          "title": "复习中级财务会计错题",
+          "area": "课内",
+          "source": "中级财务会计",
+          "due": "2026-08-17",
+          "done": true,
+          "today": true,
+          "elapsed": 38
+        }
+      ],
+      "milestones": [
+        {
+          "id": "m1",
+          "courseId": "c1",
+          "title": "中级财务会计阶段测验",
+          "date": "2026-08-20",
+          "time": "14:00",
+          "location": "教学楼 302",
+          "requirements": "复习第三至第五章，携带计算器",
+          "area": "课内",
+          "done": false
+        },
+        {
+          "id": "m2",
+          "courseId": "c2",
+          "title": "财务管理课程作业",
+          "date": "2026-08-24",
+          "time": "23:00",
+          "location": "线上提交",
+          "requirements": "完成第三章习题并上传 PDF",
+          "area": "课内",
+          "done": false
+        },
+        {
+          "id": "m3",
+          "title": "AI 工具方向第一轮判断",
+          "date": "2026-08-26",
+          "time": "20:00",
+          "location": "个人工作台",
+          "requirements": "形成可行性结论与下一轮验证清单",
+          "area": "工作",
+          "done": false
+        }
+      ],
+      "courses": [
+        {
+          "id": "r6obhzy7",
+          "title": "未命名课程",
+          "term": "2026 秋季",
+          "teacher": "",
+          "location": "",
+          "progress": 0,
+          "requirements": "",
+          "schedule": [],
+          "blocks": [
+            {
+              "id": "j21wwzf5",
+              "type": "heading",
+              "text": "课程资料与笔记"
+            },
+            {
+              "id": "2adb1w6w",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        }
+      ],
+      "learning": [
+        {
+          "id": "l1",
+          "title": "日语",
+          "category": "语言",
+          "progress": 41,
+          "goal": "完成初级课程，建立日常输入和复习系统。",
+          "resources": [
+            {
+              "id": "lr1",
+              "title": "日语入门系统课",
+              "type": "B站课程",
+              "url": "https://www.bilibili.com",
+              "progress": 44
+            }
+          ],
+          "blocks": [
+            {
+              "id": "76dd30iy",
+              "type": "heading",
+              "text": "学习路线与笔记"
+            },
+            {
+              "id": "fek20zyh",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        },
+        {
+          "id": "l2",
+          "title": "摄影",
+          "category": "兴趣",
+          "progress": 28,
+          "goal": "理解构图、用光并持续完成主题拍摄。",
+          "resources": [
+            {
+              "id": "lr2",
+              "title": "摄影构图与用光",
+              "type": "书籍",
+              "url": "",
+              "progress": 28
+            }
+          ],
+          "blocks": [
+            {
+              "id": "aoaxghsl",
+              "type": "heading",
+              "text": "作品练习与复盘"
+            },
+            {
+              "id": "y1t9cdsi",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        },
+        {
+          "id": "l3",
+          "title": "深度学习",
+          "category": "技术",
+          "progress": 16,
+          "goal": "完成基础理论和一个可展示的小项目。",
+          "resources": [
+            {
+              "id": "lr3",
+              "title": "深度学习基础",
+              "type": "在线课程",
+              "url": "",
+              "progress": 16
+            }
+          ],
+          "blocks": [
+            {
+              "id": "56498jl9",
+              "type": "heading",
+              "text": "概念、实验与问题"
+            },
+            {
+              "id": "00mhdwkt",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        }
+      ],
+      "research": [
+        {
+          "id": "w1",
+          "title": "面向学生的 AI 学习工具",
+          "status": "研究中",
+          "summary": "验证低频但刚需的小型工具形态。",
+          "objective": "弄清学生真正愿意长期使用、愿意付费的学习管理能力。",
+          "next": "访谈 5 个真实使用者",
+          "progress": 45,
+          "pages": [
+            {
+              "id": "2oig775e",
+              "title": "研究总览",
+              "blocks": [
+                {
+                  "id": "xv80gbyh",
+                  "type": "heading",
+                  "text": "研究记录"
+                },
+                {
+                  "id": "b29fc4xg",
+                  "type": "text",
+                  "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+                }
+              ]
+            },
+            {
+              "id": "y71mxjm4",
+              "title": "资料与线索",
+              "blocks": [
+                {
+                  "id": "hym2othx",
+                  "type": "heading",
+                  "text": "资料与线索"
+                },
+                {
+                  "id": "5pfkun76",
+                  "type": "text",
+                  "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+                }
+              ]
+            },
+            {
+              "id": "99tp08ot",
+              "title": "阶段结论",
+              "blocks": [
+                {
+                  "id": "rfsouoc1",
+                  "type": "heading",
+                  "text": "阶段结论"
+                },
+                {
+                  "id": "qtr8a5nz",
+                  "type": "text",
+                  "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "w2",
+          "title": "小型自动化工具变现",
+          "status": "收集箱",
+          "summary": "研究个人开发者可持续的小产品模式。",
+          "objective": "找到需求明确、交付轻、可以快速验证的小工具方向。",
+          "next": "拆解 3 个同类产品",
+          "progress": 25,
+          "pages": [
+            {
+              "id": "pxc1cdon",
+              "title": "研究总览",
+              "blocks": [
+                {
+                  "id": "odclrdw5",
+                  "type": "heading",
+                  "text": "市场、案例与证据"
+                },
+                {
+                  "id": "uav964td",
+                  "type": "text",
+                  "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+                }
+              ]
+            },
+            {
+              "id": "u6he8yoz",
+              "title": "资料与线索",
+              "blocks": [
+                {
+                  "id": "azp8xpd7",
+                  "type": "heading",
+                  "text": "资料与线索"
+                },
+                {
+                  "id": "zu0tdqhj",
+                  "type": "text",
+                  "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+                }
+              ]
+            },
+            {
+              "id": "335bezcs",
+              "title": "阶段结论",
+              "blocks": [
+                {
+                  "id": "ddqnu797",
+                  "type": "heading",
+                  "text": "阶段结论"
+                },
+                {
+                  "id": "1jvf3z3k",
+                  "type": "text",
+                  "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "ideas": [
+        {
+          "id": "i1",
+          "title": "把课程节点自动转成复习任务",
+          "note": "根据考试日倒排并分配复习量。",
+          "createdAt": "2026-08-17"
+        },
+        {
+          "id": "i2",
+          "title": "工具集记录每次迭代原因",
+          "note": "不只展示链接，也保留产品演进过程。",
+          "createdAt": "2026-08-17"
+        }
+      ],
+      "tools": [
+        {
+          "id": "tool1",
+          "title": "序流",
+          "status": "迭代中",
+          "description": "个人工作、学习与生活流管理系统\n\n+事项管理",
+          "url": "https://xuliu-flow-web-stable.vercel.app/",
+          "version": "v10",
+          "blocks": [
+            {
+              "id": "htb9bwzg",
+              "type": "heading",
+              "text": "产品说明与迭代记录"
+            },
+            {
+              "id": "95j4dppk",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ],
+          "versions": [
+            {
+              "id": "legacy-tool1",
+              "label": "v10",
+              "url": "https://xuliu-flow-web-stable.vercel.app/",
+              "note": "从原有工具记录迁移",
+              "createdAt": "2026-08-19"
+            }
+          ]
+        },
+        {
+          "id": "xyjn7vdi",
+          "title": "档案馆",
+          "status": "迭代中",
+          "description": "+其他国家\n",
+          "url": "https://shiguang-life-archive-rho.vercel.app/?v=15",
+          "version": "v15",
+          "blocks": [
+            {
+              "id": "mq0d1xb6",
+              "type": "heading",
+              "text": "产品说明与迭代记录"
+            },
+            {
+              "id": "mwar9m9v",
+              "type": "text",
+              "text": "v16要改什么"
+            }
+          ],
+          "versions": [
+            {
+              "id": "legacy-xyjn7vdi",
+              "label": "0.1",
+              "url": "",
+              "note": "从原有工具记录迁移",
+              "createdAt": "2026-08-19"
+            },
+            {
+              "id": "o81zg16h",
+              "label": "v15",
+              "url": "https://shiguang-life-archive-rho.vercel.app/?v=15",
+              "note": "这一版已经实现了定位到区\n",
+              "createdAt": "2026-08-19"
+            }
+          ],
+          "currentVersionId": "o81zg16h"
+        },
+        {
+          "id": "r2lzkbik",
+          "title": "服饰搭配器",
+          "status": "想法",
+          "description": "按照色彩、风格等方式，提供服装搭配建议\n可以内置一个gpt进行图像处理和扫描\n",
+          "url": "",
+          "version": "0.1",
+          "blocks": [
+            {
+              "id": "w2zgcpdc",
+              "type": "heading",
+              "text": "产品说明与迭代记录"
+            },
+            {
+              "id": "wc3aikbx",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        }
+      ],
+      "habits": [
+        {
+          "id": "h1",
+          "title": "23:00 前准备睡觉",
+          "streak": 6,
+          "today": true,
+          "schedule": "每天"
+        },
+        {
+          "id": "h2",
+          "title": "力量训练 20 分钟",
+          "streak": 3,
+          "today": true,
+          "schedule": "周一、三、六"
+        },
+        {
+          "id": "h3",
+          "title": "专注间隔起身休息",
+          "streak": 8,
+          "today": true,
+          "schedule": "每 20 分钟"
+        }
+      ],
+      "routines": [
+        {
+          "id": "routine1",
+          "title": "晨间启动",
+          "note": "喝水、确认今日任务、开始第一段学习"
+        },
+        {
+          "id": "routine2",
+          "title": "晚间收尾",
+          "note": "整理桌面、完成复盘、放下屏幕"
+        }
+      ],
+      "reminders": [
+        {
+          "id": "exercise",
+          "title": "完成今天的运动",
+          "type": "exercise",
+          "times": [
+            "10:30",
+            "17:30",
+            "12:00"
+          ],
+          "enabled": true
+        },
+        {
+          "id": "break",
+          "title": "起身活动，看看远处",
+          "type": "break",
+          "times": [],
+          "intervalMinutes": 20,
+          "enabled": true
+        },
+        {
+          "id": "sleep",
+          "title": "准备结束今天，放下屏幕",
+          "type": "sleep",
+          "times": [
+            "23:00"
+          ],
+          "enabled": true,
+          "lastFired": "2026-08-17-23:00"
+        }
+      ],
+      "media": [
+        {
+          "id": "media1",
+          "title": "摄影的艺术",
+          "kind": "书籍",
+          "status": "正在看",
+          "progress": "38%",
+          "blocks": [
+            {
+              "id": "xj67i5zr",
+              "type": "heading",
+              "text": "阅读摘记"
+            },
+            {
+              "id": "6xmstlhm",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        },
+        {
+          "id": "media2",
+          "title": "葬送的芙莉莲",
+          "kind": "动画",
+          "status": "正在看",
+          "progress": "第 7 集",
+          "blocks": [
+            {
+              "id": "zqxay9qo",
+              "type": "heading",
+              "text": "观看记录"
+            },
+            {
+              "id": "5xdweg9w",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        },
+        {
+          "id": "media3",
+          "title": "财务自由之路",
+          "kind": "书籍",
+          "status": "想看",
+          "progress": "未开始",
+          "blocks": [
+            {
+              "id": "8o7596xe",
+              "type": "heading",
+              "text": "阅读期待"
+            },
+            {
+              "id": "n97ihdk6",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        }
+      ],
+      "recipes": [
+        {
+          "id": "recipe1",
+          "title": "番茄牛肉意面",
+          "ingredients": "牛肉、番茄、意面、洋葱",
+          "note": "下次增加一点罗勒",
+          "blocks": [
+            {
+              "id": "verces6f",
+              "type": "heading",
+              "text": "步骤与调整"
+            },
+            {
+              "id": "nns1hh78",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        }
+      ],
+      "pages": [
+        {
+          "id": "tf1",
+          "space": "thoughts",
+          "parentId": null,
+          "title": "学习方法",
+          "kind": "folder",
+          "blocks": []
+        },
+        {
+          "id": "tf2",
+          "space": "thoughts",
+          "parentId": "tf1",
+          "title": "系统化学习",
+          "kind": "folder",
+          "blocks": []
+        },
+        {
+          "id": "tp1",
+          "space": "thoughts",
+          "parentId": "tf2",
+          "title": "学习系统如何真正运转",
+          "kind": "page",
+          "blocks": [
+            {
+              "id": "jvv4dcm3",
+              "type": "heading",
+              "text": "从节点到每天行动"
+            },
+            {
+              "id": "xzqf8hda",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        },
+        {
+          "id": "tp2",
+          "space": "thoughts",
+          "parentId": "tf1",
+          "title": "复习与反馈",
+          "kind": "page",
+          "blocks": [
+            {
+              "id": "hz4x3q4s",
+              "type": "heading",
+              "text": "复习不是重复阅读"
+            },
+            {
+              "id": "7n0iegom",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        },
+        {
+          "id": "ff1",
+          "space": "free",
+          "parentId": null,
+          "title": "个人档案",
+          "kind": "folder",
+          "blocks": []
+        },
+        {
+          "id": "fp1",
+          "space": "free",
+          "parentId": "ff1",
+          "title": "摄影器材记录",
+          "kind": "page",
+          "blocks": [
+            {
+              "id": "jlulh3ym",
+              "type": "heading",
+              "text": "现有设备与使用感受"
+            },
+            {
+              "id": "czritcgz",
+              "type": "text",
+              "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+            }
+          ]
+        }
+      ],
+      "daily": {
+        "2026-08-17": {
+          "note": "",
+          "gain": "",
+          "problem": "",
+          "feeling": "",
+          "tomorrow": ""
+        }
+      },
+      "timeEntries": [],
+      "themes": {
+        "today": "#718c7c",
+        "timetable": "#6d8291",
+        "tasks": "#7b846d",
+        "calendar": "#6f8295",
+        "review": "#8c7a91",
+        "school": "#657f91",
+        "learning": "#80769a",
+        "thoughts": "#668476",
+        "work": "#8b7658",
+        "ideas": "#8a6f7d",
+        "tools": "#617f78",
+        "life": "#8b706d",
+        "free": "#738287"
+      }
+    },
+    "updatedAt": "2026-08-19T13:45:57.450Z",
+    "revision": 40
+  }
+]

@@ -1,0 +1,191 @@
+[
+  {
+    "key": "BLOB_READ_WRITE_TOKEN",
+    "type": "encrypted",
+    "target": [
+      "production",
+      "preview"
+    ]
+  },
+  {
+    "key": "DEEPSEEK_API_KEY",
+    "type": "sensitive",
+    "target": [
+      "production",
+      "preview"
+    ]
+  },
+  {
+    "key": "DEEPSEEK_BASE_URL",
+    "type": "encrypted",
+    "target": [
+      "production",
+      "preview"
+    ]
+  },
+  {
+    "key": "DEEPSEEK_MODEL",
+    "type": "encrypted",
+    "target": [
+      "production",
+      "preview"
+    ]
+  },
+  {
+    "key": "XULIU_RAYCHEN_DISPLAY_NAME",
+    "type": "encrypted",
+    "target": [
+      "production",
+      "preview"
+    ]
+  },
+  {
+    "key": "XULIU_RAYCHEN_USERNAME",
+    "type": "encrypted",
+    "target": [
+      "production",
+      "preview"
+    ]
+  },
+  {
+    "key": "XULIU_LXS_DISPLAY_NAME",
+    "type": "encrypted",
+    "target": [
+      "production",
+      "preview"
+    ]
+  },
+  {
+    "key": "XULIU_LXS_USERNAME",
+    "type": "encrypted",
+    "target": [
+      "production",
+      "preview"
+    ]
+  },
+  {
+    "key": "XULIU_PARTNER_DISPLAY_NAME",
+    "type": "encrypted",
+    "target": [
+      "production",
+      "preview"
+    ]
+  },
+  {
+    "key": "XULIU_PARTNER_USERNAME",
+    "type": "encrypted",
+    "target": [
+      "production",
+      "preview"
+    ]
+  },
+  {
+    "key": "XULIU_OWNER_DISPLAY_NAME",
+    "type": "encrypted",
+    "target": [
+      "production",
+      "preview"
+    ]
+  },
+  {
+    "key": "XULIU_OWNER_USERNAME",
+    "type": "encrypted",
+    "target": [
+      "production",
+      "preview"
+    ]
+  },
+  {
+    "key": "XULIU_RAYCHEN_PASSWORD_HASH",
+    "type": "sensitive",
+    "target": [
+      "production",
+      "preview"
+    ]
+  },
+  {
+    "key": "XULIU_LXS_PASSWORD_HASH",
+    "type": "sensitive",
+    "target": [
+      "production",
+      "preview"
+    ]
+  },
+  {
+    "key": "XULIU_PARTNER_PASSWORD_HASH",
+    "type": "sensitive",
+    "target": [
+      "production",
+      "preview"
+    ]
+  },
+  {
+    "key": "XULIU_OWNER_PASSWORD_HASH",
+    "type": "sensitive",
+    "target": [
+      "production",
+      "preview"
+    ]
+  },
+  {
+    "key": "XULIU_AI_APPROVAL_SECRET",
+    "type": "sensitive",
+    "target": [
+      "production",
+      "preview"
+    ]
+  },
+  {
+    "key": "XULIU_SESSION_SECRET",
+    "type": "sensitive",
+    "target": [
+      "production",
+      "preview"
+    ]
+  },
+  {
+    "key": "REDIS_URL",
+    "type": "encrypted",
+    "target": [
+      "production",
+      "preview",
+      "development"
+    ]
+  },
+  {
+    "key": "KV_REST_API_READ_ONLY_TOKEN",
+    "type": "encrypted",
+    "target": [
+      "production",
+      "preview",
+      "development"
+    ]
+  },
+  {
+    "key": "KV_URL",
+    "type": "encrypted",
+    "target": [
+      "production",
+      "preview",
+      "development"
+    ]
+  },
+  {
+    "key": "KV_REST_API_TOKEN",
+    "type": "encrypted",
+    "target": [
+      "production",
+      "preview",
+      "development"
+    ]
+  },
+  {
+    "key": "KV_REST_API_URL",
+    "type": "encrypted",
+    "target": [
+      "production",
+      "preview",
+      "development"
+    ]
+  }
+]

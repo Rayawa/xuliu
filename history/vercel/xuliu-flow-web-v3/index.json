@@ -1,0 +1,29 @@
+{
+  "project": {
+    "id": "prj_TH1jdfg75j6Cnl43b6M8qD2d8R0d",
+    "name": "xuliu-flow-web-v3",
+    "production": {
+      "id": "dpl_2XPJMUh4MpQFCrnUEp8VSAfZQsX5",
+      "url": "xuliu-flow-web-v3-lvk0u9rk3-sereni1.vercel.app",
+      "createdAt": 1786892845242,
+      "state": "READY"
+    },
+    "latest": [
+      {
+        "id": "dpl_2XPJMUh4MpQFCrnUEp8VSAfZQsX5",
+        "url": "xuliu-flow-web-v3-lvk0u9rk3-sereni1.vercel.app",
+        "createdAt": 1786892845242,
+        "state": "READY"
+      }
+    ]
+  },
+  "retrieved_at": "2026-09-09T13:58:04.553Z",
+  "deployments": [
+    {
+      "id": "dpl_2XPJMUh4MpQFCrnUEp8VSAfZQsX5",
+      "files": 24,
+      "excluded": 0,
+      "complete": true
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+/node_modules
+/.next
+/.vercel
+/.vinext
+/dist
+/.wrangler
+/.env*
+/outputs
+/work
+*.pem
+*.p12
+*.p7b

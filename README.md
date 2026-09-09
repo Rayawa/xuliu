@@ -1,25 +1,47 @@
-# 序流恢复备份
+# 序流 — 完整可取回内容恢复备份
 
-恢复日期：2026-09-09。目标账号：Serenitycheng。仓库应保持 Private。
+本次恢复基于 2026-09-09 仍可访问的 Vercel 部署、数据服务和原始 Git 文件。目标仓库保持私有：Serenitycheng/xuliu-recovery。
 
-已导出 Redis 全部 10 个业务键：新版 3 个当前工作区、15 份历史；旧版 2 个当前工作区、20 份历史。已下载 Blob 全部 7 个对象。既有 flow 仓库以 Git bundle 保留全部分支与历史。线上源码正在补齐，当前副本尚不完整。
+## 当前线上版本
 
-## 文件分类
+`source/` 是当前生产部署的原始源码和素材，共 **58 个文件**。部署 ID：`dpl_68zoKjP3ap1Fefa3Z5ef9R7CzwWy`。文件均与 Vercel 文件 ID（原内容 SHA-1）逐个核对，同时记录 SHA-256。`docs/vercel-source-manifest.json` 保存完整清单及空目录信息。历史版本单独存放。
 
-- source/：从 Vercel 已部署版本恢复的源码。
-- data/：数据库导出及结构说明，保留原表名、原始 JSON 内容。
-- attachments/：文件存储对象，保留原路径，manifest.json 记录大小和 SHA-256。
-- legacy/：既有 Git 仓库或旧版本资料（如有）。
-- docs/：恢复说明和验证结果。
+## 数据和附件
 
-## 恢复范围
+数据库最新导出位于 `data/cloud-2026-09-09/`。PostgreSQL 使用只读、可重复读事务导出，结构、约束、索引、序列、视图和策略也已保存。加密业务配置保持原密文。
 
-数据库是导出时间的快照；持续使用网站后产生的新内容不包含在本次快照中。源码来自服务器实际保留的部署文件，旧电脑未上传的文件与本地浏览器数据不等于已经恢复。
+Redis 全部 10 个键，SCAN 最终游标为 0。
 
-连接数据库和文件存储所用的明文服务密钥没有写入备份；重新运行应用时应在 Vercel 中重新配置。加密配置按原值保留，解密仍依赖原环境配置。
+全部 12 个对象，共 6433685 字节，按原路径保存，逐文件 SHA-256 已验证。
 
-## 如何取回文件
+## 历史版本
 
-下载仓库全部文件后，使用 Python 3.12 或更新版本运行 `python RESTORE.py`。程序先校验 SHA-256，再解压到新建的 `restored/` 目录，恢复原来的分类和附件路径。重复上传的相同附件在压缩包中只存一份，解压后恢复每个原路径。
+- xuliu-ai-web：20 个仍保留的部署。
+- xuliu-flow-web：1 个仍保留的部署。
+- xuliu-flow-web-safe：1 个仍保留的部署。
+- xuliu-flow-web-stable：3 个仍保留的部署。
+- xuliu-flow-web-v2：1 个仍保留的部署。
+- xuliu-flow-web-v3：1 个仍保留的部署。
+- xuliu-flow-web-v4：2 个仍保留的部署。
+- xuliu-flow-web-v5：2 个仍保留的部署。
+- xuliu-flow-web-v6：2 个仍保留的部署。
 
-也可以分别解压各类 ZIP；附件分卷需按 part001、part002 的顺序合并为一个 tar.gz 后再解压。只下载单个分卷无法恢复全部附件。`legacy/flow.bundle`（如有）可用 `git clone flow.bundle flow` 还原既有 Git 仓库及历史。
+legacy/github-flow/ 保存原 flow 仓库的两个分支、14 个提交及完整 bundle；已核实原仓库未发生更新。
+
+## 文件位置与核验
+
+- `source/`：当前生产版本的全部已上传项目文件。
+- `data/cloud-2026-09-09/`：最新业务数据快照和数据库结构。
+- `attachments/files/`：附件原路径副本（存在附件时）；`attachments/manifest.json` 记录全量清单和哈希。
+- `history/vercel/`：Vercel 仍保留的历史部署源码、素材及各版本文件清单。
+- `legacy/`：原始 Git/Sites 历史、可验证 bundle 与源码。
+- 原有 ZIP、分卷和 `SHA256SUMS.txt` 原样保留。`recovered/` 是这些早期备份的展开副本，其中源码曾不完整，以 `source/` 为当前版本。
+- `VERIFY.py` 校验本次整个仓库；运行 `python VERIFY.py`。`RESTORE.py`（如存在）仅用于旧的初始压缩包。
+
+## 恢复边界与运行配置
+
+本仓库保存上述来源当前实际保留且可读取的内容。已删除的部署、未上传的本机文件、未同步的浏览器本地状态不在这些来源中，无法据此断言它们已恢复。Vercel 历史清单包含失败构建仍保存的源码。
+
+服务密钥、访问令牌、浏览器 Cookie、登录会话未提交。北京项目中误上传的浏览器凭据目录已排除，并在部署清单中记录。环境变量名称和作用域见 `docs/environment-variable-names.json`；重新运行需通过原服务账号重新配置密钥，Vercel 的 sensitive 值不能读取。
+
+站点未重新部署，业务数据库及原项目内容未改动。数据库和附件为导出时的快照，不包含导出后新写入的业务数据。

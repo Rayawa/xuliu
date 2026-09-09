@@ -1,0 +1,248 @@
+{
+  "project": "xuliu-flow-web-safe",
+  "project_id": "prj_k0swGfFjOIwZUR2oymuKjXhlST0m",
+  "deployment": {
+    "id": "dpl_2g1C1bc52SGR1E5dxQ9juoFx6EpS",
+    "url": "xuliu-flow-web-safe-pcsce90zw-sereni1.vercel.app",
+    "createdAt": 1787016240835,
+    "state": "ERROR",
+    "target": "production"
+  },
+  "files": [
+    {
+      "path": ".env.example",
+      "uid": "05bd0b161060cab3b16ea0aa49a4b4a13eda0e5d",
+      "mode": 33206,
+      "bytes": 267,
+      "sha256": "c1b7220352a61fde6c082b331be075854f9afea00925b74135f35d58ada26d1d"
+    },
+    {
+      "path": ".github/workflows/ci.yml",
+      "uid": "a82bcfc7d701b6a684994888e78737e2532f3f79",
+      "mode": 33206,
+      "bytes": 320,
+      "sha256": "26f7b4e7df6f7fabf765487953b0d07bc01da1606d826e95add9e3d0080689f9"
+    },
+    {
+      "path": ".vercelignore",
+      "uid": "8d6db3d7271e7369e4946f2422ed6f1f13744ec5",
+      "mode": 33206,
+      "bytes": 99,
+      "sha256": "bad5e2bdd499f73e2493cc6bbe95c032b5fdd5bf45c64dd03919785b8da87935"
+    },
+    {
+      "path": "app/api/auth/login/route.ts",
+      "uid": "b4ad5c2f77691bb1144ec7e565a74db40b2aa658",
+      "mode": 33206,
+      "bytes": 1610,
+      "sha256": "a882164170bee668b5a1a60a382145efb8d21401c618bccada580948b09c0af5"
+    },
+    {
+      "path": "app/api/auth/logout/route.ts",
+      "uid": "a06d375b13e34acc805b00400eae3bd3376622c6",
+      "mode": 33206,
+      "bytes": 309,
+      "sha256": "8e90998d03a5063306c5084d3b2e10389701cb511383efb981336f4f614713f3"
+    },
+    {
+      "path": "app/api/auth/session/route.ts",
+      "uid": "37a52b4f071a38c1e0871ca6e71b2589a9975827",
+      "mode": 33206,
+      "bytes": 624,
+      "sha256": "10fc13a584c49b4985e64c009e1077e93297cc66b8ccf8b3860b5341f919b26c"
+    },
+    {
+      "path": "app/api/files/route.ts",
+      "uid": "2e9cc054dad40a86597e8329220cd7883a66b145",
+      "mode": 33206,
+      "bytes": 206,
+      "sha256": "1a937bcb630758de6ea897cb1b7cfbfbe4c8cc9893082980eeb5427d5da880e0"
+    },
+    {
+      "path": "app/api/state/route.ts",
+      "uid": "eedd12d80a463e656e80861235ee2abac0f36661",
+      "mode": 33206,
+      "bytes": 3126,
+      "sha256": "561a58edabd38724a257b05756766a4395fedeb2a12f318d962f6281e9ab9c99"
+    },
+    {
+      "path": "app/AuthenticatedDashboard.tsx",
+      "uid": "f6e256a0b386ef89ddfeb4fcf3055712c247499d",
+      "mode": 33206,
+      "bytes": 3189,
+      "sha256": "0315f6bb1096c89b3c48ab4ba58e4e5c741675f7ee59aa6df8688882aa2613e4"
+    },
+    {
+      "path": "app/DashboardClient.tsx",
+      "uid": "a4641f41e42fd910ae27258ba7503810010cb75c",
+      "mode": 33206,
+      "bytes": 129867,
+      "sha256": "e1f17cb966a70a34bcb2f80430e6e17b6511cc8797683b7a0aec2b48b2c7974d"
+    },
+    {
+      "path": "app/globals.css",
+      "uid": "523862276380597734f2b9d7149978ba7fe9a6a2",
+      "mode": 33206,
+      "bytes": 52361,
+      "sha256": "2c230940079af7df281661d3ebc67fecccec7df5bd3c10b852abc92a257ab900"
+    },
+    {
+      "path": "app/layout.tsx",
+      "uid": "ed5157c15c44974c9eaa854d9e2189a94908897f",
+      "mode": 33206,
+      "bytes": 685,
+      "sha256": "0523532f6bd67c5ad861d7aadb03f4c95966e8c44e65fe2049b2b07829e345eb"
+    },
+    {
+      "path": "app/manifest.ts",
+      "uid": "2c348131d0936b7bf1e95a20e7316050ace7362c",
+      "mode": 33206,
+      "bytes": 340,
+      "sha256": "22bf037e5e9afd6e1037a79c681fbe7507e0d0a600867e04d1b4c8535aae0b2b"
+    },
+    {
+      "path": "app/page.tsx",
+      "uid": "9e4b53cc72538d35f0d0fadbc497ab17e3ef947a",
+      "mode": 33206,
+      "bytes": 177,
+      "sha256": "b50cfb67134fe7c6bfbbd5085dd4257f0ef41f404783477a8ea3f77c8b71ed46"
+    },
+    {
+      "path": "app/sw.js/route.ts",
+      "uid": "e1a628a775b2eb46c9075c35800222d3ef7c39c4",
+      "mode": 33206,
+      "bytes": 1113,
+      "sha256": "14b868d34615e86f50b3026598a6bf218126909fb9e58f1cd032eda303860d74"
+    },
+    {
+      "path": "db/index.ts",
+      "uid": "2ea978ab29423dbac3e2252ea2edb6569016da24",
+      "mode": 33206,
+      "bytes": 252,
+      "sha256": "d91a3bcc9b5cfd17a99babf2768eb09d4e10cfe113fda0bc8aeacdd6cbcff5df"
+    },
+    {
+      "path": "db/schema.ts",
+      "uid": "f95838373cf181e8c67bc30e2b18b3d08859f1e5",
+      "mode": 33206,
+      "bytes": 304,
+      "sha256": "3b65aff4465eb9ec38397ea0c8fc9aa528c3c4db4300e1878799d2e283f6f53f"
+    },
+    {
+      "path": "drizzle.config.ts",
+      "uid": "456ef7f41ab62016f7f2cd4de25f75e9f84a214a",
+      "mode": 33206,
+      "bytes": 141,
+      "sha256": "0c50809d2fdd78b4613153f08689105d391631f86778b4477cd2e0cb77088c75"
+    },
+    {
+      "path": "drizzle/0000_xuliu_state.sql",
+      "uid": "148e4c10a507670ee1d04c80865aed7f8dd0390c",
+      "mode": 33206,
+      "bytes": 165,
+      "sha256": "e0000c82f43171132d7bdc357384472cad979b8d08636393582826cb3eefd0ac"
+    },
+    {
+      "path": "drizzle/meta/_journal.json",
+      "uid": "be5dcdc949efa4295459e71554c94271bf1c5749",
+      "mode": 33206,
+      "bytes": 168,
+      "sha256": "1f1fd6b620fe4ce532e2fcd537fd547746f0e31e99a2c4606e0bdd9dd958e89b"
+    },
+    {
+      "path": "lib/accounts.ts",
+      "uid": "01ddf684e76187f9f9ecf18e9e7c757fabd2299a",
+      "mode": 33206,
+      "bytes": 1154,
+      "sha256": "f118656544960614530c812432a153b0000859c9c216e62f28b3a5120794c2c1"
+    },
+    {
+      "path": "lib/password.ts",
+      "uid": "1490ea5bdb7aa05b1abd905ca75a96e01ff999b6",
+      "mode": 33206,
+      "bytes": 1001,
+      "sha256": "97a271e1069dc0fadc8f26980359f526a132c9b4b2aace88e1aa2d01fd6cc8fd"
+    },
+    {
+      "path": "lib/redis.ts",
+      "uid": "142dbf44a3c3d58d98cd09788c1a7564ee3302ca",
+      "mode": 33206,
+      "bytes": 432,
+      "sha256": "8f3e3cdfdba80530a288dea0e43d4d2ed00656210b58d1c0547819cd4cd89982"
+    },
+    {
+      "path": "lib/session.ts",
+      "uid": "18faf731e24c050beed1f11edf8c28f569e0f82f",
+      "mode": 33206,
+      "bytes": 1809,
+      "sha256": "75a3efc991f8616a884cf06db91d08d1aa8ceff26d88899ce7efe1f0b8001dc6"
+    },
+    {
+      "path": "next-env.d.ts",
+      "uid": "14dccace0c5605b4ff0893ab4ac82ebd4ff579a3",
+      "mode": 33206,
+      "bytes": 60,
+      "sha256": "430e1a8e18fbff306c267e0d6d60f44d34b2cb7e54f139366615c709de69e2c9"
+    },
+    {
+      "path": "next.config.ts",
+      "uid": "970eb1d4a909aced000735db50f929e0c97bec9b",
+      "mode": 33206,
+      "bytes": 103,
+      "sha256": "1114dcd20b5394500de8211f3694e10d17fa5c35b6b54cd38971a1ba6ee61d37"
+    },
+    {
+      "path": "package.json",
+      "uid": "59cd2b52401b36d1632096886aea72b47c31b811",
+      "mode": 33206,
+      "bytes": 519,
+      "sha256": "64f3a19edabf15d72bb60b2ee0f9e473197fc590a0344baff5b12179ce5829e8"
+    },
+    {
+      "path": "postcss.config.mjs",
+      "uid": "a561f390123328dc1123e3476ece265ae3c4fac2",
+      "mode": 33206,
+      "bytes": 55,
+      "sha256": "96cfd1cf154aed1da9b4c9b4a8e999f81b9935d300c56f8d1490e3d726fa52a0"
+    },
+    {
+      "path": "README.md",
+      "uid": "8c0edec0feb7223c39d509c30227514e5a356e5b",
+      "mode": 33206,
+      "bytes": 1392,
+      "sha256": "f282454abdf6f2d30fe407b0936fd4b1e363d3519b2ee9570374356ab30e14cd"
+    },
+    {
+      "path": "tsconfig.json",
+      "uid": "ce6968f5c6bd87582ef30e005fed4dd84a37fbae",
+      "mode": 33206,
+      "bytes": 623,
+      "sha256": "bc57ab9a023cbe1a875b7bb49844d694a31dab78f8fd7bd0718b3214bd881183"
+    },
+    {
+      "path": "vite.config.ts",
+      "uid": "9a191315922943fa0b6e76c4990503523aa4f335",
+      "mode": 33206,
+      "bytes": 996,
+      "sha256": "f014763cfc034486f21a0805f19ba788a05366d0ed8a827a36ac06ada166dad2"
+    },
+    {
+      "path": "work/preview/index.html",
+      "uid": "dd37c1be955e72b61df5734b6fb93c06802a4baa",
+      "mode": 33206,
+      "bytes": 7216,
+      "sha256": "036be932ff2d11cdd66e254d42b576417312fc5bd62f4f345c588d4776e1e53a"
+    },
+    {
+      "path": "worker/index.ts",
+      "uid": "35fefd555909f24a60141890f7a822f0177d86bc",
+      "mode": 33206,
+      "bytes": 1330,
+      "sha256": "7971734fb69f3ea43a64ac47bf4920ce808afc098092814b6513b0328dd3e3b3"
+    }
+  ],
+  "excluded": [],
+  "empty_directories": [],
+  "failures": [],
+  "complete": true
+}

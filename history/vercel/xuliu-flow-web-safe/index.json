@@ -1,0 +1,29 @@
+{
+  "project": {
+    "id": "prj_k0swGfFjOIwZUR2oymuKjXhlST0m",
+    "name": "xuliu-flow-web-safe",
+    "production": {
+      "id": "dpl_2g1C1bc52SGR1E5dxQ9juoFx6EpS",
+      "url": "xuliu-flow-web-safe-pcsce90zw-sereni1.vercel.app",
+      "createdAt": 1787016240835,
+      "state": "ERROR"
+    },
+    "latest": [
+      {
+        "id": "dpl_2g1C1bc52SGR1E5dxQ9juoFx6EpS",
+        "url": "xuliu-flow-web-safe-pcsce90zw-sereni1.vercel.app",
+        "createdAt": 1787016240835,
+        "state": "ERROR"
+      }
+    ]
+  },
+  "retrieved_at": "2026-09-09T13:57:54.296Z",
+  "deployments": [
+    {
+      "id": "dpl_2g1C1bc52SGR1E5dxQ9juoFx6EpS",
+      "files": 33,
+      "excluded": 0,
+      "complete": true
+    }
+  ]
+}

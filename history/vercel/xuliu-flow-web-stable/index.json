@@ -1,0 +1,47 @@
+{
+  "project": {
+    "id": "prj_7uFwzfC2VCDdRseGphuEdDv5vU5m",
+    "name": "xuliu-flow-web-stable",
+    "production": {
+      "id": "dpl_9fyN7dXYw3GCJozpbYTWPBU85osf",
+      "url": "xuliu-flow-web-stable-pt5j6dg40-sereni1.vercel.app",
+      "createdAt": 1787464567887,
+      "state": "READY"
+    },
+    "latest": [
+      {
+        "id": "dpl_9fyN7dXYw3GCJozpbYTWPBU85osf",
+        "url": "xuliu-flow-web-stable-pt5j6dg40-sereni1.vercel.app",
+        "createdAt": 1787464567887,
+        "state": "READY"
+      },
+      {
+        "id": "dpl_AfYerD783LjoCCcfqjyPcYN1Qqjx",
+        "url": "xuliu-flow-web-stable-6zewr8tkz-sereni1.vercel.app",
+        "createdAt": 1787055893549,
+        "state": "READY"
+      }
+    ]
+  },
+  "retrieved_at": "2026-09-09T13:57:52.754Z",
+  "deployments": [
+    {
+      "id": "dpl_9fyN7dXYw3GCJozpbYTWPBU85osf",
+      "files": 22,
+      "excluded": 0,
+      "complete": true
+    },
+    {
+      "id": "dpl_AfYerD783LjoCCcfqjyPcYN1Qqjx",
+      "files": 33,
+      "excluded": 0,
+      "complete": true
+    },
+    {
+      "id": "dpl_2oCCQsyGkJaKDi6x4FYWeGHNJurX",
+      "files": 33,
+      "excluded": 0,
+      "complete": true
+    }
+  ]
+}

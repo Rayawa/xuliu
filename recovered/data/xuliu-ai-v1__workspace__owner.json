@@ -1,0 +1,1769 @@
+{
+  "data": {
+    "version": 5,
+    "tasks": [],
+    "milestones": [
+      {
+        "id": "uwgqnj4g",
+        "courseId": "i7c311xu",
+        "title": "结课论文",
+        "date": "2026-09-18",
+        "time": "14:29",
+        "location": "",
+        "requirements": "",
+        "attachments": [
+          {
+            "id": "oe8kbqnd",
+            "url": "https://n1ylkoimufwbh8zt.private.blob.vercel-storage.com/attachments/owner/milestone-uwgqnj4g/oe8kbqnd/%E4%BC%9A%E8%AE%A1%E4%B8%93%E4%B8%9A%E5%AF%BC%E8%AE%BA%E8%AF%BE%E7%A8%8B%E8%AE%BA%E6%96%87%E6%A8%A1%E6%9D%BF%E5%92%8C%E8%80%83%E6%9F%A5%E6%96%B9%E5%BC%8F%E8%AF%B4%E6%98%8E-M3aIiVjblX9CIXAofTmErgPIrlqOmC.doc",
+            "fileName": "会计专业导论课程论文模板和考查方式说明.doc",
+            "fileSize": 49152,
+            "mimeType": "application/msword",
+            "uploadedAt": "2026-09-08T00:06:28.076Z"
+          }
+        ],
+        "area": "课内",
+        "done": false
+      }
+    ],
+    "courses": [
+      {
+        "id": "i7c311xu",
+        "title": "会计学专业导论（小学期）",
+        "term": "2026 秋季",
+        "teacher": "刘宁悦、张永冀",
+        "location": "文萃M135",
+        "school": "bit",
+        "progress": 0,
+        "requirements": "考察： 平时成绩+课程论文\n",
+        "schedule": [],
+        "blocks": [
+          {
+            "id": "u9od8zfa",
+            "type": "heading",
+            "text": "课程考核要求"
+          },
+          {
+            "id": "v7lo5yvb",
+            "type": "text",
+            "text": "考察： 平时成绩+课程论文（题目自拟——具体，课程相关；内容前沿性创新性+格式）",
+            "fontWeight": "normal"
+          },
+          {
+            "id": "d4aduodk",
+            "type": "heading",
+            "text": "专业概念",
+            "headingLevel": 1
+          },
+          {
+            "id": "3egsr48e",
+            "type": "text",
+            "text": "\n股票基础概念\n• 基本面：公司经营和财务状况。\n• A股：中国大陆人民币股票市场。\n• 个股：一家公司的股票。\n• 指数：一篮子股票的整体表现。\n• 大盘：整个市场的总体走势。\n• 技术面：研究股价和成交量。\n• 资金面：研究市场资金流动。\n• 消息面：研究新闻、政策和事件。\n• 估值：判断股票当前贵不贵。\n• 多头/空头：分别看涨/看跌。\n• 牛市/熊市：市场整体上涨/下跌。\n\n",
+            "inlineRuns": [
+              {
+                "text": "\n"
+              },
+              {
+                "text": "股票基础概念",
+                "bold": true
+              },
+              {
+                "text": "\n• "
+              },
+              {
+                "text": "基本面",
+                "bold": true
+              },
+              {
+                "text": "：公司经营和财务状况。\n• "
+              },
+              {
+                "text": "A股",
+                "bold": true
+              },
+              {
+                "text": "：中国大陆人民币股票市场。\n• "
+              },
+              {
+                "text": "个股",
+                "bold": true
+              },
+              {
+                "text": "：一家公司的股票。\n• "
+              },
+              {
+                "text": "指数",
+                "bold": true
+              },
+              {
+                "text": "：一篮子股票的整体表现。\n• "
+              },
+              {
+                "text": "大盘",
+                "bold": true
+              },
+              {
+                "text": "：整个市场的总体走势。\n• "
+              },
+              {
+                "text": "技术面",
+                "bold": true
+              },
+              {
+                "text": "：研究股价和成交量。\n• "
+              },
+              {
+                "text": "资金面",
+                "bold": true
+              },
+              {
+                "text": "：研究市场资金流动。\n• "
+              },
+              {
+                "text": "消息面",
+                "bold": true
+              },
+              {
+                "text": "：研究新闻、政策和事件。\n• "
+              },
+              {
+                "text": "估值",
+                "bold": true
+              },
+              {
+                "text": "：判断股票当前贵不贵。\n• "
+              },
+              {
+                "text": "多头/空头",
+                "bold": true
+              },
+              {
+                "text": "：分别看涨/看跌。\n• "
+              },
+              {
+                "text": "牛市/熊市",
+                "bold": true
+              },
+              {
+                "text": "：市场整体上涨/下跌。\n\n"
+              }
+            ]
+          },
+          {
+            "id": "9xctcdrv",
+            "type": "heading",
+            "text": "第一节课：财务管理"
+          },
+          {
+            "id": "0596wwku",
+            "type": "text",
+            "text": "acca毕业之后认证\n1.什么是财务管理\n\n财务和会计：先会计后财务管理：会计提供财务信息，财务管理利用这些信息做投资、融资和资金配置决策。\n\n从资产负债表理解财务管理：资产负债表左边是“钱怎么用”，右边是“钱怎么来”，财务管理就是决定钱怎么来、怎么用、赚了以后怎么分\n\n①财务管理关心什么：公司应该做什么长期投资（非流动资产）\n我们的钱从哪来（负债&所有者权益。什么情况下负债多，处于供应链优势地位）\n怎样管理短期资产（networking capital，短期资产-短期负债）\n\n②公司组织形式\n第一笔钱从哪来\n独资——>合作制（general+limited）——>公司制企业（有限责任公司）\n区分：无限连带责任vs有限责任\n\n③财务管理的目标：\n产量最大化？（有时候不存在，eg订单制生产，有时候合理）\n收入最大化？\n市场份额最大化？（eg：共享单车刚出来的时候抢占市场份额；外卖三大家抢份额烧钱）\n股东价值最大化？（主流）maximize the current value per share of the existing stock\n\n④委托代理问题（股东principle和管理者agent）\n冲突：管理者执行不一定按照股东利益最大化（因为目的不同，eg：短期目标vs长期目标）\n解决：share股份、分红、\noptions期权（期权赋予持有人在未来某个时间或某段时间内，按事先约定的价格买入或卖出某项资产的权利，但没有必须执行的义务）\nexp：购买5元，到期日1个月，1个月之后涨了，可以卖掉，如果跌了，可以选择不卖\n因此管理者会努力把公司经营好，捆绑好principle和agent的关系\n\nABCD：ai 供应链 云 大数据\n\n2.财务报表分析\n公司网站、交易所、财经类网站（巨潮资讯网）\n方法：\nratio analysis（比例分析法）\n——比较不同规模、不同行业中公司的数据\n——5q：怎么计算；在计算什么＆why；单位；数值表明什么；我们能怎么改善公司状况\n\n流动率指标）\n流动性比率用于衡量企业的短期偿债能力。\ncurrent ratio：流动资产/流动负债\nquick ratio：（流动资产-产品）/流动负债     （因为产品很有可能贬值）\ncash ratio：现金/流动负债    （严格衡量现在只拿现金，能否偿还流动负债）（cash流动性强收益性弱）\n\n负债指标）\nTA = Total Assets：总资产\nTE = Total Equity：所有者权益\nTD = Total Debt：总负债\n资产负债率：(TA-TE)/TA（资产里有多少是债权人的钱，即有多少钱是借来的。eg：房地产上行期，大家疯狂贷款买房，钱到了开发商手里就是借款，因此资产负债率会极高）\n\n\n利润率指标）\n衡量企业的盈利能力。\n• Profit Margin = 净利润 / 营业收入\n→ 每 1 元收入能赚多少钱\n• ROA = 净利润 / 总资产\n→ 每 1 元资产能赚多少钱\n• ROE = 净利润 / 所有者权益\n→ 每 1 元股东资本能赚多少钱\n• EBITDA Margin = EBITDA / 营业收入\n→ 衡量主营经营本身的盈利能力，弱化利息、税、折旧、摊销影响\n一句话：Profit Margin 看收入，ROA 看资产，ROE 看股东资本，EBITDA Margin 看经营本身。\n\n\nmarket value measure）\nearning per share =  net income/shares outstanding（衡量市场如何评价公司的盈利能力和股票价）\nPE ratio市盈率：price per share/earnings per share（买的是未来预期，衡量投资者愿意为公司每 1 元利润支付多少价格。）\nEnterprise value\n大盘/买低/买高\nmark：齐东平\n科创板\n\nthe dupont identity\nusing financial statement information\n\n\n3.资金的时间价值（公允价值）——非常重要！！\nreason：再投资+通货膨胀+风险\nusage：用于企业投资决策\n\n关注点：关注今天和明天的钱到底差多少 gap\n未来收到的一笔钱今天值多少&今天的钱未来值多少钱\npresent value&future value\n\n\nsimple interest单利\n复利",
+            "inlineRuns": [
+              {
+                "text": "acca毕业之后认证\n"
+              },
+              {
+                "text": "1.什么是财务管理",
+                "bold": true
+              },
+              {
+                "text": "\n\n财务和会计：先会计后财务管理：会计提供财务信息，财务管理利用这些信息做投资、融资和资金配置决策。\n\n从资产负债表理解财务管理：资产负债表左边是“钱怎么用”，右边是“钱怎么来”，财务管理就是决定钱怎么来、怎么用、赚了以后怎么分\n\n①财务管理关心什么：公司应该做什么长期投资（非流动资产）\n我们的钱从哪来（负债&所有者权益。什么情况下负债多，处于供应链优势地位）\n怎样管理短期资产（networking capital，短期资产-短期负债）\n\n②公司组织形式\n第一笔钱从哪来\n独资——>合作制（general+limited）——>公司制企业（有限责任公司）\n区分：无限连带责任vs有限责任\n\n③财务管理的目标：\n产量最大化？（有时候不存在，eg订单制生产，有时候合理）\n收入最大化？\n市场份额最大化？（eg：共享单车刚出来的时候抢占市场份额；外卖三大家抢份额烧钱）\n股东价值最大化？（主流）maximize the current value per share of the existing stock\n\n④委托代理问题（股东principle和管理者agent）\n冲突：管理者执行不一定按照股东利益最大化（因为目的不同，eg：短期目标vs长期目标）\n解决：share股份、分红、\noptions期权（期权赋予持有人在未来某个时间或某段时间内，按事先约定的价格买入或卖出某项资产的权利，但没有必须执行的义务）\nexp：购买5元，到期日1个月，1个月之后涨了，可以卖掉，如果跌了，可以选择不卖\n因此管理者会努力把公司经营好，捆绑好principle和agent的关系\n\nABCD：ai 供应链 云 大数据\n\n"
+              },
+              {
+                "text": "2.财务报表分析",
+                "bold": true
+              },
+              {
+                "text": "\n公司网站、交易所、财经类网站（巨潮资讯网）\n方法：\nratio analysis（比例分析法）\n——比较不同规模、不同行业中公司的数据\n——5q：怎么计算；在计算什么＆why；单位；数值表明什么；我们能怎么改善公司状况\n\n"
+              },
+              {
+                "text": "流动率指标）",
+                "bold": true
+              },
+              {
+                "text": "\n流动性比率用于衡量企业的短期偿债能力。\ncurrent ratio：流动资产/流动负债\nquick ratio：（流动资产-产品）/流动负债     （因为产品很有可能贬值）\ncash ratio：现金/流动负债    （严格衡量现在只拿现金，能否偿还流动负债）（cash流动性强收益性弱）\n\n"
+              },
+              {
+                "text": "负债指标）",
+                "bold": true
+              },
+              {
+                "text": "\nTA = Total Assets：总资产\nTE = Total Equity：所有者权益\nTD = Total Debt：总负债\n资产负债率：(TA-TE)/TA（资产里有多少是债权人的钱，即有多少钱是借来的。eg：房地产上行期，大家疯狂贷款买房，钱到了开发商手里就是借款，因此资产负债率会极高）\n\n\n"
+              },
+              {
+                "text": "利润率指标）",
+                "bold": true
+              },
+              {
+                "text": "\n衡量企业的"
+              },
+              {
+                "text": "盈利能力",
+                "bold": true
+              },
+              {
+                "text": "。\n• "
+              },
+              {
+                "text": "Profit Margin",
+                "bold": true
+              },
+              {
+                "text": " = 净利润 / 营业收入\n→ 每 1 元收入能赚多少钱\n• "
+              },
+              {
+                "text": "ROA",
+                "bold": true
+              },
+              {
+                "text": " = 净利润 / 总资产\n→ 每 1 元资产能赚多少钱\n• "
+              },
+              {
+                "text": "ROE",
+                "bold": true
+              },
+              {
+                "text": " = 净利润 / 所有者权益\n→ 每 1 元股东资本能赚多少钱\n• "
+              },
+              {
+                "text": "EBITDA Margin",
+                "bold": true
+              },
+              {
+                "text": " = EBITDA / 营业收入\n→ 衡量主营经营本身的盈利能力，弱化利息、税、折旧、摊销影响\n"
+              },
+              {
+                "text": "一句话：",
+                "bold": true
+              },
+              {
+                "text": "Profit Margin 看收入，ROA 看资产，ROE 看股东资本，EBITDA Margin 看经营本身。\n\n\n"
+              },
+              {
+                "text": "market value measure）",
+                "bold": true
+              },
+              {
+                "text": "\nearning per share =  net income/shares outstanding（衡量"
+              },
+              {
+                "text": "市场如何评价公司的盈利能力和股票价",
+                "bold": true
+              },
+              {
+                "text": "）\nPE ratio市盈率：price per share/earnings per share（买的是未来预期，衡量投资者愿意为公司每 1 元利润支付多少价格。）\n"
+              },
+              {
+                "text": "Enterprise value",
+                "color": "#6f6158"
+              },
+              {
+                "text": "\n"
+              },
+              {
+                "text": "大盘/买低/买高",
+                "color": "#6f6158"
+              },
+              {
+                "text": "\n"
+              },
+              {
+                "text": "mark：齐东平",
+                "color": "#6f6158"
+              },
+              {
+                "text": "\n科创板\n\nthe dupont identity\nusing financial statement information\n\n\n"
+              },
+              {
+                "text": "3.资金的时间价值（公允价值）——",
+                "bold": true
+              },
+              {
+                "text": "非常重要！！",
+                "bold": true,
+                "backgroundColor": "#f6e9b9"
+              },
+              {
+                "text": "\nreason：再投资+通货膨胀+风险\nusage：用于企业投资决策\n\n关注点：关注今天和明天的钱到底差多少 gap\n未来收到的一笔钱今天值多少&今天的钱未来值多少钱\npresent value&future value\n\n\nsimple interest单利\n复利"
+              }
+            ],
+            "embeddedFiles": [
+              {
+                "id": "uij1v74r",
+                "url": "https://n1ylkoimufwbh8zt.private.blob.vercel-storage.com/attachments/owner/0596wwku/embedded-file-uij1v74r/%E4%BC%9A%E8%AE%A1%E4%B8%93%E4%B8%9A%E5%AF%BC%E8%AE%BA%E7%AC%AC%E4%B8%80%E8%8A%82-2X9ccBdPdnozxP2usrzr3H3iHSdbS8.pdf",
+                "fileName": "会计专业导论第一节.pdf",
+                "fileSize": 2062886,
+                "mimeType": "application/pdf",
+                "uploadedAt": "2026-09-08T00:05:43.616Z"
+              }
+            ]
+          },
+          {
+            "id": "6xhtrvz2",
+            "type": "image",
+            "text": "财务管理框架",
+            "url": "data:image/jpeg;base64,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"
+          },
+          {
+            "id": "dojaz6wg",
+            "type": "heading",
+            "text": "第二节课：财务投资",
+            "headingLevel": 1
+          },
+          {
+            "id": "f0iuajuo",
+            "type": "text",
+            "text": "就业方向：企业核算+金融机构（券商；投资决策）+咨询bk：\n（经济学）曼昆；\n（财务管理）ross；\n（投资）investment伯克希尔二月巴菲特致股东的信；伯克希尔五月年度股东大会\n\nlink财务和投资——利用会计信息这个工具——服务于投资领域\n会计与投资\n• 会计：提供企业财务信息\n• 投资：利用财务信息判断价值和风险\n• 主要桥梁：财务报表、财务比率、估值指标\n• 核心关系：会计是投资分析的基础，投资是对会计信息的进一步解释和应用。\n\n\n比尔·盖茨关于 AI 的核心观点\n1. AI 的影响不同于以往技术革命：它不仅提升效率，还可能直接替代大量认知劳动。  技术平权\n2. 就业冲击会非常显著：标准化、初级白领岗位可能最先被 AI 大规模替代。  \n3. AI 会带来多重社会风险：包括失业、网络安全、虚假信息和人类过度依赖 AI 等问题。  （好人推动社会发展，坏人用ai的影响？）社会结构/沟通方式变化\n4. AI 仍具有巨大长期价值：它有望显著改善医疗、教育、农业和公共服务。  \n5. 需要新的 AI 治理机制：各国应建立跨部门监管，并加强国际合作。  \n6. 部分工作应保留给人类：某些涉及关怀、教育和社会意义的岗位不应只追求效率。  \n7. 应调整 AI 和机器人的税收制度：让 AI 带来的生产率收益更多用于社会保障和再就业。  \n8. AI 最核心的问题是利益分配：它既可能缩小不平等，也可能进一步加剧财富集中。\n\n",
+            "inlineRuns": [
+              {
+                "text": "就业方向：",
+                "bold": true
+              },
+              {
+                "text": "企业核算+金融机构（券商；投资决策）+咨询"
+              },
+              {
+                "text": "bk：",
+                "bold": true
+              },
+              {
+                "text": "\n（经济学）曼昆；\n（财务管理）ross；\n（投资）investment伯克希尔二月巴菲特致股东的信；伯克希尔五月年度股东大会\n\n"
+              },
+              {
+                "text": "link财务和投资——利用会计信息这个工具——服务于投资领域",
+                "bold": true,
+                "backgroundColor": "#f8d6d6"
+              },
+              {
+                "text": "\n"
+              },
+              {
+                "text": "会计与投资",
+                "bold": true
+              },
+              {
+                "text": "\n• "
+              },
+              {
+                "text": "会计",
+                "bold": true
+              },
+              {
+                "text": "：提供企业财务信息\n• "
+              },
+              {
+                "text": "投资",
+                "bold": true
+              },
+              {
+                "text": "：利用财务信息判断价值和风险\n• "
+              },
+              {
+                "text": "主要桥梁",
+                "bold": true
+              },
+              {
+                "text": "：财务报表、财务比率、估值指标\n• "
+              },
+              {
+                "text": "核心关系",
+                "bold": true
+              },
+              {
+                "text": "："
+              },
+              {
+                "text": "会计是投资分析的基础，投资是对会计信息的进一步解释和应用。",
+                "bold": true
+              },
+              {
+                "text": "\n\n\n"
+              },
+              {
+                "text": "比尔·盖茨关于 AI 的核心观点",
+                "bold": true
+              },
+              {
+                "text": "\n1. "
+              },
+              {
+                "text": "AI 的影响不同于以往技术革命",
+                "bold": true
+              },
+              {
+                "text": "：它不仅提升效率，还可能直接替代大量认知劳动。  技术平权\n2. "
+              },
+              {
+                "text": "就业冲击会非常显著",
+                "bold": true
+              },
+              {
+                "text": "：标准化、初级白领岗位可能最先被 AI 大规模替代。  \n3. "
+              },
+              {
+                "text": "AI 会带来多重社会风险",
+                "bold": true
+              },
+              {
+                "text": "：包括失业、网络安全、虚假信息和人类过度依赖 AI 等问题。  "
+              },
+              {
+                "text": "（好人推动社会发展，坏人用ai的影响？）社会结构/沟通方式变化",
+                "underline": true
+              },
+              {
+                "text": "\n4. "
+              },
+              {
+                "text": "AI 仍具有巨大长期价值",
+                "bold": true
+              },
+              {
+                "text": "：它有望显著改善医疗、教育、农业和公共服务。  \n5. "
+              },
+              {
+                "text": "需要新的 AI 治理机制",
+                "bold": true
+              },
+              {
+                "text": "：各国应建立跨部门监管，并加强国际合作。  \n6. "
+              },
+              {
+                "text": "部分工作应保留给人类",
+                "bold": true
+              },
+              {
+                "text": "：某些涉及关怀、教育和社会意义的岗位不应只追求效率。  \n7. "
+              },
+              {
+                "text": "应调整 AI 和机器人的税收制度",
+                "bold": true
+              },
+              {
+                "text": "：让 AI 带来的生产率收益更多用于社会保障和再就业。  \n8. "
+              },
+              {
+                "text": "AI 最核心的问题是利益分配",
+                "bold": true
+              },
+              {
+                "text": "：它既可能缩小不平等，也可能进一步加剧财富集中。\n\n"
+              }
+            ]
+          },
+          {
+            "id": "5j2pec7d",
+            "type": "text",
+            "text": "\n会计的历史\n1. 早期形态\n• 会计活动与记账活动：最初主要用于记录财产、收支和经济往来。\n2. 资本主义发展\n• 专业会计人员\\完善的记账制度\\良好的现金信用\n3. 代表性发展\n• 卢卡·帕乔利：系统总结并传播复式记账法，是现代会计发展中的重要人物。\n• 福泽谕吉：推动西方簿记和会计知识在日本的传播。\n• 谢霖：推动近代西式会计在中国的传播与本土化。\n• 美国现代会计准则的发展：1929经济危机：暴露企业会计信息不统一、可信度不足的问题。  \n统一会计规则：提高不同企业财务信息的可比性。  \n历史成本：以取得时实际成本计量，强调客观、可验证。  \n程序→准则：CAP/APB 逐步发展到 1973 年 FASB 会计准则体系。  \n强制信息披露：缓解管理层与投资者之间的信息不对称。  \n第三方审计：保证披露信息的真实性和可靠性。  \n权责发生制：按业务实际发生期间确认收入和费用，更准确计算利润。\n\n强制性信息披露，引入第三方审计→全球会计体系实质性趋同\n\n\n4. 中国古代\n• 龙门账：中国传统会计中的重要记账方法，体现了较成熟的收支核算思想。\n\n早期简单记账 → 商品经济和资本主义发展 → 复式记账法成熟 → 西方会计向日本（福泽谕吉）、中国（谢霖）传播 → 现代会计\n\n\n\n会计发展和资本市场发展密切相关，财务报表是资本市场的基础设施\n因为投资=买企业，而看懂企业就需要看得懂商业，也就需要学会计\n想法（在ai时代更为重要）+执行 ",
+            "inlineRuns": [
+              {
+                "text": "\n"
+              },
+              {
+                "text": "会计的历史",
+                "bold": true
+              },
+              {
+                "text": "\n"
+              },
+              {
+                "text": "1. 早期形态",
+                "bold": true
+              },
+              {
+                "text": "\n• "
+              },
+              {
+                "text": "会计活动与记账活动",
+                "bold": true
+              },
+              {
+                "text": "：最初主要用于记录财产、收支和经济往来。\n"
+              },
+              {
+                "text": "2. 资本主义发展",
+                "bold": true
+              },
+              {
+                "text": "\n• "
+              },
+              {
+                "text": "专业会计人员",
+                "bold": true
+              },
+              {
+                "text": "\\"
+              },
+              {
+                "text": "完善的记账制度\\良好的现金信用",
+                "bold": true
+              },
+              {
+                "text": "\n"
+              },
+              {
+                "text": "3. 代表性发展",
+                "bold": true
+              },
+              {
+                "text": "\n• "
+              },
+              {
+                "text": "卢卡·帕乔利",
+                "bold": true
+              },
+              {
+                "text": "：系统总结并传播复式记账法，是现代会计发展中的重要人物。\n• "
+              },
+              {
+                "text": "福泽谕吉",
+                "bold": true
+              },
+              {
+                "text": "：推动西方簿记和会计知识在日本的传播。\n• "
+              },
+              {
+                "text": "谢霖",
+                "bold": true
+              },
+              {
+                "text": "：推动近代西式会计在中国的传播与本土化。\n• "
+              },
+              {
+                "text": "美国现代会计准则的发展：1929经济危机",
+                "bold": true
+              },
+              {
+                "text": "：暴露企业会计信息不统一、可信度不足的问题。  \n"
+              },
+              {
+                "text": "统一会计规则",
+                "bold": true
+              },
+              {
+                "text": "：提高不同企业财务信息的可比性。  \n"
+              },
+              {
+                "text": "历史成本",
+                "bold": true
+              },
+              {
+                "text": "：以取得时实际成本计量，强调客观、可验证。  \n"
+              },
+              {
+                "text": "程序→准则",
+                "bold": true
+              },
+              {
+                "text": "：CAP/APB 逐步发展到 1973 年 FASB 会计准则体系。  \n"
+              },
+              {
+                "text": "强制信息披露",
+                "bold": true
+              },
+              {
+                "text": "：缓解管理层与投资者之间的信息不对称。  \n"
+              },
+              {
+                "text": "第三方审计",
+                "bold": true
+              },
+              {
+                "text": "：保证披露信息的真实性和可靠性。  \n"
+              },
+              {
+                "text": "权责发生制",
+                "bold": true
+              },
+              {
+                "text": "：按业务实际发生期间确认收入和费用，更准确计算利润。\n\n"
+              },
+              {
+                "text": "强制性信息披露，引入第三方审计→全球会计体系实质性趋同",
+                "bold": true
+              },
+              {
+                "text": "\n\n\n"
+              },
+              {
+                "text": "4. 中国古代",
+                "bold": true
+              },
+              {
+                "text": "\n• "
+              },
+              {
+                "text": "龙门账",
+                "bold": true
+              },
+              {
+                "text": "：中国传统会计中的重要记账方法，体现了较成熟的收支核算思想。\n\n"
+              },
+              {
+                "text": "早期简单记账 → 商品经济和资本主义发展 → 复式记账法成熟 → 西方会计向日本（福泽谕吉）、中国（谢霖）传播 → 现代会计",
+                "bold": true
+              },
+              {
+                "text": "\n\n\n\n"
+              },
+              {
+                "text": "会计发展和资本市场发展密切相关，财务报表是资本市场的基础设施",
+                "bold": true,
+                "backgroundColor": "#f8d6d6"
+              },
+              {
+                "text": "\n"
+              },
+              {
+                "text": "因为投资=买企业，而看懂企业就需要看得懂商业，也就需要学会计",
+                "bold": true,
+                "backgroundColor": "#f8d6d6"
+              },
+              {
+                "text": "\n"
+              },
+              {
+                "text": "想法（在ai时代更为重要）+执行 ",
+                "bold": true,
+                "backgroundColor": "#f8d6d6"
+              }
+            ]
+          },
+          {
+            "id": "pvadiwj2",
+            "type": "text",
+            "text": "财务与会计：\n会计：账面价值\n财务：内在价值\n\n核心原则：谨慎性or相关性？\n谨慎性→ 解决委托代理问题\n相关性   \n会计强调历史成本（谨慎性\n财务管理做的更多是预测，用未来衡量现在的价值（价值是什么？）\n价值：满足客户需求？长期主义？\n          唯一一条护城河就是不断创造价值；用长期的角度看\n          价值的核心就是创造价值\n\n\n\n企业的三种价值\n• 账面价值：会计记录的价值，基于资产、负债和历史交易，客观但可能滞后。\n• 内在价值：企业未来盈利和现金流决定的真实经济价值，重要但需要估计。\n• 市场价值：市场当前愿意支付的价格，可观察但受预期和情绪影响。\n• 投资逻辑：比较市场价值与内在价值，寻找被低估或高估的资产。\n一句话记忆\n账面价值看过去，内在价值看未来，市场价值看现在市场怎么定价。\nq：有时候赚不赚钱和学不学会计没关系？如何理解？会计信息在投资决策中起到什么作用？\na：获取会计信息的时候，经常已经成为公开信息了，已经体现在价格里了，\n如果只看会计信息，那你的决策已经比市场滞后了（除非你知道内幕）\n因为看见所以相信的逻辑，即看见这个公司的财报，判断这个公司是否值得投，这个时候可能看不到这个公司的价值\n而因为相信所以看见，投资者已经有预期了，会提前布局\n坏消息/好消息公告不一定绝对等于股价上升或者下降\n两种情况：公告前就有异动，公告后出现盈余漂移；公告前预期打的太满，公告后暴跌会计信息只是影响投资的一类信息，短期上价格和报表的关系极弱（严重滞后a股），甚至是负相关，长期投资会回归基本面，但是周期长\n\n“遛狗绳”比喻（价格和会计信息/基本面的关系）\n• 主人 = 企业基本面\n• 狗 = 股票价格\n• 绳子长度 = 股价偏离基本面的程度\n中国市场：绳子较长\n→ 股价更容易受情绪、题材、政策、资金影响，短期可能离基本面很远。\n美国市场：绳子较短\n→ 信息披露和机构投资者占比较高，股价通常更快反映基本面变化。\n一句话：长期看股价会围绕基本面波动，但不同市场“偏离基本面的幅度和时间\"不同。\neg：茅台 2021 年利润仍增长约 12%，股价却一度跌超 40% → 股价短期可以明显偏离基本面，买好公司也必须考虑价格和市场预期。\n\n\n会计财务更关注报表层面（价值），纯金融关注价格，视角不同。价值和价格都要关注，二者之间有鸿沟，因为有不同的规律\n这产生了多种投资方法——做长线就看基本面，做短期就看价格\n\n一级市场——风险投资（股权投资）\n二级市场——股票（短线找机会，基本面没那么重要）\n一级不能当二级做，二级能当一级做\n巴菲特不区分一级和二级，只关注基本盘\n\n价值规律：商业知识\n价格规律：心理（认识市场）\n商业课程应该包含认识市场（读懂大众情绪和心理+理解和管理自己的能力边界）和评估企业的价值（财务管理和会计）\n后者的壁垒减少，前者越来越重要\n（因此量化变重要，因为严格执行交易策略，该卖就卖，该买就买，不能被心态左右，风险厌恶和偏好）\neg：逆向操作→修炼，知道什么该做什么不该做————认识市场",
+            "inlineRuns": [
+              {
+                "text": "财务与会计：",
+                "bold": true,
+                "fontSize": "large"
+              },
+              {
+                "text": "\n会计：账面价值\n财务：内在价值\n\n核心原则：谨慎性or相关性？\n谨慎性→ 解决委托代理问题\n相关性   \n会计强调历史成本（谨慎性\n财务管理做的更多是预测，用未来衡量现在的"
+              },
+              {
+                "text": "价值（价值是什么？）",
+                "backgroundColor": "#f6e9b9"
+              },
+              {
+                "text": "\n价值：满足客户需求？长期主义？\n          唯一一条护城河就是不断创造价值；用长期的角度看\n          "
+              },
+              {
+                "text": "价值的核心就是创造价值",
+                "bold": true,
+                "backgroundColor": "#f8d6d6"
+              },
+              {
+                "text": "\n\n\n\n"
+              },
+              {
+                "text": "企业的三种价值",
+                "bold": true
+              },
+              {
+                "text": "\n• "
+              },
+              {
+                "text": "账面价值",
+                "bold": true
+              },
+              {
+                "text": "：会计记录的价值，基于资产、负债和历史交易，"
+              },
+              {
+                "text": "客观但可能滞后",
+                "bold": true
+              },
+              {
+                "text": "。\n• "
+              },
+              {
+                "text": "内在价值",
+                "bold": true
+              },
+              {
+                "text": "：企业未来盈利和现金流决定的真实经济价值，"
+              },
+              {
+                "text": "重要但需要估计",
+                "bold": true
+              },
+              {
+                "text": "。\n• "
+              },
+              {
+                "text": "市场价值",
+                "bold": true
+              },
+              {
+                "text": "：市场当前愿意支付的价格，"
+              },
+              {
+                "text": "可观察但受预期和情绪影响",
+                "bold": true
+              },
+              {
+                "text": "。\n• "
+              },
+              {
+                "text": "投资逻辑",
+                "bold": true
+              },
+              {
+                "text": "：比较"
+              },
+              {
+                "text": "市场价值与内在价值",
+                "bold": true
+              },
+              {
+                "text": "，寻找被低估或高估的资产。\n"
+              },
+              {
+                "text": "一句话记忆",
+                "bold": true
+              },
+              {
+                "text": "\n"
+              },
+              {
+                "text": "账面价值看过去，内在价值看未来，市场价值看现在市场怎么定价。",
+                "bold": true
+              },
+              {
+                "text": "\nq：有时候赚不赚钱和学不学会计没关系？如何理解？会计信息在投资决策中起到什么作用？\na：获取会计信息的时候，经常已经成为公开信息了，已经体现在价格里了，\n如果只看会计信息，那你的决策已经比市场滞后了（除非你知道内幕）\n因为看见所以相信的逻辑，即看见这个公司的财报，判断这个公司是否值得投，这个时候可能看不到这个公司的价值\n而因为相信所以看见，投资者已经有预期了，会提前布局\n坏消息/好消息公告不一定绝对等于股价上升或者下降\n两种情况：公告前就有异动，公告后出现盈余漂移；公告前预期打的太满，公告后暴跌"
+              },
+              {
+                "text": "会计信息只是影响投资的一类信息，短期上价格和报表的关系极弱（严重滞后a股），甚至是负相关，长期投资会回归基本面，但是周期长",
+                "bold": true,
+                "backgroundColor": "#f8d6d6"
+              },
+              {
+                "text": "\n\n"
+              },
+              {
+                "text": "“遛狗绳”比喻",
+                "bold": true
+              },
+              {
+                "text": "（价格和会计信息/基本面的关系）\n• "
+              },
+              {
+                "text": "主人 = 企业基本面",
+                "bold": true
+              },
+              {
+                "text": "\n• "
+              },
+              {
+                "text": "狗 = 股票价格",
+                "bold": true
+              },
+              {
+                "text": "\n• "
+              },
+              {
+                "text": "绳子长度 = 股价偏离基本面的程度",
+                "bold": true
+              },
+              {
+                "text": "\n"
+              },
+              {
+                "text": "中国市场：绳子较长",
+                "bold": true
+              },
+              {
+                "text": "\n→ 股价更容易受情绪、题材、政策、资金影响，短期可能离基本面很远。\n"
+              },
+              {
+                "text": "美国市场：绳子较短",
+                "bold": true
+              },
+              {
+                "text": "\n→ 信息披露和机构投资者占比较高，股价通常更快反映基本面变化。\n"
+              },
+              {
+                "text": "一句话",
+                "bold": true
+              },
+              {
+                "text": "：长期看股价会围绕基本面波动，但不同市场“偏离基本面的幅度和时间\"不同。\neg：茅台 2021 年利润仍增长约 12%，股价却一度跌超 40% → 股价短期可以明显偏离基本面，买好公司也必须考虑价格和市场预期。\n\n\n"
+              },
+              {
+                "text": "会计财务更关注报表层面（价值），纯金融关注价格，视角不同。价值和价格都要关注，二者之间有鸿沟，因为有不同的规律",
+                "bold": true,
+                "backgroundColor": "#f8d6d6"
+              },
+              {
+                "text": "\n"
+              },
+              {
+                "text": "这产生了多种投资方法——做长线就看基本面，做短期就看价格",
+                "bold": true,
+                "backgroundColor": "#f8d6d6"
+              },
+              {
+                "text": "\n\n一级市场——风险投资（股权投资）\n二级市场——股票（短线找机会，基本面没那么重要）\n一级不能当二级做，二级能当一级做\n巴菲特不区分一级和二级，只关注基本盘\n\n价值规律：商业知识\n价格规律："
+              },
+              {
+                "text": "心理（认识市场）",
+                "bold": true,
+                "backgroundColor": "#f8d6d6"
+              },
+              {
+                "text": "\n"
+              },
+              {
+                "text": "商业课程应该包含认识市场（读懂大众情绪和心理+理解和管理自己的能力边界）和评估企业的价值（财务管理和会计）",
+                "bold": true,
+                "backgroundColor": "#f8d6d6"
+              },
+              {
+                "text": "\n"
+              },
+              {
+                "text": "后者的壁垒减少，前者越来越重要",
+                "bold": true,
+                "backgroundColor": "#f8d6d6"
+              },
+              {
+                "text": "\n（因此量化变重要，因为严格执行交易策略，该卖就卖，该买就买，不能被心态左右，风险厌恶和偏好）\neg：逆向操作→修炼，知道什么该做什么不该做————认识市场"
+              }
+            ],
+            "embeddedImages": [
+              {
+                "id": "e4lxow4a",
+                "url": "https://n1ylkoimufwbh8zt.private.blob.vercel-storage.com/attachments/owner/pvadiwj2/embedded-e4lxow4a/172e1e55ff38df8cafbad4fae3a67497-Bxh5JFbcM2PaN3ZARl3nfUTwWYBnoR.jpg",
+                "fileName": "172e1e55ff38df8cafbad4fae3a67497.jpg",
+                "fileSize": 296694,
+                "mimeType": "image/jpeg",
+                "uploadedAt": "2026-09-08T02:26:41.603Z",
+                "caption": "会计——财管——投资"
+              }
+            ]
+          },
+          {
+            "id": "jkltonpq",
+            "type": "heading",
+            "text": "第三节：大数据会计实践",
+            "headingLevel": 1
+          },
+          {
+            "id": "0a8w37qf",
+            "type": "text",
+            "text": "怎么预测股价历年制\n\n"
+          },
+          {
+            "id": "xz5ac8oj",
+            "type": "heading",
+            "text": "经济管理类的学术研究",
+            "headingLevel": 2
+          },
+          {
+            "id": "1ce6mx6e",
+            "type": "text",
+            "text": "def：围绕经济与管理活动中的重要问题，通过系统分析和可靠证据，解释现象、验证理论，并形成新的认识。它关注各主体如何做出决策，这些决策受到什么影响，会产生什么后果\n什么是好的会计学研究？\n问题重要、有贡献、说得清楚、问题有趣\n• 问题重要——如何选题？现实观察（如财经媒体，财新）+有数据基础+文献研究+导师选题\n• 有贡献：理论贡献、文献贡献和现实贡献\n• 说得清楚——为什么论文那么长（构建因果）做研究有什么用\n\n知道自己知道什么\n\n",
+            "inlineRuns": [
+              {
+                "text": "def：围绕经济与管理活动中的重要问题，通过系统分析和可靠证据，解释现象、验证理论，并形成新的认识。它关注各主体如何做出决策，这些决策受到什么影响，会产生什么后果\n"
+              },
+              {
+                "text": "什么是好的会计学研究？",
+                "bold": true
+              },
+              {
+                "text": "\n问题重要、有贡献、说得清楚、问题有趣\n• 问题重要——如何选题？现实观察（如财经媒体，财新）+有数据基础+文献研究+导师选题\n• 有贡献：理论贡献、文献贡献和现实贡献\n• 说得清楚——为什么论文那么长（构建因果）做研究有什么用\n\n知道自己知道什么\n\n"
+              }
+            ]
+          },
+          {
+            "id": "9510wzvg",
+            "type": "heading",
+            "text": "找文献",
+            "headingLevel": 2
+          },
+          {
+            "id": "fadzld64",
+            "type": "text",
+            "text": "目的？学习、模仿、创新",
+            "embeddedImages": []
+          },
+          {
+            "id": "elz5z3dh",
+            "type": "image",
+            "text": "",
+            "url": "https://n1ylkoimufwbh8zt.private.blob.vercel-storage.com/attachments/owner/elz5z3dh/0ba098506323fcc2d0b3c72560db7dc3-cbPzHXueGfVSEYNVs9CF6qNeyTaGQe.jpg",
+            "fileName": "0ba098506323fcc2d0b3c72560db7dc3.jpg",
+            "fileSize": 297086,
+            "mimeType": "image/jpeg",
+            "uploadedAt": "2026-09-09T06:46:03.274Z"
+          },
+          {
+            "id": "f1bvt2ym",
+            "type": "image",
+            "text": "",
+            "url": "https://n1ylkoimufwbh8zt.private.blob.vercel-storage.com/attachments/owner/f1bvt2ym/c79eb32d3e6235408422f17843491ac7-ktN8bkX8aOr9ZWKHVDKN7isXGHVhoN.png",
+            "fileName": "c79eb32d3e6235408422f17843491ac7.png",
+            "fileSize": 32135,
+            "mimeType": "image/png",
+            "uploadedAt": "2026-09-09T06:46:03.995Z"
+          }
+        ]
+      },
+      {
+        "id": "y3gsu4qd",
+        "title": "（本）101341432-会计学专业导论[01]",
+        "term": "2026 秋季",
+        "teacher": "",
+        "location": "文萃楼M135",
+        "progress": 0,
+        "requirements": "上课周次：1-12周,星期1,第6节-第7节,文萃楼F103",
+        "schedule": [
+          {
+            "id": "we3cnx60",
+            "weekday": 2,
+            "start": "08:00",
+            "end": "11:30",
+            "location": "文萃楼M135",
+            "weeks": "-2周",
+            "source": "bit"
+          },
+          {
+            "id": "agpwocz6",
+            "weekday": 1,
+            "start": "13:20",
+            "end": "14:55",
+            "location": "文萃楼F103",
+            "weeks": "1-12周",
+            "source": "bit"
+          },
+          {
+            "id": "6qfd7oo7",
+            "weekday": 3,
+            "start": "13:20",
+            "end": "14:55",
+            "location": "文萃楼F103",
+            "weeks": "1-12周",
+            "source": "bit"
+          }
+        ],
+        "blocks": [
+          {
+            "id": "0k80ejyr",
+            "type": "heading",
+            "text": "课程资料与笔记",
+            "headingLevel": 1
+          },
+          {
+            "id": "zxmmr9ur",
+            "type": "text",
+            "text": "从这里开始记录，也可以把图片或资料直接拖进下方笔记区。"
+          }
+        ]
+      },
+      {
+        "id": "mqs5s3w0",
+        "title": "（本）SPOG0039-体育/跆拳道[02]",
+        "term": "2026 秋季",
+        "teacher": "",
+        "location": "",
+        "progress": 0,
+        "requirements": "上课周次：1-16周,星期3,第1节-第2节,良乡体育馆212",
+        "schedule": [
+          {
+            "id": "rdqsdscs",
+            "weekday": 3,
+            "start": "08:00",
+            "end": "09:35",
+            "location": "良乡体育馆212",
+            "weeks": "1-16周",
+            "source": "bit"
+          }
+        ],
+        "blocks": [
+          {
+            "id": "c9zz30gi",
+            "type": "heading",
+            "text": "课程资料与笔记",
+            "headingLevel": 1
+          },
+          {
+            "id": "xdldk4sv",
+            "type": "text",
+            "text": "从这里开始记录，也可以把图片或资料直接拖进下方笔记区。"
+          }
+        ]
+      },
+      {
+        "id": "bub3jns4",
+        "title": "（本）100341228-税收理论与实务[01]",
+        "term": "2026 秋季",
+        "teacher": "",
+        "location": "文萃楼M135",
+        "progress": 0,
+        "requirements": "上课周次：1-8周,星期1,第3节-第4节,综教A405",
+        "schedule": [
+          {
+            "id": "kysc39wo",
+            "weekday": 1,
+            "start": "09:55",
+            "end": "11:30",
+            "location": "综教A405",
+            "weeks": "1-8周",
+            "source": "bit"
+          },
+          {
+            "id": "xkt4qzjj",
+            "weekday": 2,
+            "start": "09:55",
+            "end": "11:30",
+            "location": "综教A405",
+            "weeks": "1-8周",
+            "source": "bit"
+          }
+        ],
+        "blocks": [
+          {
+            "id": "eexqnqqp",
+            "type": "heading",
+            "text": "课程资料与笔记",
+            "headingLevel": 1
+          },
+          {
+            "id": "2zzxkhfv",
+            "type": "text",
+            "text": "从这里开始记录，也可以把图片或资料直接拖进下方笔记区。"
+          }
+        ]
+      },
+      {
+        "id": "rogqgtuu",
+        "title": "（本）101341436-会计学基础（全英文）[01]",
+        "term": "2026 秋季",
+        "teacher": "",
+        "location": "理教楼201",
+        "progress": 0,
+        "requirements": "上课周次：1周,4-10周,12-15周,星期3,第3节-第5节,理教楼201",
+        "schedule": [
+          {
+            "id": "dlcnge3c",
+            "weekday": 3,
+            "start": "09:55",
+            "end": "12:20",
+            "location": "理教楼201",
+            "weeks": "1周、4-10周、12-15周",
+            "source": "bit"
+          }
+        ],
+        "blocks": [
+          {
+            "id": "3ulpj5n3",
+            "type": "heading",
+            "text": "课程资料与笔记",
+            "headingLevel": 1
+          },
+          {
+            "id": "vcubz2a3",
+            "type": "text",
+            "text": "从这里开始记录，也可以把图片或资料直接拖进下方笔记区。"
+          }
+        ]
+      },
+      {
+        "id": "6cyrjavi",
+        "title": "（本）100270025-马克思主义基本原理[45]",
+        "term": "2026 秋季",
+        "teacher": "",
+        "location": "",
+        "progress": 0,
+        "requirements": "上课周次：1-16周,星期4,第3节-第5节,综教A301",
+        "schedule": [
+          {
+            "id": "d0ek8nzb",
+            "weekday": 4,
+            "start": "09:55",
+            "end": "12:20",
+            "location": "综教A301",
+            "weeks": "1-16周",
+            "source": "bit"
+          }
+        ],
+        "blocks": [
+          {
+            "id": "4te2az3d",
+            "type": "heading",
+            "text": "课程资料与笔记",
+            "headingLevel": 1
+          },
+          {
+            "id": "oqaee9r2",
+            "type": "text",
+            "text": "从这里开始记录，也可以把图片或资料直接拖进下方笔记区。"
+          }
+        ]
+      },
+      {
+        "id": "atq03dg0",
+        "title": "（本）101341436-会计学基础（全英文）[01S01]",
+        "term": "2026 秋季",
+        "teacher": "",
+        "location": "",
+        "progress": 0,
+        "requirements": "上课周次：4-10周,12-15周,星期5,第3节-第4节,综教B102",
+        "schedule": [
+          {
+            "id": "wg6xx93e",
+            "weekday": 5,
+            "start": "09:55",
+            "end": "11:30",
+            "location": "综教B102",
+            "weeks": "4-10周、12-15周",
+            "source": "bit"
+          }
+        ],
+        "blocks": [
+          {
+            "id": "q1ivx0s6",
+            "type": "heading",
+            "text": "课程资料与笔记",
+            "headingLevel": 1
+          },
+          {
+            "id": "atrgssj6",
+            "type": "text",
+            "text": "从这里开始记录，也可以把图片或资料直接拖进下方笔记区。"
+          }
+        ]
+      },
+      {
+        "id": "urq1vxu0",
+        "title": "（本）100960001-文献检索[09]",
+        "term": "2026 秋季",
+        "teacher": "",
+        "location": "文萃楼M227",
+        "progress": 0,
+        "requirements": "上课周次：1-12周,星期2,第6节-第7节,综教A206",
+        "schedule": [
+          {
+            "id": "5b4m292x",
+            "weekday": 2,
+            "start": "13:20",
+            "end": "14:55",
+            "location": "综教A206",
+            "weeks": "1-12周",
+            "source": "bit"
+          },
+          {
+            "id": "yfj0yzf5",
+            "weekday": 4,
+            "start": "13:20",
+            "end": "14:55",
+            "location": "综教A205",
+            "weeks": "1-12周",
+            "source": "bit"
+          },
+          {
+            "id": "cyb866xa",
+            "weekday": 5,
+            "start": "13:20",
+            "end": "16:50",
+            "location": "文萃楼M227",
+            "weeks": "-1周",
+            "source": "bit"
+          },
+          {
+            "id": "t8vzth4b",
+            "weekday": 2,
+            "start": "15:15",
+            "end": "16:50",
+            "location": "综教A301",
+            "weeks": "1-16周",
+            "source": "bit"
+          },
+          {
+            "id": "p5tlc0yi",
+            "weekday": 4,
+            "start": "15:15",
+            "end": "16:50",
+            "location": "文萃楼M221",
+            "weeks": "1-2周、4-11周",
+            "source": "bit"
+          }
+        ],
+        "blocks": [
+          {
+            "id": "hrhufeg7",
+            "type": "heading",
+            "text": "课程资料与笔记",
+            "headingLevel": 1
+          },
+          {
+            "id": "5f2nwoas",
+            "type": "text",
+            "text": "从这里开始记录，也可以把图片或资料直接拖进下方笔记区。"
+          }
+        ]
+      },
+      {
+        "id": "0lyjumxf",
+        "title": "（本）100270016-形势与政策Ⅲ[13]",
+        "term": "2026 秋季",
+        "teacher": "",
+        "location": "文萃楼F704",
+        "progress": 0,
+        "requirements": "上课周次：5-8周,星期1,第8节-第9节,文萃楼F704,",
+        "schedule": [
+          {
+            "id": "zaixzwkf",
+            "weekday": 1,
+            "start": "15:15",
+            "end": "16:50",
+            "location": "文萃楼F704",
+            "weeks": "5-8周",
+            "source": "bit"
+          }
+        ],
+        "blocks": [
+          {
+            "id": "wax74am2",
+            "type": "heading",
+            "text": "课程资料与笔记",
+            "headingLevel": 1
+          },
+          {
+            "id": "4vosdbhk",
+            "type": "text",
+            "text": "从这里开始记录，也可以把图片或资料直接拖进下方笔记区。"
+          }
+        ]
+      },
+      {
+        "id": "l939z1ki",
+        "title": "（本）101341431-大数据分析（全英文）[01]",
+        "term": "2026 秋季",
+        "teacher": "",
+        "location": "文萃楼M135",
+        "progress": 0,
+        "requirements": "上课周次：1-2周,4-11周,星期3,第8节-第9节,综教A402,",
+        "schedule": [
+          {
+            "id": "j4d4miq0",
+            "weekday": 3,
+            "start": "15:15",
+            "end": "16:50",
+            "location": "综教A402",
+            "weeks": "1-2周、4-11周",
+            "source": "bit"
+          }
+        ],
+        "blocks": [
+          {
+            "id": "oatwdlne",
+            "type": "heading",
+            "text": "课程资料与笔记",
+            "headingLevel": 1
+          },
+          {
+            "id": "i1lrrk4r",
+            "type": "text",
+            "text": "从这里开始记录，也可以把图片或资料直接拖进下方笔记区。"
+          }
+        ]
+      },
+      {
+        "id": "5t5un97b",
+        "title": "（本）101341215-经济学基础（全英文）[01]",
+        "term": "2026 秋季",
+        "teacher": "",
+        "location": "文萃楼M227",
+        "progress": 0,
+        "requirements": "上课周次：1-16周,星期5,第8节-第9节,综教A301,",
+        "schedule": [
+          {
+            "id": "rllyj6zp",
+            "weekday": 5,
+            "start": "15:15",
+            "end": "16:50",
+            "location": "综教A301",
+            "weeks": "1-16周",
+            "source": "bit"
+          }
+        ],
+        "blocks": [
+          {
+            "id": "dcah87lr",
+            "type": "heading",
+            "text": "课程资料与笔记",
+            "headingLevel": 1
+          },
+          {
+            "id": "ohisdfsu",
+            "type": "text",
+            "text": "从这里开始记录，也可以把图片或资料直接拖进下方笔记区。"
+          }
+        ]
+      },
+      {
+        "id": "75wrx1qw",
+        "title": "（本）MSEG0199-气候与社会[01]",
+        "term": "2026 秋季",
+        "teacher": "",
+        "location": "文萃楼I304",
+        "progress": 0,
+        "requirements": "上课周次：1-10周,星期4,第11节-第13节,文萃楼I304",
+        "schedule": [
+          {
+            "id": "oa7hqn39",
+            "weekday": 4,
+            "start": "18:30",
+            "end": "20:55",
+            "location": "文萃楼I304",
+            "weeks": "1-10周",
+            "source": "bit"
+          }
+        ],
+        "blocks": [
+          {
+            "id": "g783gv8j",
+            "type": "heading",
+            "text": "课程资料与笔记",
+            "headingLevel": 1
+          },
+          {
+            "id": "v23ogn89",
+            "type": "text",
+            "text": "从这里开始记录，也可以把图片或资料直接拖进下方笔记区。"
+          }
+        ]
+      },
+      {
+        "id": "4uk9ociy",
+        "title": "第1节-第2节",
+        "term": "2026 秋季",
+        "teacher": "",
+        "location": "",
+        "progress": 0,
+        "requirements": "",
+        "schedule": [
+          {
+            "id": "5odbmtiu",
+            "weekday": 2,
+            "start": "08:00",
+            "end": "08:45",
+            "location": "",
+            "source": "bit"
+          },
+          {
+            "id": "sklk56oc",
+            "weekday": 3,
+            "start": "08:00",
+            "end": "08:45",
+            "location": "",
+            "source": "bit"
+          }
+        ],
+        "blocks": [
+          {
+            "id": "9zyhbj8d",
+            "type": "heading",
+            "text": "课程资料与笔记",
+            "headingLevel": 1
+          },
+          {
+            "id": "kuiu6408",
+            "type": "text",
+            "text": "从这里开始记录，也可以把图片或资料直接拖进下方笔记区。"
+          }
+        ]
+      },
+      {
+        "id": "yzsyfhf1",
+        "title": "第3节-第5节",
+        "term": "2026 秋季",
+        "teacher": "",
+        "location": "",
+        "progress": 0,
+        "requirements": "",
+        "schedule": [
+          {
+            "id": "ldqj4ekx",
+            "weekday": 1,
+            "start": "09:55",
+            "end": "10:40",
+            "location": "",
+            "source": "bit"
+          },
+          {
+            "id": "j8dehz07",
+            "weekday": 2,
+            "start": "09:55",
+            "end": "10:40",
+            "location": "",
+            "source": "bit"
+          },
+          {
+            "id": "2j71zh50",
+            "weekday": 2,
+            "start": "08:00",
+            "end": "08:45",
+            "location": "",
+            "source": "bit"
+          },
+          {
+            "id": "8cmrornv",
+            "weekday": 3,
+            "start": "09:55",
+            "end": "10:40",
+            "location": "",
+            "source": "bit"
+          },
+          {
+            "id": "bd3vi0rc",
+            "weekday": 4,
+            "start": "09:55",
+            "end": "10:40",
+            "location": "",
+            "source": "bit"
+          },
+          {
+            "id": "8utrwcsn",
+            "weekday": 5,
+            "start": "09:55",
+            "end": "10:40",
+            "location": "",
+            "source": "bit"
+          }
+        ],
+        "blocks": [
+          {
+            "id": "fl9crwqe",
+            "type": "heading",
+            "text": "课程资料与笔记",
+            "headingLevel": 1
+          },
+          {
+            "id": "wfz18fk2",
+            "type": "text",
+            "text": "从这里开始记录，也可以把图片或资料直接拖进下方笔记区。"
+          }
+        ]
+      },
+      {
+        "id": "hzdy74g1",
+        "title": "第6节-第7节",
+        "term": "2026 秋季",
+        "teacher": "",
+        "location": "",
+        "progress": 0,
+        "requirements": "",
+        "schedule": [
+          {
+            "id": "671wate4",
+            "weekday": 1,
+            "start": "13:20",
+            "end": "14:05",
+            "location": "",
+            "source": "bit"
+          },
+          {
+            "id": "nb71bbh7",
+            "weekday": 2,
+            "start": "13:20",
+            "end": "14:05",
+            "location": "",
+            "source": "bit"
+          },
+          {
+            "id": "9jx5frn6",
+            "weekday": 3,
+            "start": "13:20",
+            "end": "14:05",
+            "location": "",
+            "source": "bit"
+          },
+          {
+            "id": "xap41r4m",
+            "weekday": 4,
+            "start": "13:20",
+            "end": "14:05",
+            "location": "",
+            "source": "bit"
+          },
+          {
+            "id": "20ipn1c4",
+            "weekday": 5,
+            "start": "13:20",
+            "end": "14:05",
+            "location": "",
+            "source": "bit"
+          }
+        ],
+        "blocks": [
+          {
+            "id": "9ku9mqbl",
+            "type": "heading",
+            "text": "课程资料与笔记",
+            "headingLevel": 1
+          },
+          {
+            "id": "7g437ieh",
+            "type": "text",
+            "text": "从这里开始记录，也可以把图片或资料直接拖进下方笔记区。"
+          }
+        ]
+      },
+      {
+        "id": "qv73w96e",
+        "title": "第8节-第10节",
+        "term": "2026 秋季",
+        "teacher": "",
+        "location": "",
+        "progress": 0,
+        "requirements": "",
+        "schedule": [
+          {
+            "id": "mi342c4w",
+            "weekday": 1,
+            "start": "15:15",
+            "end": "16:00",
+            "location": "",
+            "source": "bit"
+          },
+          {
+            "id": "x5ov4x4j",
+            "weekday": 1,
+            "start": "13:20",
+            "end": "14:05",
+            "location": "",
+            "source": "bit"
+          },
+          {
+            "id": "iohgjji0",
+            "weekday": 2,
+            "start": "13:20",
+            "end": "14:05",
+            "location": "",
+            "source": "bit"
+          },
+          {
+            "id": "5csethlm",
+            "weekday": 2,
+            "start": "15:15",
+            "end": "16:00",
+            "location": "",
+            "source": "bit"
+          },
+          {
+            "id": "w40hxvum",
+            "weekday": 3,
+            "start": "15:15",
+            "end": "16:00",
+            "location": "",
+            "source": "bit"
+          },
+          {
+            "id": "snkpriez",
+            "weekday": 3,
+            "start": "13:20",
+            "end": "14:05",
+            "location": "",
+            "source": "bit"
+          },
+          {
+            "id": "pkdiu00z",
+            "weekday": 4,
+            "start": "13:20",
+            "end": "14:05",
+            "location": "",
+            "source": "bit"
+          },
+          {
+            "id": "bhqdrqrz",
+            "weekday": 4,
+            "start": "15:15",
+            "end": "16:00",
+            "location": "",
+            "source": "bit"
+          },
+          {
+            "id": "4uabh0tn",
+            "weekday": 5,
+            "start": "15:15",
+            "end": "16:00",
+            "location": "",
+            "source": "bit"
+          },
+          {
+            "id": "j6jf1h39",
+            "weekday": 5,
+            "start": "13:20",
+            "end": "14:05",
+            "location": "",
+            "source": "bit"
+          }
+        ],
+        "blocks": [
+          {
+            "id": "ew2h4vq8",
+            "type": "heading",
+            "text": "课程资料与笔记",
+            "headingLevel": 1
+          },
+          {
+            "id": "8rkvgvkp",
+            "type": "text",
+            "text": "从这里开始记录，也可以把图片或资料直接拖进下方笔记区。"
+          }
+        ]
+      },
+      {
+        "id": "gjnff73x",
+        "title": "第11节-第13节",
+        "term": "2026 秋季",
+        "teacher": "",
+        "location": "",
+        "progress": 0,
+        "requirements": "",
+        "schedule": [
+          {
+            "id": "kmovxu6b",
+            "weekday": 4,
+            "start": "18:30",
+            "end": "19:15",
+            "location": "",
+            "source": "bit"
+          }
+        ],
+        "blocks": [
+          {
+            "id": "hihhi0un",
+            "type": "heading",
+            "text": "课程资料与笔记",
+            "headingLevel": 1
+          },
+          {
+            "id": "arbdv61p",
+            "type": "text",
+            "text": "从这里开始记录，也可以把图片或资料直接拖进下方笔记区。"
+          }
+        ]
+      }
+    ],
+    "learning": [],
+    "research": [],
+    "ideas": [
+      {
+        "id": "tnv4763i",
+        "title": "工具集——监控ai、金融领域信息",
+        "note": "",
+        "createdAt": "2026-09-08"
+      }
+    ],
+    "tools": [
+      {
+        "id": "zyp8tjnx",
+        "title": "感兴趣的方向探索器",
+        "status": "想法",
+        "description": "",
+        "url": "",
+        "version": "0.1",
+        "blocks": [
+          {
+            "id": "b9jqlxa2",
+            "type": "heading",
+            "text": "产品说明与迭代记录"
+          },
+          {
+            "id": "lcy98gx4",
+            "type": "text",
+            "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+          }
+        ]
+      },
+      {
+        "id": "opopdy4z",
+        "title": "学序",
+        "status": "想法",
+        "description": "",
+        "url": "https://xuexu-study.vercel.app/",
+        "version": "0.1",
+        "blocks": [
+          {
+            "id": "igf5xtu0",
+            "type": "heading",
+            "text": "产品说明与迭代记录",
+            "headingLevel": 1
+          },
+          {
+            "id": "ac0q492s",
+            "type": "text",
+            "text": "从这里开始记录。你可以继续加入标题、清单、链接、表格或图片。"
+          }
+        ]
+      }
+    ],
+    "habits": [],
+    "routines": [],
+    "reminders": [
+      {
+        "id": "ra28m944",
+        "title": "休息眼睛",
+        "type": "break",
+        "times": [],
+        "intervalMinutes": 30,
+        "enabled": false
+      }
+    ],
+    "media": [],
+    "recipes": [],
+    "pages": [],
+    "daily": {},
+    "timeEntries": [],
+    "timetableSettings": {
+      "termStartDate": "2026-08-31",
+      "activeSchool": "bit"
+    },
+    "finance": {
+      "entries": [],
+      "budgets": {},
+      "expenseCategories": [
+        "餐饮",
+        "交通",
+        "学习",
+        "购物",
+        "居住",
+        "健康",
+        "娱乐",
+        "人情",
+        "其他"
+      ],
+      "incomeCategories": [
+        "工资",
+        "兼职",
+        "奖学金",
+        "报销",
+        "礼金",
+        "其他收入"
+      ]
+    },
+    "themes": {
+      "today": "#718c7c",
+      "timetable": "#6d8291",
+      "tasks": "#7b846d",
+      "calendar": "#6f8295",
+      "review": "#8c7a91",
+      "finance": "#6f7f72",
+      "school": "#657f91",
+      "learning": "#80769a",
+      "thoughts": "#668476",
+      "work": "#8b7658",
+      "ideas": "#8a6f7d",
+      "tools": "#617f78",
+      "life": "#8b706d",
+      "free": "#738287"
+    }
+  },
+  "updatedAt": "2026-09-09T06:46:13.719Z",
+  "revision": 1668
+}

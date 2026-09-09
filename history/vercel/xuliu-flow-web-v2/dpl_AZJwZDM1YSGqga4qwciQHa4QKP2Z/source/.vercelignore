@@ -1,0 +1,10 @@
+.github
+.openai
+db
+drizzle
+worker
+work
+outputs
+vite.config.ts
+drizzle.config.ts
+postcss.config.mjs
