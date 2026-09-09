@@ -2,7 +2,7 @@
   "generated_at": "2026-09-09",
   "scope": "All recovery repository files except this manifest and Git internals",
   "file_count": 1636,
-  "total_bytes": 29427982,
+  "total_bytes": 29427961,
   "files": [
     {
       "path": ".gitattributes",
@@ -7581,8 +7581,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 3119,
-      "sha256": "8fed92304b1e29accaefb7a6d2dc0a1dbff2a01d62b9ac4b99800229b5ed7325"
+      "bytes": 3098,
+      "sha256": "ff2bafaf782efadf272e055018e7b4b51354232cddf944b6abab1f3f60cd7726"
     },
     {
       "path": "recovered/data/redis-raw-export.json",
