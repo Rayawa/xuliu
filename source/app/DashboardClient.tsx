@@ -11,8 +11,13 @@ import { ReminderScheduler, type DueReminder } from "@/lib/reminder-scheduler";
 import { useReminderAlerts } from "./useReminderAlerts";
 import ReminderAlertsSettings from "./ReminderAlertsSettings";
 import EyeRestCycle from "./EyeRestCycle";
+import { CourseNodeForm, CourseNodeEditor, type CourseNode } from "./CourseNodes";
+import WebsiteCollection, { CollectionForm } from "./ToolCollections";
+import { toolCollectionFields, type ToolCollectionFields } from "@/lib/tool-collections";
 import { createInitialFinanceState, createPreviewFinanceState, normalizeFinanceState, type FinanceState } from "@/lib/finance";
 import { taskModeOf, taskOverlapsRange, taskProgressOf, taskScheduleSummary, taskScheduledForDate, taskStatusOf, taskStatusOptions, taskVisibleToday, type TaskMode, type TaskProgressStatus } from "@/lib/task-progress";
+import { updateAcademicCourses, courseContentPreserved } from "@/lib/academic-course-update";
+import { parseAcademicRows, parseAcademicIcs, groupImportedCourses, parseDelimitedRows, importWeekday } from "@/lib/academic-import";
 import { addDays, courseRunsInTimetableWeek, extractScheduleLocation, extractScheduleWeekRule, extractScheduleWeekday, isCourseTitleCandidate, officialTimetableRows, periodTimeRange, repairImportedTimetableSlot, splitScheduleEntries, timetableRowIndex, timetableWeekInfo } from "@/lib/timetable";
 
 type NavId = "today" | "timetable" | "tasks" | "calendar" | "review" | "finance" | "school" | "learning" | "thoughts" | "work" | "ideas" | "tools" | "life" | "free";
@@ -59,7 +64,7 @@ type Block = {
   textAlign?: "left" | "center" | "right";
   fontFamily?: "sans" | "serif" | "mono";
 };
-type Milestone = { id: string; courseId?: string; title: string; date: string; time: string; location: string; requirements: string; attachments?: StoredAttachment[]; area: Area; done: boolean };
+type Milestone = CourseNode;
 type TaskProgressLog = { id: string; date: string; progress: number; status: TaskProgressStatus; note: string };
 type TaskItem = { id: string; title: string; area: Area; source: string; due?: string; done: boolean; today: boolean; elapsed: number; mode?: TaskMode; startDate?: string; status?: TaskProgressStatus; progress?: number; progressLogs?: TaskProgressLog[] };
 type PageNode = { id: string; space: "thoughts" | "free"; parentId: string | null; title: string; kind: "folder" | "page"; blocks: Block[] };
@@ -79,7 +84,7 @@ type LearningArea = { id: string; title: string; category: string; progress: num
 type ResearchPage = { id: string; title: string; blocks: Block[] };
 type ResearchProject = { id: string; title: string; status: string; summary: string; objective: string; next: string; progress: number; pages: ResearchPage[]; question?: string; assumption?: string; blocks?: Block[] };
 type ToolVersion = { id: string; label: string; url: string; note: string; createdAt: string };
-type ToolItem = { id: string; title: string; status: string; description: string; url: string; version: string; currentVersionId?: string; versions?: ToolVersion[]; blocks: Block[] };
+type ToolItem = ToolCollectionFields & { id: string; title: string; status: string; description: string; url: string; version: string; currentVersionId?: string; versions?: ToolVersion[]; blocks: Block[] };
 type Reminder = { id: string; title: string; type: "exercise" | "break" | "sleep" | "custom"; times: string[]; time?: string; intervalMinutes?: number; enabled: boolean; lastFired?: string; snoozedUntil?: number };
 type Habit = { id: string; title: string; streak: number; today: boolean; schedule: string; lastCompletedDate?: string };
 type AppState = {
@@ -197,16 +202,6 @@ const starterResearchPages = (blocks?: Block[]): ResearchPage[] => [
 
 const importWeekdays = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
 const academicSchoolLabels: Record<AcademicImportPreset, string> = { pku: "北京大学", bit: "北京理工大学" };
-const timePattern = /(\d{1,2})[:：](\d{2})\s*(?:-|—|–|~|～|至)\s*(\d{1,2})[:：](\d{2})/;
-const headerAliases = {
-  title: ["课程名称", "课程名", "教学班名称", "课程", "subject", "summary"],
-  teacher: ["任课教师", "授课教师", "教师", "老师", "teacher"],
-  weekday: ["星期", "周几", "上课星期", "上课日期", "day", "weekday"],
-  time: ["上课时间", "时间", "节次", "上课节次", "课程时间", "time"],
-  location: ["上课地点", "上课教室", "教室", "地点", "校区地点", "location"],
-  weeks: ["上课周次", "周次", "教学周", "weeks"],
-};
-
 function courseSchool(course: Course): AcademicImportPreset {
   if (course.school) return course.school;
   if (course.schedule.some((slot) => slot.source === "bit")) return "bit";
@@ -224,142 +219,6 @@ function normalizedCourseSchedule(slots: CourseSlot[] | undefined, school: Acade
   });
 }
 
-const cleanImportCell = (value: unknown) => String(value ?? "").replace(/\u00a0/g, " ").replace(/[ \t]+/g, " ").trim();
-
-function importWeekday(value: string) {
-  return extractScheduleWeekday(cleanImportCell(value));
-}
-
-function importTimeRange(value: string, preset: AcademicImportPreset): [string, string] | null {
-  const normalized = cleanImportCell(value);
-  const explicit = normalized.match(timePattern);
-  if (explicit) {
-    return [`${explicit[1].padStart(2, "0")}:${explicit[2]}`, `${explicit[3].padStart(2, "0")}:${explicit[4]}`];
-  }
-  return periodTimeRange(normalized, preset);
-}
-
-function importColumn(headers: string[], aliases: string[]) {
-  return headers.findIndex((header) => aliases.some((alias) => header.toLowerCase() === alias.toLowerCase() || header.includes(alias)));
-}
-
-function courseCellParts(value: string) {
-  const lines = value.split(/\r?\n|\s{2,}|\|/).map(cleanImportCell).filter(Boolean);
-  const title = lines.find((line) => isCourseTitleCandidate(line) && !/(教师|老师|地点|教室|校区|周次|教学周|星期)/.test(line)) ?? "";
-  const teacher = lines.find((line) => /(教师|老师|任课)/.test(line))?.replace(/^.*?(?:教师|老师|任课)[:：]?\s*/, "") ?? "";
-  const scheduleText = lines.filter((line) => line !== title && line !== teacher).join(" ");
-  const weeks = extractScheduleWeekRule(scheduleText);
-  const location = extractScheduleLocation(scheduleText);
-  return { title, teacher, location, weeks };
-}
-
-function groupImportedCourses(rows: Array<Omit<ImportedCourse, "key" | "schedule"> & { slot: Omit<CourseSlot, "id"> }>) {
-  const grouped = new Map<string, ImportedCourse>();
-  for (const row of rows) {
-    const title = cleanImportCell(row.title);
-    if (!isCourseTitleCandidate(title)) continue;
-    const key = `${row.school}::${title.toLowerCase()}`;
-    const current = grouped.get(key) ?? { key, title, teacher: row.teacher, location: row.location, weeks: row.weeks, school: row.school, schedule: [] };
-    if (!current.teacher && row.teacher) current.teacher = row.teacher;
-    if (!current.location && row.location) current.location = row.location;
-    if (!current.weeks && row.weeks) current.weeks = row.weeks;
-    const duplicate = current.schedule.some((slot) => slot.weekday === row.slot.weekday && slot.start === row.slot.start && slot.end === row.slot.end && slot.location === row.slot.location && slot.weeks === row.slot.weeks);
-    if (!duplicate) current.schedule.push(row.slot);
-    grouped.set(key, current);
-  }
-  return [...grouped.values()];
-}
-
-function parseAcademicRows(rawRows: unknown[][], preset: AcademicImportPreset) {
-  const rows = rawRows.map((row) => row.map(cleanImportCell));
-  const weekdayHeaderIndex = rows.findIndex((row) => row.filter((cell) => importWeekday(cell) > 0).length >= 2);
-  const importedRows: Array<Omit<ImportedCourse, "key" | "schedule"> & { slot: Omit<CourseSlot, "id"> }> = [];
-
-  if (weekdayHeaderIndex >= 0) {
-    const header = rows[weekdayHeaderIndex];
-    const dayColumns = header.map((cell, index) => ({ index, weekday: importWeekday(cell) })).filter((item) => item.weekday > 0);
-    for (const row of rows.slice(weekdayHeaderIndex + 1)) {
-      const rowLabel = row.slice(0, Math.max(1, dayColumns[0]?.index ?? 1)).join(" ");
-      const rowTime = importTimeRange(rowLabel, preset);
-      if (!rowTime) continue;
-      for (const day of dayColumns) {
-        const cell = cleanImportCell(row[day.index]);
-        if (!cell || /^(无|暂无|--|-)$/.test(cell)) continue;
-        const parts = courseCellParts(cell);
-        if (!parts.title) continue;
-        importedRows.push({
-          ...parts,
-          school: preset,
-          slot: { weekday: day.weekday, start: rowTime[0], end: rowTime[1], location: parts.location, weeks: parts.weeks, source: preset },
-        });
-      }
-    }
-  }
-
-  if (importedRows.length) return groupImportedCourses(importedRows);
-
-  const headerIndex = rows.findIndex((row) => row.some((cell) => headerAliases.title.some((alias) => cell.includes(alias))) && row.some((cell) => [...headerAliases.weekday, ...headerAliases.time].some((alias) => cell.includes(alias))));
-  if (headerIndex >= 0) {
-    const headers = rows[headerIndex];
-    const indexes = {
-      title: importColumn(headers, headerAliases.title), teacher: importColumn(headers, headerAliases.teacher),
-      weekday: importColumn(headers, headerAliases.weekday), time: importColumn(headers, headerAliases.time),
-      location: importColumn(headers, headerAliases.location), weeks: importColumn(headers, headerAliases.weeks),
-    };
-    for (const row of rows.slice(headerIndex + 1)) {
-      const title = cleanImportCell(row[indexes.title]);
-      if (!isCourseTitleCandidate(title)) continue;
-      const teacher = indexes.teacher >= 0 ? cleanImportCell(row[indexes.teacher]) : "";
-      const rawLocation = indexes.location >= 0 && indexes.location !== indexes.time ? cleanImportCell(row[indexes.location]) : "";
-      const rawWeeks = indexes.weeks >= 0 ? cleanImportCell(row[indexes.weeks]) : "";
-      const scheduleCells = [...new Set(row.filter((cell) => importWeekday(cell) > 0 && Boolean(importTimeRange(cell, preset))))];
-      const scheduleText = scheduleCells.length ? scheduleCells.join("\n") : [rawWeeks, indexes.weekday >= 0 ? row[indexes.weekday] : "", indexes.time >= 0 ? row[indexes.time] : "", rawLocation].join(" ");
-      const scheduleParts = splitScheduleEntries(scheduleText);
-      for (const part of scheduleParts) {
-        const weekday = importWeekday(part);
-        const combined = `${rawWeeks} ${part} ${rawLocation}`;
-        const range = importTimeRange(combined, preset);
-        if (!weekday || !range) continue;
-        const weeks = extractScheduleWeekRule(combined);
-        const location = extractScheduleLocation(combined);
-        importedRows.push({ title, teacher, location, weeks, school: preset, slot: { weekday, start: range[0], end: range[1], location, weeks, source: preset } });
-      }
-    }
-  }
-  return groupImportedCourses(importedRows);
-}
-
-function decodeIcsValue(value: string) {
-  return value.replace(/\\n/gi, " ").replace(/\\,/g, ",").replace(/\\;/g, ";").replace(/\\\\/g, "\\").trim();
-}
-
-function parseAcademicIcs(text: string, preset: AcademicImportPreset) {
-  const unfolded = text.replace(/\r?\n[ \t]/g, "");
-  const events = unfolded.split("BEGIN:VEVENT").slice(1).map((chunk) => chunk.split("END:VEVENT")[0]);
-  const rows: Array<Omit<ImportedCourse, "key" | "schedule"> & { slot: Omit<CourseSlot, "id"> }> = [];
-  for (const event of events) {
-    const value = (name: string) => decodeIcsValue(event.match(new RegExp(`(?:^|\\n)${name}(?:;[^:]*)?:(.*)`, "i"))?.[1] ?? "");
-    const title = value("SUMMARY");
-    const location = value("LOCATION");
-    const description = value("DESCRIPTION");
-    const startText = event.match(/(?:^|\n)DTSTART(?:;[^:]*)?:(\d{8})T(\d{2})(\d{2})/i);
-    const endText = event.match(/(?:^|\n)DTEND(?:;[^:]*)?:(\d{8})T(\d{2})(\d{2})/i);
-    if (!title || !startText || !endText) continue;
-    const rruleDay = event.match(/BYDAY=(MO|TU|WE|TH|FR|SA|SU)/i)?.[1]?.toUpperCase();
-    const dayMap: Record<string, number> = { MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6, SU: 7 };
-    const date = new Date(`${startText[1].slice(0, 4)}-${startText[1].slice(4, 6)}-${startText[1].slice(6, 8)}T12:00:00`);
-    const nativeDay = date.getDay();
-    const weekday = rruleDay ? dayMap[rruleDay] : nativeDay === 0 ? 7 : nativeDay;
-    const teacher = description.match(/(?:教师|老师|任课教师)[:：]\s*([^,;，；]+)/)?.[1]?.trim() ?? "";
-    const weeks = description.match(/(?:周次|教学周)[:：]\s*([^,;，；]+)/)?.[1]?.trim() ?? "";
-    rows.push({
-      title, teacher, location, weeks, school: preset,
-      slot: { weekday, start: `${startText[2]}:${startText[3]}`, end: `${endText[2]}:${endText[3]}`, location, weeks, source: "ics" },
-    });
-  }
-  return groupImportedCourses(rows);
-}
-
 async function parseAcademicFile(file: File, preset: AcademicImportPreset) {
   if (/\.ics$/i.test(file.name) || file.type === "text/calendar") return parseAcademicIcs(await file.text(), preset);
   if (/\.xls$/i.test(file.name)) throw new Error("为确保文件解析安全，请从教务系统导出 .xlsx、.csv 或 .ics 文件；旧版 .xls 暂不支持。");
@@ -375,29 +234,6 @@ async function parseAcademicFile(file: File, preset: AcademicImportPreset) {
   const parsed = sheets.flatMap((rows) => parseAcademicRows(rows, preset));
   const flattened = parsed.flatMap((course) => course.schedule.map((slot) => ({ title: course.title, teacher: course.teacher, location: course.location, weeks: course.weeks, school: course.school, slot })));
   return groupImportedCourses(flattened);
-}
-
-function parseDelimitedRows(text: string) {
-  const firstLine = text.split(/\r?\n/, 1)[0] ?? "";
-  const delimiter = [",", "\t", ";"].sort((a, b) => firstLine.split(b).length - firstLine.split(a).length)[0];
-  const rows: string[][] = [];
-  let row: string[] = [];
-  let cell = "";
-  let quoted = false;
-  for (let index = 0; index < text.length; index += 1) {
-    const character = text[index];
-    if (character === '"') {
-      if (quoted && text[index + 1] === '"') { cell += '"'; index += 1; }
-      else quoted = !quoted;
-    } else if (character === delimiter && !quoted) {
-      row.push(cell); cell = "";
-    } else if ((character === "\n" || character === "\r") && !quoted) {
-      if (character === "\r" && text[index + 1] === "\n") index += 1;
-      row.push(cell); rows.push(row); row = []; cell = "";
-    } else cell += character;
-  }
-  if (cell || row.length) { row.push(cell); rows.push(row); }
-  return rows;
 }
 
 const initialState: AppState = {
@@ -477,6 +313,7 @@ function hydrateState(raw: unknown): AppState {
     })) : [],
     ideas: Array.isArray(saved.ideas) ? saved.ideas : [],
     tools: Array.isArray(saved.tools) ? saved.tools.map((item) => ({
+      ...toolCollectionFields(item),
       id: item.id ?? uid(), title: item.title ?? "", status: item.status ?? "想法", description: item.description ?? "",
       url: item.url ?? "", version: item.version ?? "构思", currentVersionId: item.currentVersionId,
       versions: item.versions, blocks: item.blocks ?? starterBlocks("产品说明与迭代记录"),
@@ -507,11 +344,23 @@ function clientNormalizationChanged(raw: unknown, hydrated: AppState) {
     || JSON.stringify(Array.isArray(saved.courses) ? saved.courses : []) !== JSON.stringify(hydrated.courses);
 }
 
-export default function DashboardClient({ account, visibleAccounts, onLogout, deploymentVersion, preview = false }: { account: WorkspaceAccount; visibleAccounts: WorkspaceAccount[]; onLogout: () => void; deploymentVersion: string; preview?: boolean }) {
-  const [active, setActive] = useState<NavId>(preview ? "finance" : "today");
+const emptyPreviewImports: ImportedCourse[] = [];
+function createLocalPreviewState(drafts: ImportedCourse[]): AppState {
+  if (!drafts.length) return { ...initialState, finance: createPreviewFinanceState() };
+  const courses: Course[] = drafts.map((draft, index) => ({
+    id: `local-course-${index}`, title: draft.title, term: "2026 秋季", teacher: draft.teacher,
+    location: draft.location, school: draft.school, progress: 0, requirements: "",
+    schedule: draft.schedule.map((slot, i) => ({ ...slot, id: `local-slot-${index}-${i}` })),
+    blocks: [{ id: `local-note-${index}`, type: "text", text: "本地试用笔记：可以在这里输入内容，检查重新导入课表后是否保留。" }],
+  }));
+  return { ...initialState, courses, milestones: [], finance: createPreviewFinanceState(), timetableSettings: { termStartDate: "2026-08-31", activeSchool: "bit" } };
+}
+
+export default function DashboardClient({ account, visibleAccounts, onLogout, deploymentVersion, preview = false, previewAcademicCourses = emptyPreviewImports }: { account: WorkspaceAccount; visibleAccounts: WorkspaceAccount[]; onLogout: () => void; deploymentVersion: string; preview?: boolean; previewAcademicCourses?: ImportedCourse[] }) {
+  const [active, setActive] = useState<NavId>(preview ? "school" : "today");
   const [detail, setDetail] = useState<DetailTarget>(null);
   const [workspaceOwner, setWorkspaceOwner] = useState(account.id);
-  const [data, setStoredData] = useState<AppState>(() => preview ? { ...initialState, finance: createPreviewFinanceState() } : initialState);
+  const [data, setStoredData] = useState<AppState>(() => preview ? createLocalPreviewState(previewAcademicCourses) : initialState);
   const [loaded, setLoaded] = useState(preview);
   const [sync, setSync] = useState<WorkspaceSyncState>(preview ? "preview" : "saving");
   const [dialog, setDialog] = useState<DialogConfig>(null);
@@ -595,7 +444,7 @@ export default function DashboardClient({ account, visibleAccounts, onLogout, de
     loadedWorkspaceRef.current = null;
     if (preview) {
       loadedWorkspaceRef.current = account.id;
-      setStoredData({ ...initialState, finance: createPreviewFinanceState() });
+      setStoredData(createLocalPreviewState(previewAcademicCourses));
       setLoaded(true);
       setSync("preview");
       return;
@@ -621,7 +470,7 @@ export default function DashboardClient({ account, visibleAccounts, onLogout, de
       setSync(result.readOnly ? "readonly" : needsNormalizationSave ? "saving" : "cloud");
     }).catch(() => { if (!cancelled && saveEpochRef.current === loadEpoch) { setLoaded(true); setSync("error"); } });
     return () => { cancelled = true; };
-  }, [workspaceOwner, account.id, onLogout, preview]);
+  }, [workspaceOwner, account.id, onLogout, preview, previewAcademicCourses]);
   useEffect(() => {
     if (preview || !loaded || readOnly || !dirtyRef.current) return;
     setSync("saving");
@@ -789,7 +638,7 @@ export default function DashboardClient({ account, visibleAccounts, onLogout, de
 
   return <div className="shell" style={{ "--accent": theme } as React.CSSProperties}>
     <aside className={`sidebar ${mobileNav ? "open" : ""}`}><button className="brand" onClick={() => navigate("today")}><span className="brandMark">序</span><span>序流</span></button><div className="workspaceSwitcher"><span>当前空间</span><button className={!readOnly ? "active" : ""} onClick={() => { setWorkspaceOwner(account.id); setDetail(null); }}><i>{account.displayName.slice(0, 1)}</i><b>{account.displayName}</b><small>我的</small></button>{visibleAccounts.map((visible) => <button key={visible.id} className={workspaceOwner === visible.id ? "active" : ""} onClick={() => { setWorkspaceOwner(visible.id); setDetail(null); }}><i>{visible.displayName.slice(0, 1)}</i><b>{visible.displayName}</b><small>只读</small></button>)}</div><div className="navGroup">{navItems.slice(0, 5).map((item) => <NavButton key={item.id} {...item} active={active} onClick={navigate} />)}</div><div className="navCaption">我的空间</div><div className="navGroup">{navItems.slice(5).map((item) => <NavButton key={item.id} {...item} active={active} onClick={navigate} />)}</div><button className="exportButton" onClick={exportData}>导出数据备份</button><a className="changelogLink" href="/changelog" target="_blank" rel="noreferrer">更新日志 ↗</a>{!preview && <button className="logoutButton" onClick={onLogout}>退出登录</button>}<div className="sidebarFoot"><span className={`syncDot ${sync}`} />{sync === "saving" ? "正在保存" : sync === "readonly" ? "正在查看只读空间" : sync === "error" ? "云端连接异常" : sync === "preview" ? "本地预览 · 不会写入云端" : "已保存到云端"}</div></aside>
-    <main className="main"><header className="mobileHeader"><button className="iconButton" onClick={() => setMobileNav(true)}>☰</button><strong>序流</strong><span className={`syncDot ${sync}`} /></header>{updateAvailable && <div className="updateBanner"><span>网站已有新版本，为避免继续使用旧页面，请先刷新。</span><button disabled={sync === "saving"} onClick={reloadForUpdate}>{sync === "saving" ? "等待保存" : "立即刷新"}</button></div>}{readOnly && <div className="readOnlyBanner">正在查看 <strong>{visibleAccount.displayName}</strong> 的空间 · 只读</div>}{!loaded ? <div className="workspaceLoading">正在载入空间…</div> : <>{!detail && <ThemePicker color={theme} onChange={(color) => setData((current) => ({ ...current, themes: { ...current.themes, [active]: color } }))} />}{detail ? <DetailRouter target={detail} data={data} setData={setData} back={() => setDetail(null)} setDialog={setDialog} deleteDialog={deleteDialog} access={{ ownerId: workspaceOwner, readOnly, preview }} /> : <>
+    <main className="main">{preview && <div className="readOnlyBanner">本地试运行 · 课表已载入 12 门课程、25 条上课记录。试用笔记和附件仅在本次页面中保留，刷新后重置。</div>}<header className="mobileHeader"><button className="iconButton" onClick={() => setMobileNav(true)}>☰</button><strong>序流</strong><span className={`syncDot ${sync}`} /></header>{updateAvailable && <div className="updateBanner"><span>网站已有新版本，为避免继续使用旧页面，请先刷新。</span><button disabled={sync === "saving"} onClick={reloadForUpdate}>{sync === "saving" ? "等待保存" : "立即刷新"}</button></div>}{readOnly && <div className="readOnlyBanner">正在查看 <strong>{visibleAccount.displayName}</strong> 的空间 · 只读</div>}{!loaded ? <div className="workspaceLoading">正在载入空间…</div> : <>{!detail && <ThemePicker color={theme} onChange={(color) => setData((current) => ({ ...current, themes: { ...current.themes, [active]: color } }))} />}{detail ? <DetailRouter target={detail} data={data} setData={setData} back={() => setDetail(null)} setDialog={setDialog} deleteDialog={deleteDialog} access={{ ownerId: workspaceOwner, readOnly, preview }} /> : <>
       {active === "today" && <TodayView data={data} setData={setData} tasks={todayTasks} milestones={data.milestones.filter((item) => item.date === today)} totalMinutes={data.timeEntries.filter((entry) => entry.date === today).reduce((sum, entry) => sum + entry.minutes, 0)} daily={daily} updateDaily={updateDaily} timer={timer} setTimer={setTimer} finishFocus={finishFocus} addManualTime={addManualTime} setPopup={setPopup} />}
       {active === "timetable" && <TimetableViewV2 data={data} setData={setData} setDialog={setDialog} openCourse={(id) => setDetail({ type: "course", id })} deleteDialog={deleteDialog} dualSchool={workspaceOwner === "owner"} readOnly={readOnly} />}
       {active === "tasks" && <TaskOverviewView data={data} setData={setData} setDialog={setDialog} />}
@@ -801,7 +650,7 @@ export default function DashboardClient({ account, visibleAccounts, onLogout, de
       {(active === "thoughts" || active === "free") && <NotesView space={active} data={data} setData={setData} selectedPage={selectedPage} setSelectedPage={setSelectedPage} setDialog={setDialog} deleteDialog={deleteDialog} access={{ ownerId: workspaceOwner, readOnly, preview }} />}
       {active === "work" && <WorkView data={data} setData={setData} openDetail={(id) => setDetail({ type: "research", id })} setDialog={setDialog} deleteDialog={deleteDialog} />}
       {active === "ideas" && <IdeasView data={data} setData={setData} setDialog={setDialog} deleteDialog={deleteDialog} />}
-      {active === "tools" && <ToolsView data={data} setData={setData} openDetail={(id) => setDetail({ type: "tool", id })} setDialog={setDialog} deleteDialog={deleteDialog} />}
+      {active === "tools" && <ToolsView key={workspaceOwner} data={data} setData={setData} openDetail={(id) => setDetail({ type: "tool", id })} setDialog={setDialog} deleteDialog={deleteDialog} readOnly={readOnly} />}
       {active === "life" && <LifeViewV2 data={data} setData={setData} openDetail={setDetail} setDialog={setDialog} deleteDialog={deleteDialog} setPopup={setPopup} alerts={reminderAlerts} readOnly={readOnly} workspaceOwner={workspaceOwner} />}
     </>}</>}</main>
     <AiAssistant accountName={account.displayName} activeWorkspaceOwner={workspaceOwner} activeWorkspaceName={visibleAccount.displayName} activeCourse={activeCourse ? { id: activeCourse.id, title: activeCourse.title, canInsert: !readOnly && !preview } : undefined} disabledReason={updateAvailable ? "网站已有新版本，请刷新页面后再使用 AI。" : aiDisabledReasonForSync(preview, sync)} onApplied={refreshAfterAi} onInsertCourseNote={insertAiCourseNote} />
@@ -842,6 +691,7 @@ function TimetableViewV2({ data, setData, setDialog, openCourse, deleteDialog, d
   const [importing, setImporting] = useState(false);
   const [importFileName, setImportFileName] = useState("");
   const [importMessage, setImportMessage] = useState("");
+  const [replaceSchedules, setReplaceSchedules] = useState(false);
   const term = `${new Date().getFullYear()} ${new Date().getMonth() >= 7 ? "秋季" : "春季"}`;
   const weekdays = importWeekdays;
   const validCourses = data.courses.filter((course) => isCourseTitleCandidate(course.title));
@@ -911,36 +761,22 @@ function TimetableViewV2({ data, setData, setDialog, openCourse, deleteDialog, d
   const removeImportedSlot = (key: string, slotIndex: number) => setImported((current) => current.map((course) => course.key === key ? { ...course, schedule: course.schedule.filter((_, index) => index !== slotIndex) } : course).filter((course) => course.schedule.length));
 
   const mergeImported = () => {
-    if (!imported.length) return;
-    setData((current) => {
-      const courses = [...current.courses];
-      for (const draft of imported) {
-        const existingIndex = courses.findIndex((course) => course.title.trim().toLowerCase() === draft.title.trim().toLowerCase() && courseSchool(course) === draft.school);
-        const slots = draft.schedule.map((slot) => ({ ...slot, id: uid() }));
-        if (existingIndex < 0) {
-          courses.push({
-            id: uid(), title: draft.title || "未命名课程", term, teacher: draft.teacher, location: draft.location, school: draft.school,
-            progress: 0, requirements: draft.weeks ? `上课周次：${draft.weeks}` : "", schedule: slots, blocks: starterBlocks("课程资料与笔记"),
-          });
-          continue;
-        }
-        const existing = courses[existingIndex];
-        const mergedSlots = [...existing.schedule];
-        for (const slot of slots) {
-          if (!mergedSlots.some((item) => item.weekday === slot.weekday && item.start === slot.start && item.end === slot.end && item.location === slot.location)) mergedSlots.push(slot);
-        }
-        courses[existingIndex] = {
-          ...existing,
-          school: draft.school,
-          teacher: existing.teacher || draft.teacher,
-          location: existing.location || draft.location,
-          requirements: existing.requirements || (draft.weeks ? `上课周次：${draft.weeks}` : ""),
-          schedule: mergedSlots,
-        };
-      }
-      return { ...current, courses };
+    if (!imported.length || readOnly) return;
+    const courses = updateAcademicCourses(data.courses, imported, {
+      replaceSchedules, id: uid,
+      create: (draft, schedule) => ({ id: uid(), title: draft.title, term, teacher: draft.teacher, location: draft.location, school: draft.school,
+        progress: 0, requirements: draft.weeks ? `上课周次：${draft.weeks}` : "", schedule, blocks: starterBlocks("课程资料与笔记") }),
     });
-    setImportMessage(`已按课程名称安全合并 ${imported.length} 门课程；同名课程和重复时间没有再次添加。`);
+    if (!courseContentPreserved(data.courses, courses)) { setImportMessage("课程内容校验未通过，未应用导入。"); return; }
+    // Save the exact pre-import state locally in addition to the existing cloud revision history.
+    try { sessionStorage.setItem(`xuliu-before-academic-import-${preset}`, JSON.stringify(data)); }
+    catch { setImportMessage("导入前备份未能保存，请先导出数据备份后重试。"); return; }
+    setData((current) => ({ ...current, courses: updateAcademicCourses(current.courses, imported, {
+      replaceSchedules, id: uid,
+      create: (draft, schedule) => ({ id: uid(), title: draft.title, term, teacher: draft.teacher, location: draft.location, school: draft.school,
+        progress: 0, requirements: draft.weeks ? `上课周次：${draft.weeks}` : "", schedule, blocks: starterBlocks("课程资料与笔记") }),
+    }) }));
+    setImportMessage(`已${replaceSchedules ? "重新导入" : "合并"} ${imported.length} 门课程。课名已去除编号，原有课程、笔记、附件和进度完整保留。导入前备份已保存在此浏览器。`);
     setImported([]);
   };
 
@@ -973,12 +809,12 @@ function TimetableViewV2({ data, setData, setDialog, openCourse, deleteDialog, d
       </div>
       <div className="academicFileRow">
         <label className={`academicFileButton ${importing ? "disabled" : ""}`} htmlFor="academic-course-file">{importing ? "正在识别…" : "选择教务课表文件"}</label>
-        <input id="academic-course-file" className="visuallyHidden" type="file" accept=".xlsx,.csv,.ics,text/csv,text/calendar,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" disabled={importing} onChange={handleAcademicFile} />
+        <input id="academic-course-file" className="visuallyHidden" type="file" accept=".xlsx,.csv,.ics,text/csv,text/calendar,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" disabled={importing || readOnly} onChange={handleAcademicFile} />
         <span>{importFileName || "尚未选择文件"}</span>
       </div>
       {importMessage ? <p className={`academicImportMessage ${imported.length ? "success" : ""}`}>{importMessage}</p> : null}
       {imported.length ? <div className="academicPreview">
-        <div className="academicPreviewHead"><div><strong>导入预览</strong><span>{imported.length} 门课程 · 可在合并前修正</span></div><button className="primaryButton" onClick={mergeImported}>确认合并到课程表</button></div>
+        <label className="academicReplaceOption"><input type="checkbox" checked={replaceSchedules} disabled={readOnly} onChange={(event) => setReplaceSchedules(event.target.checked)} /><span>重新导入：替换本文件对应课程的教务时间，保留手动时间、原课程和全部笔记</span></label><div className="academicPreviewHead"><div><strong>导入预览</strong><span>{imported.length} 门课程 · 可在合并前修正</span></div><button className="primaryButton" disabled={readOnly} onClick={mergeImported}>{replaceSchedules ? "确认重新导入课表" : "确认合并到课程表"}</button></div>
         <div className="academicPreviewList">{imported.map((course) => <article className="academicPreviewCard" key={course.key}>
           <div className="academicCourseFields">
             <label><span>课程名称</span><input value={course.title} onChange={(event) => patchImported(course.key, { title: event.target.value })} /></label>
@@ -1153,9 +989,27 @@ function WorkView({ data, setData, openDetail, setDialog, deleteDialog }: Collec
   return <div className="page workPage"><PageHead eyebrow="工作 · 探索、研究与机会" title="工作研究" subtitle="项目只负责聚拢方向，项目内部用自由页面记录资料、判断、实验和结论" action={<button className="primaryButton" onClick={add}>＋ 新增研究项目</button>} /><div className="researchBoard">{statuses.map((status) => { const projects = data.research.filter((project) => project.status === status || (status === "研究中" && !statuses.includes(project.status))); return <section className="researchLane" key={status}><div className="researchLaneHead"><strong>{status}</strong><span>{projects.length}</span></div><div>{projects.map((project) => <article className="panel researchCard freeResearchCard" key={project.id}><button className="cardOpen" onClick={() => openDetail(project.id)}><div className="courseTop"><span>{project.pages.length} 个页面</span><span>{project.progress}%</span></div><h2>{project.title}</h2><p>{project.summary || project.objective || "进入项目补充当前关注"}</p><div className="nextStep"><span>下一步</span><strong>{project.next || "暂未设置"}</strong></div><div className="openHint">打开项目笔记 →</div></button><button className="cardRemove" aria-label={`移除 ${project.title}`} onClick={() => deleteDialog(project.title, () => setData((current) => ({ ...current, research: current.research.filter((item) => item.id !== project.id) })))}>×</button></article>)}{!projects.length && <p className="laneEmpty">这里暂时没有项目。</p>}</div></section>; })}</div></div>;
 }
 
-function ToolsView({ data, setData, openDetail, setDialog, deleteDialog }: CollectionProps & { openDetail: (id: string) => void }) {
+function ToolsView({ data, setData, openDetail, setDialog, deleteDialog, readOnly }: CollectionProps & { openDetail: (id: string) => void; readOnly: boolean }) {
+  const [filter, setFilter] = useState<"all" | "tool" | "collection">("all");
+  const [creating, setCreating] = useState(false);
+  const collectionCount = data.tools.filter((tool) => tool.kind === "collection").length;
+  const shownTools = data.tools.filter((tool) => filter === "all" || (tool.kind === "collection" ? "collection" : "tool") === filter);
   const add = () => setDialog({ title: "加入工具", description: "网站、软件、程序和正在开发的小工具都可以放在这里。", submitLabel: "加入工具集", fields: [{ name: "title", label: "工具名称" }, { name: "status", label: "状态", type: "select", options: ["想法", "开发中", "迭代中", "已完成", "已归档"] }, { name: "description", label: "用途说明", type: "textarea" }, { name: "url", label: "访问链接" }], onSubmit: (values) => setData((current) => ({ ...current, tools: [...current.tools, { id: uid(), title: values.title || "未命名工具", status: values.status || "想法", description: values.description, url: values.url, version: "0.1", blocks: starterBlocks("产品说明与迭代记录") }] })) });
-  return <CollectionPage eyebrow="作品与生产力" title="工具集" subtitle="集中管理你用 Codex 制作的网站、软件、程序和工具" addLabel="加入工具" onAdd={add}><div className="cardGrid">{data.tools.map((tool) => <article className="panel entityCard toolCard" key={tool.id}><button className="cardOpen" onClick={() => openDetail(tool.id)}><div className="toolMark">{tool.title.slice(0, 1)}</div><span className="statusPill">{tool.status}</span><h2>{tool.title}</h2><p>{tool.description}</p><div className="cardFoot"><span>版本 {tool.version}</span><strong>查看详情 →</strong></div></button><button className="cardRemove" aria-label={`移除 ${tool.title}`} onClick={() => deleteDialog(tool.title, () => setData((current) => ({ ...current, tools: current.tools.filter((item) => item.id !== tool.id) })))}>×</button></article>)}</div></CollectionPage>;
+  return <div className="page toolsPage">
+    <PageHead eyebrow="作品与生产力" title="工具集" subtitle="收藏常用工具，也把同一主题的网站整理成合集" action={!readOnly ? <div className="pageHeadActions"><button className="softButton" onClick={add}>＋ 加入工具</button><button className="primaryButton" disabled={creating} onClick={() => setCreating(true)}>＋ 新建网站合集</button></div> : undefined} />
+    <div className="collectionFilters" role="group" aria-label="工具集类型">{([{ id: "all", label: "全部", count: data.tools.length }, { id: "tool", label: "工具", count: data.tools.length - collectionCount }, { id: "collection", label: "网站合集", count: collectionCount }] as const).map((item) => <button key={item.id} aria-pressed={filter === item.id} className={filter === item.id ? "active" : ""} onClick={() => setFilter(item.id)}>{item.label}<span>{item.count}</span></button>)}</div>
+    {creating && !readOnly && <CollectionForm onCancel={() => setCreating(false)} onSave={(value) => {
+      const id = uid();
+      setData((current) => ({ ...current, tools: [...current.tools, { id, ...value, kind: "collection", websites: [], status: "常用", url: "", version: "", blocks: [] }] }));
+      setCreating(false);
+      openDetail(id);
+    }} />}
+    <div className="cardGrid">{shownTools.map((tool) => <article className={`panel entityCard toolCard ${tool.kind === "collection" ? "websiteCollectionCard" : ""}`} key={tool.id}>
+      <button className="cardOpen" onClick={() => openDetail(tool.id)}><div className="toolMark">{tool.kind === "collection" ? "集" : tool.title.slice(0, 1)}</div><span className="statusPill">{tool.kind === "collection" ? "网站合集" : tool.status}</span><h2>{tool.title}</h2><p>{tool.description || (tool.kind === "collection" ? "同一主题的常用网站与使用说明" : "")}</p>{tool.kind === "collection" && <div className="collectionSitePreview">{(tool.websites ?? []).slice(0, 3).map((website) => <span key={website.id}>{website.title}</span>)}</div>}<div className="cardFoot"><span>{tool.kind === "collection" ? `${tool.websites?.length ?? 0} 个网站` : `版本 ${tool.version}`}</span><strong>{tool.kind === "collection" ? "进入合集 →" : "查看详情 →"}</strong></div></button>
+      {!readOnly && <button className="cardRemove" aria-label={`移除 ${tool.title}`} onClick={() => deleteDialog(tool.title, () => setData((current) => ({ ...current, tools: current.tools.filter((item) => item.id !== tool.id) })))}>×</button>}
+    </article>)}</div>
+    {shownTools.length === 0 && !creating && <div className="panel collectionEmpty"><h2>{filter === "tool" ? "还没有工具" : "把常用入口整理在一起"}</h2><p>{readOnly ? "这里暂时没有内容。" : "单个工具可以直接收藏；围绕北理、文献检索等主题，可以新建网站合集。"}</p></div>}
+  </div>;
 }
 
 function IdeasView({ data, setData, deleteDialog }: CollectionProps) {
@@ -1258,10 +1112,15 @@ function NotesView({ space, data, setData, selectedPage, setSelectedPage, setDia
 function CollectionPage({ eyebrow, title, subtitle, addLabel, onAdd, children }: { eyebrow: string; title: string; subtitle: string; addLabel: string; onAdd: () => void; children: React.ReactNode }) { return <div className="page"><PageHead eyebrow={eyebrow} title={title} subtitle={subtitle} action={<button className="primaryButton" onClick={onAdd}>＋ {addLabel}</button>} />{children}</div>; }
 
 function DetailRouter({ target, data, setData, back, setDialog, deleteDialog, access }: { target: NonNullable<DetailTarget>; data: AppState; setData: React.Dispatch<React.SetStateAction<AppState>>; back: () => void; setDialog: (value: DialogConfig) => void; deleteDialog: (title: string, onDelete: () => void) => void; access: EditorAccess }) {
-  if (target.type === "course") { const item = data.courses.find((entry) => entry.id === target.id); return item ? <CourseDetail course={item} data={data} setData={setData} back={back} setDialog={setDialog} deleteDialog={deleteDialog} access={access} /> : null; }
+  if (target.type === "course") { const item = data.courses.find((entry) => entry.id === target.id); return item ? <CourseDetail key={`${access.ownerId}:${item.id}`} course={item} data={data} setData={setData} back={back} setDialog={setDialog} deleteDialog={deleteDialog} access={access} /> : null; }
   if (target.type === "learning") { const item = data.learning.find((entry) => entry.id === target.id); return item ? <LearningDetail item={item} setData={setData} back={back} setDialog={setDialog} access={access} /> : null; }
   if (target.type === "research") { const item = data.research.find((entry) => entry.id === target.id); return item ? <ResearchDetail item={item} setData={setData} back={back} setDialog={setDialog} access={access} /> : null; }
-  if (target.type === "tool") { const item = data.tools.find((entry) => entry.id === target.id); return item ? <ToolDetailV2 item={item} setData={setData} back={back} access={access} /> : null; }
+  if (target.type === "tool") {
+    const item = data.tools.find((entry) => entry.id === target.id);
+    if (!item) return null;
+    if (item.kind === "collection") return <DetailLayout eyebrow="网站合集 · 工具集" title={item.title} subtitle="围绕同一个主题，收好每一个常用入口" back={back}><WebsiteCollection key={`${access.ownerId}:${item.id}`} collection={item} readOnly={access.readOnly} onChange={(update) => setData((current) => ({ ...current, tools: current.tools.map((entry) => entry.id === item.id ? { ...entry, ...update(entry) } : entry) }))} /></DetailLayout>;
+    return <ToolDetailV2 key={item.id} item={item} setData={setData} back={back} access={access} />;
+  }
   if (target.type === "media") { const item = data.media.find((entry) => entry.id === target.id); return item ? <SimpleDetail title={item.title} eyebrow={`${item.kind} · ${item.status}`} description="观看或阅读详情" fields={[{ label: "进度", value: item.progress, onChange: (value) => setData((current) => ({ ...current, media: current.media.map((entry) => entry.id === item.id ? { ...entry, progress: value } : entry) })) }]} blocks={item.blocks} setBlocks={(blocks) => setData((current) => ({ ...current, media: current.media.map((entry) => entry.id === item.id ? { ...entry, blocks } : entry) }))} back={back} access={access} /> : null; }
   const item = data.recipes.find((entry) => entry.id === target.id); return item ? <SimpleDetail title={item.title} eyebrow="菜谱记录" description={item.note} fields={[{ label: "食材", value: item.ingredients, onChange: (value) => setData((current) => ({ ...current, recipes: current.recipes.map((entry) => entry.id === item.id ? { ...entry, ingredients: value } : entry) })) }, { label: "备注", value: item.note, onChange: (value) => setData((current) => ({ ...current, recipes: current.recipes.map((entry) => entry.id === item.id ? { ...entry, note: value } : entry) })) }]} blocks={item.blocks} setBlocks={(blocks) => setData((current) => ({ ...current, recipes: current.recipes.map((entry) => entry.id === item.id ? { ...entry, blocks } : entry) }))} back={back} access={access} /> : null;
 }
@@ -1275,75 +1134,15 @@ function AttachmentFileList({ files, onRemove }: { files: StoredAttachment[]; on
   </div>)}</div>;
 }
 
-function MilestoneRequirementEditor({ node, access, onChange, onClose }: { node: Milestone; access: EditorAccess; onChange: (update: (current: Milestone) => Milestone) => void; onClose: () => void }) {
-  const [upload, setUpload] = useState<UploadState>({ progress: 0 });
-  const [removedAttachment, setRemovedAttachment] = useState<{ file: StoredAttachment; index: number } | null>(null);
-  const uploadOne = async (file: File) => {
-    if (access.readOnly) { setUpload({ progress: 0, error: "只读空间不能添加要求附件。" }); return; }
-    if (access.preview) { setUpload({ progress: 0, error: "本地预览不连接云端资料库，请在正式网站上传。" }); return; }
-    if (file.size > 50 * 1024 * 1024) { setUpload({ progress: 0, error: "单个文件不能超过 50 MB。" }); return; }
-    if ((node.attachments?.length ?? 0) >= 50) { setUpload({ progress: 0, error: "一个课程节点最多添加 50 个附件。" }); return; }
-    const attachmentId = uid();
-    const safeName = file.name.replace(/[\\/?%*:|"<>]/g, "-").slice(0, 220) || "attachment";
-    setUpload({ progress: 1 });
-    try {
-      const result = await uploadBlob(`attachments/${access.ownerId}/milestone-${node.id}/${attachmentId}/${safeName}`, file, {
-        access: "private", handleUploadUrl: "/api/files", clientPayload: JSON.stringify({ blockId: `milestone:${node.id}` }),
-        multipart: file.size > 5 * 1024 * 1024, contentType: file.type || "application/octet-stream",
-        onUploadProgress: ({ percentage }) => setUpload({ progress: Math.max(1, Math.round(percentage)) }),
-      });
-      const attachment: StoredAttachment = { id: attachmentId, url: result.url, fileName: file.name.slice(0, 300), fileSize: file.size, mimeType: file.type || "application/octet-stream", uploadedAt: new Date().toISOString() };
-      onChange((current) => ({ ...current, attachments: [...(current.attachments ?? []), attachment] }));
-      setUpload({ progress: 100 });
-    } catch (error) {
-      setUpload({ progress: 0, error: error instanceof Error ? error.message : "上传失败，请稍后重试。" });
-    }
-  };
-  const uploadMany = async (files: File[]) => {
-    const remaining = Math.max(0, 50 - (node.attachments?.length ?? 0));
-    for (const file of files.slice(0, Math.min(8, remaining))) await uploadOne(file);
-  };
-  const images = (node.attachments ?? []).filter((file) => file.mimeType.startsWith("image/"));
-  const files = (node.attachments ?? []).filter((file) => !file.mimeType.startsWith("image/"));
-  const removeAttachment = (id: string) => {
-    const attachments = node.attachments ?? [];
-    const index = attachments.findIndex((file) => file.id === id);
-    if (index < 0) return;
-    setRemovedAttachment({ file: attachments[index], index });
-    onChange((current) => ({ ...current, attachments: (current.attachments ?? []).filter((file) => file.id !== id) }));
-  };
-  const undoRemoveAttachment = () => {
-    if (!removedAttachment) return;
-    onChange((current) => {
-      if (current.attachments?.some((file) => file.id === removedAttachment.file.id)) return current;
-      const attachments = [...(current.attachments ?? [])];
-      attachments.splice(Math.min(removedAttachment.index, attachments.length), 0, removedAttachment.file);
-      return { ...current, attachments };
-    });
-    setRemovedAttachment(null);
-  };
-  return <div className="nodeRequirementEditor">
-    <div className="nodeRequirementEditorHead"><div><strong>编辑“{node.title}”的要求</strong><span>文字、图片和文件都随这个课程节点保存</span></div><button type="button" onClick={onClose}>完成</button></div>
-    <textarea aria-label={`修改要求：${node.title}`} value={node.requirements} placeholder="填写提交格式、字数、评分标准或其他具体要求…" onChange={(event) => { const value = event.target.value; onChange((current) => ({ ...current, requirements: value })); }} />
-    {images.length ? <div className="nodeRequirementImages">{images.map((image) => <figure key={image.id}><Image src={fileProxyUrl(image)} alt={image.fileName} width={720} height={420} unoptimized /><figcaption><span>{image.fileName} · {formatBytes(image.fileSize)}</span><a href={fileProxyUrl(image, true)}>下载</a><button type="button" aria-label={`移除附件：${image.fileName}`} onClick={() => removeAttachment(image.id)}>×</button></figcaption></figure>)}</div> : null}
-    <AttachmentFileList files={files} onRemove={removeAttachment} />
-    {removedAttachment && <div className="undoDeleteBar" role="status"><span>已移除“{removedAttachment.file.fileName}”</span><button type="button" onClick={undoRemoveAttachment}>撤回删除</button></div>}
-    <label className={`nodeRequirementDrop ${upload.dragging ? "dragging" : ""}`} onDragEnter={(event) => { event.preventDefault(); setUpload((current) => ({ ...current, dragging: true })); }} onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = "copy"; }} onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setUpload((current) => ({ ...current, dragging: false })); }} onDrop={(event) => { event.preventDefault(); const dropped = Array.from(event.dataTransfer.files); setUpload((current) => ({ ...current, dragging: false })); void uploadMany(dropped); }}>
-      <input type="file" multiple onChange={(event) => { const selected = Array.from(event.target.files ?? []); event.target.value = ""; void uploadMany(selected); }} />
-      <strong>＋ 添加图片或文件</strong><span>点击选择，或直接拖到这里 · 单个最大 50 MB</span>
-    </label>
-    {upload.progress > 0 && upload.progress < 100 && <div className="uploadProgress"><i style={{ width: `${upload.progress}%` }} /><span>正在上传 {upload.progress}%</span></div>}
-    {upload.error && <p className="uploadError">{upload.error}</p>}
-  </div>;
-}
-
 function CourseDetail({ course, data, setData, back, setDialog, deleteDialog, access }: { course: Course; data: AppState; setData: React.Dispatch<React.SetStateAction<AppState>>; back: () => void; setDialog: (value: DialogConfig) => void; deleteDialog: (title: string, onDelete: () => void) => void; access: EditorAccess }) {
   const [editingNodeId, setEditingNodeId] = useState("");
+  const [creatingNode, setCreatingNode] = useState(false);
+  const [nodePending, setNodePending] = useState(false);
   const nodes = data.milestones.filter((item) => item.courseId === course.id);
   const patchCourse = (patch: Partial<Course>) => setData((current) => ({ ...current, courses: current.courses.map((item) => item.id === course.id ? { ...item, ...patch } : item) }));
   const updateNode = (nodeId: string, update: (current: Milestone) => Milestone) => setData((current) => ({ ...current, milestones: current.milestones.map((item) => item.id === nodeId ? update(item) : item) }));
-  const addNode = () => setDialog({ title: "新增课程节点", description: "填写后会自动创建到全局日历。创建后可继续添加图片和文件。", submitLabel: "创建并加入日历", fields: [{ name: "title", label: "什么事情", placeholder: "考试 / 作业 / 汇报" }, { name: "date", label: "什么时候", type: "date", value: today }, { name: "time", label: "具体时间", type: "time", value: "09:00" }, { name: "location", label: "什么地点", value: course.location }, { name: "requirements", label: "具体要求", type: "textarea" }], onSubmit: (values) => setData((current) => ({ ...current, milestones: [...current.milestones, { id: uid(), courseId: course.id, title: values.title || "未命名课程节点", date: values.date, time: values.time, location: values.location, requirements: values.requirements, attachments: [], area: "课内", done: false }] })) });
-  return <DetailLayout eyebrow={`${course.term} · 课内课程`} title={course.title} subtitle="课程要求、近期任务、资料与自由笔记" back={back}><div className="detailGrid"><div className="detailMain"><section className="panel detailSection"><SectionHead title="课程基本要求" subtitle="可直接修改" /><div className="fieldGrid"><label className="editField"><span>所属课表</span><select value={courseSchool(course)} onChange={(event) => patchCourse({ school: event.target.value as AcademicImportPreset })}><option value="pku">北京大学</option><option value="bit">北京理工大学</option></select></label><EditableField label="教师或说明" value={course.teacher} onChange={(value) => patchCourse({ teacher: value })} /><EditableField label="上课地点" value={course.location} onChange={(value) => patchCourse({ location: value })} /><EditableField label="当前进度" value={String(course.progress)} type="number" onChange={(value) => patchCourse({ progress: Math.min(100, Number(value) || 0) })} /><label className="editField wide"><span>课程要求</span><textarea value={course.requirements} onChange={(event) => patchCourse({ requirements: event.target.value })} /></label></div></section><section className="panel detailSection"><SectionHead title="课程节点" subtitle="要求可继续修改，并可附上图片与文件；节点自动同步到日历" action={<button className="primaryButton" onClick={addNode}>＋ 新增节点</button>} /><div className="nodeTable"><div className="nodeTableHead"><span>事项</span><span>时间</span><span>地点</span><span>要求</span><span>完成</span></div>{nodes.map((node) => <Fragment key={node.id}><div className={`nodeRow ${node.done ? "done" : ""}`}><strong>{node.title}</strong><span>{node.date}<small>{node.time}</small></span><span>{node.location}</span><div className="nodeRequirementCell"><span title={node.requirements}>{node.requirements || "未填写要求"}</span><button type="button" aria-expanded={editingNodeId === node.id} onClick={() => setEditingNodeId((current) => current === node.id ? "" : node.id)}>{editingNodeId === node.id ? "收起" : "编辑要求"}{node.attachments?.length ? ` · ${node.attachments.length} 个附件` : ""}</button></div><button className={`habitCheck ${node.done ? "done" : ""}`} aria-label={`${node.done ? "取消完成" : "标记完成"}：${node.title}`} onClick={() => updateNode(node.id, (current) => ({ ...current, done: !current.done }))}>{node.done ? "✓" : ""}</button><button className="miniRemove" aria-label={`删除课程节点：${node.title}`} onClick={() => deleteDialog(node.title, () => setData((current) => ({ ...current, milestones: current.milestones.filter((item) => item.id !== node.id) })))}>×</button></div>{editingNodeId === node.id && <MilestoneRequirementEditor node={node} access={access} onChange={(update) => updateNode(node.id, update)} onClose={() => setEditingNodeId("")} />}</Fragment>)}</div></section><section className="panel editorSection"><SectionHead title="资料、笔记与自由内容" subtitle="支持局部富文本；图片与资料可直接拖入" /><BlockEditor blocks={course.blocks} onChange={(blocks) => patchCourse({ blocks })} showToc={false} access={access} /></section></div><aside className="detailAside"><div className="progressCard"><span>课程进度</span><strong>{course.progress}%</strong><div className="progressLine"><i style={{ width: `${course.progress}%` }} /></div></div><BlockToc blocks={course.blocks} /></aside></div></DetailLayout>;
+  const addNode = () => setCreatingNode(true);
+  return <DetailLayout eyebrow={`${course.term} · 课内课程`} title={course.title} subtitle="课程要求、近期任务、资料与自由笔记" back={back}><div className="detailGrid"><div className="detailMain"><section className="panel detailSection"><SectionHead title="课程基本要求" subtitle="可直接修改" /><div className="fieldGrid"><label className="editField"><span>所属课表</span><select value={courseSchool(course)} onChange={(event) => patchCourse({ school: event.target.value as AcademicImportPreset })}><option value="pku">北京大学</option><option value="bit">北京理工大学</option></select></label><EditableField label="教师或说明" value={course.teacher} onChange={(value) => patchCourse({ teacher: value })} /><EditableField label="上课地点" value={course.location} onChange={(value) => patchCourse({ location: value })} /><EditableField label="当前进度" value={String(course.progress)} type="number" onChange={(value) => patchCourse({ progress: Math.min(100, Number(value) || 0) })} /><label className="editField wide"><span>课程要求</span><textarea value={course.requirements} onChange={(event) => patchCourse({ requirements: event.target.value })} /></label></div></section><section className="panel detailSection"><SectionHead title="课程节点" subtitle="要求附件、在线预览与完成成果；节点自动同步到日历" action={!access.readOnly && <button className="primaryButton" disabled={creatingNode} onClick={addNode}>＋ 新增节点</button>} />{creatingNode && <CourseNodeForm courseId={course.id} location={course.location} date={today} access={access} onCancel={() => setCreatingNode(false)} onCreate={(node) => { setData((current) => ({ ...current, milestones: [...current.milestones, node] })); setCreatingNode(false); setEditingNodeId(node.id); }} />}<div className="nodeTable"><div className="nodeTableHead"><span>事项</span><span>时间</span><span>地点</span><span>要求与成果</span><span>完成</span></div>{nodes.map((node) => <Fragment key={node.id}><div className={`nodeRow ${node.done ? "done" : ""}`}><strong>{node.title}</strong><span>{node.date}<small>{node.time}</small></span><span>{node.location}</span><div className="nodeRequirementCell"><span title={node.requirements}>{node.requirements || "未填写要求"}</span><button type="button" disabled={nodePending} aria-expanded={editingNodeId === node.id} onClick={() => setEditingNodeId((current) => current === node.id ? "" : node.id)}>{editingNodeId === node.id ? "收起" : "查看要求与成果"}{node.attachments?.length ? ` · ${node.attachments.length} 个要求附件` : ""}</button><small className="nodeOutcomeSummary">{node.outcomeAttachments?.length ? `已保存 ${node.outcomeAttachments.length} 个成果文件` : node.outcomeText ? "已记录成果说明" : "暂无成果"}</small></div><button className={`habitCheck ${node.done ? "done" : ""}`} disabled={access.readOnly} aria-label={`${node.done ? "取消完成" : "标记完成"}：${node.title}`} onClick={() => updateNode(node.id, (current) => ({ ...current, done: !current.done }))}>{node.done ? "✓" : ""}</button><button className="miniRemove" disabled={access.readOnly || nodePending} aria-label={`删除课程节点：${node.title}`} onClick={() => deleteDialog(node.title, () => setData((current) => ({ ...current, milestones: current.milestones.filter((item) => item.id !== node.id) })))}>×</button></div>{editingNodeId === node.id && <CourseNodeEditor key={node.id} onPendingChange={setNodePending} node={node} access={access} onChange={(update) => updateNode(node.id, update)} onClose={() => setEditingNodeId("")} />}</Fragment>)}</div></section><section className="panel editorSection"><SectionHead title="资料、笔记与自由内容" subtitle="支持局部富文本；图片与资料可直接拖入" /><BlockEditor blocks={course.blocks} onChange={(blocks) => patchCourse({ blocks })} showToc={false} access={access} /></section></div><aside className="detailAside"><div className="progressCard"><span>课程进度</span><strong>{course.progress}%</strong><div className="progressLine"><i style={{ width: `${course.progress}%` }} /></div></div><BlockToc blocks={course.blocks} /></aside></div></DetailLayout>;
 }
 
 function LearningDetail({ item, setData, back, setDialog, access }: { item: LearningArea; setData: React.Dispatch<React.SetStateAction<AppState>>; back: () => void; setDialog: (value: DialogConfig) => void; access: EditorAccess }) {

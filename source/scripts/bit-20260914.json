@@ -1,0 +1,322 @@
+[
+  {
+    "key": "bit::会计学专业导论",
+    "title": "会计学专业导论",
+    "teacher": "",
+    "location": "文萃楼M135",
+    "weeks": "-2周",
+    "school": "bit",
+    "schedule": [
+      {
+        "weekday": 2,
+        "start": "08:00",
+        "end": "11:30",
+        "location": "文萃楼M135",
+        "weeks": "-2周",
+        "source": "bit"
+      },
+      {
+        "weekday": 1,
+        "start": "13:20",
+        "end": "16:50",
+        "location": "文萃楼M135",
+        "weeks": "-2周",
+        "source": "bit"
+      },
+      {
+        "weekday": 3,
+        "start": "13:20",
+        "end": "16:50",
+        "location": "文萃楼M135",
+        "weeks": "-2周",
+        "source": "bit"
+      },
+      {
+        "weekday": 5,
+        "start": "13:20",
+        "end": "16:50",
+        "location": "文萃楼M135",
+        "weeks": "-2周",
+        "source": "bit"
+      }
+    ]
+  },
+  {
+    "key": "bit::体育/跆拳道",
+    "title": "体育/跆拳道",
+    "teacher": "",
+    "location": "良乡体育馆212",
+    "weeks": "1-16周",
+    "school": "bit",
+    "schedule": [
+      {
+        "weekday": 3,
+        "start": "08:00",
+        "end": "09:35",
+        "location": "良乡体育馆212",
+        "weeks": "1-16周",
+        "source": "bit"
+      }
+    ]
+  },
+  {
+    "key": "bit::税收理论与实务",
+    "title": "税收理论与实务",
+    "teacher": "",
+    "location": "综教A405",
+    "weeks": "1-8周",
+    "school": "bit",
+    "schedule": [
+      {
+        "weekday": 1,
+        "start": "09:55",
+        "end": "11:30",
+        "location": "综教A405",
+        "weeks": "1-8周",
+        "source": "bit"
+      },
+      {
+        "weekday": 2,
+        "start": "09:55",
+        "end": "11:30",
+        "location": "综教A405",
+        "weeks": "1-8周",
+        "source": "bit"
+      }
+    ]
+  },
+  {
+    "key": "bit::会计学基础(全英文)",
+    "title": "会计学基础（全英文）",
+    "teacher": "",
+    "location": "理教楼201",
+    "weeks": "1周、4-10周、12-15周",
+    "school": "bit",
+    "schedule": [
+      {
+        "weekday": 3,
+        "start": "09:55",
+        "end": "12:20",
+        "location": "理教楼201",
+        "weeks": "1周、4-10周、12-15周",
+        "source": "bit"
+      },
+      {
+        "weekday": 5,
+        "start": "09:55",
+        "end": "11:30",
+        "location": "综教B102",
+        "weeks": "4-10周、12-15周",
+        "source": "bit"
+      }
+    ]
+  },
+  {
+    "key": "bit::马克思主义基本原理",
+    "title": "马克思主义基本原理",
+    "teacher": "",
+    "location": "综教A301",
+    "weeks": "1-16周",
+    "school": "bit",
+    "schedule": [
+      {
+        "weekday": 4,
+        "start": "09:55",
+        "end": "12:20",
+        "location": "综教A301",
+        "weeks": "1-16周",
+        "source": "bit"
+      }
+    ]
+  },
+  {
+    "key": "bit::概率论与数理统计",
+    "title": "概率论与数理统计",
+    "teacher": "",
+    "location": "文萃楼F103",
+    "weeks": "1-12周",
+    "school": "bit",
+    "schedule": [
+      {
+        "weekday": 1,
+        "start": "13:20",
+        "end": "14:55",
+        "location": "文萃楼F103",
+        "weeks": "1-12周",
+        "source": "bit"
+      },
+      {
+        "weekday": 3,
+        "start": "13:20",
+        "end": "14:55",
+        "location": "文萃楼F103",
+        "weeks": "1-12周",
+        "source": "bit"
+      }
+    ]
+  },
+  {
+    "key": "bit::文献检索",
+    "title": "文献检索",
+    "teacher": "",
+    "location": "文萃楼M227",
+    "weeks": "-1周",
+    "school": "bit",
+    "schedule": [
+      {
+        "weekday": 2,
+        "start": "13:20",
+        "end": "16:50",
+        "location": "文萃楼M227",
+        "weeks": "-1周",
+        "source": "bit"
+      },
+      {
+        "weekday": 4,
+        "start": "13:20",
+        "end": "16:50",
+        "location": "文萃楼M227",
+        "weeks": "-1周",
+        "source": "bit"
+      },
+      {
+        "weekday": 4,
+        "start": "13:20",
+        "end": "16:50",
+        "location": "文萃楼M227",
+        "weeks": "-2周",
+        "source": "bit"
+      },
+      {
+        "weekday": 5,
+        "start": "13:20",
+        "end": "16:50",
+        "location": "文萃楼M227",
+        "weeks": "-1周",
+        "source": "bit"
+      }
+    ]
+  },
+  {
+    "key": "bit::线性代数b",
+    "title": "线性代数B",
+    "teacher": "",
+    "location": "综教A206",
+    "weeks": "1-12周",
+    "school": "bit",
+    "schedule": [
+      {
+        "weekday": 2,
+        "start": "13:20",
+        "end": "14:55",
+        "location": "综教A206",
+        "weeks": "1-12周",
+        "source": "bit"
+      },
+      {
+        "weekday": 4,
+        "start": "13:20",
+        "end": "14:55",
+        "location": "综教A205",
+        "weeks": "1-12周",
+        "source": "bit"
+      }
+    ]
+  },
+  {
+    "key": "bit::形势与政策iii",
+    "title": "形势与政策Ⅲ",
+    "teacher": "",
+    "location": "文萃楼F704",
+    "weeks": "5-8周",
+    "school": "bit",
+    "schedule": [
+      {
+        "weekday": 1,
+        "start": "15:15",
+        "end": "16:50",
+        "location": "文萃楼F704",
+        "weeks": "5-8周",
+        "source": "bit"
+      }
+    ]
+  },
+  {
+    "key": "bit::经济学基础(全英文)",
+    "title": "经济学基础（全英文）",
+    "teacher": "",
+    "location": "综教A301",
+    "weeks": "1-16周",
+    "school": "bit",
+    "schedule": [
+      {
+        "weekday": 2,
+        "start": "15:15",
+        "end": "16:50",
+        "location": "综教A301",
+        "weeks": "1-16周",
+        "source": "bit"
+      },
+      {
+        "weekday": 5,
+        "start": "15:15",
+        "end": "16:50",
+        "location": "综教A301",
+        "weeks": "1-16周",
+        "source": "bit"
+      }
+    ]
+  },
+  {
+    "key": "bit::大数据分析(全英文)",
+    "title": "大数据分析（全英文）",
+    "teacher": "",
+    "location": "综教A402",
+    "weeks": "1-2周、4-11周",
+    "school": "bit",
+    "schedule": [
+      {
+        "weekday": 3,
+        "start": "15:15",
+        "end": "16:50",
+        "location": "综教A402",
+        "weeks": "1-2周、4-11周",
+        "source": "bit"
+      },
+      {
+        "weekday": 4,
+        "start": "15:15",
+        "end": "16:50",
+        "location": "文萃楼M221",
+        "weeks": "1-2周、4-11周",
+        "source": "bit"
+      }
+    ]
+  },
+  {
+    "key": "bit::气候与社会",
+    "title": "气候与社会",
+    "teacher": "",
+    "location": "文萃楼I304",
+    "weeks": "11周",
+    "school": "bit",
+    "schedule": [
+      {
+        "weekday": 4,
+        "start": "18:30",
+        "end": "20:05",
+        "location": "文萃楼I304",
+        "weeks": "11周",
+        "source": "bit"
+      },
+      {
+        "weekday": 4,
+        "start": "18:30",
+        "end": "20:55",
+        "location": "文萃楼I304",
+        "weeks": "1-10周",
+        "source": "bit"
+      }
+    ]
+  }
+]

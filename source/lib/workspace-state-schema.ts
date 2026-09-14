@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { createInitialFinanceState, isValidLocalDate, isValidLocalTime, isValidMonthKey } from "./finance.ts";
+import { MAX_COLLECTION_WEBSITES, normalizeWebsiteUrl } from "./tool-collections.ts";
 
 const id = z.string().min(1).max(120);
 const text = z.string().max(4_000);
@@ -99,7 +100,7 @@ export const workspaceStateSchema = z.object({
   }).strict().superRefine((task, context) => {
     if (task.mode === "multi" && task.startDate && task.due && task.startDate > task.due) context.addIssue({ code: "custom", message: "跨日任务开始日期不能晚于截止日期" });
   })).max(10_000),
-  milestones: z.array(z.object({ id, courseId: id.optional(), title: shortText, date, time, location: shortText, requirements: text, attachments: z.array(storedAttachment).max(50).optional(), area, done: z.boolean() }).strict()).max(10_000),
+  milestones: z.array(z.object({ id, courseId: id.optional(), title: shortText, date, time, location: shortText, requirements: text, attachments: z.array(storedAttachment).max(50).optional(), outcomeText: text.optional(), outcomeAttachments: z.array(storedAttachment).max(50).optional(), area, done: z.boolean() }).strict()).max(10_000),
   courses: z.array(z.object({
     id, title: shortText, term: shortText, teacher: shortText, location: shortText, school: z.enum(["pku", "bit"]).optional(), progress: z.number().int().min(0).max(100), requirements: text,
     schedule: z.array(z.object({ id, weekday: z.number().int().min(1).max(7), start: time, end: time, location: shortText, weeks: shortText.optional(), source: z.enum(["manual", "pku", "bit", "ics"]).optional() }).strict()).max(1_000),
@@ -117,6 +118,11 @@ export const workspaceStateSchema = z.object({
   ideas: z.array(z.object({ id, title: shortText, note: text, createdAt: z.string().max(80) }).strict()).max(10_000),
   tools: z.array(z.object({
     id, title: shortText, status: shortText, description: text, url: z.string().max(2_000), version: shortText,
+    kind: z.enum(["tool", "collection"]).optional(),
+    websites: z.array(z.object({
+      id, title: shortText.trim().min(1), description: shortText,
+      url: z.string().max(2_000).url().refine((value) => /^https?:\/\//i.test(value) && normalizeWebsiteUrl(value) !== null),
+    }).strict()).max(MAX_COLLECTION_WEBSITES).optional(),
     currentVersionId: id.optional(),
     versions: z.array(z.object({ id, label: shortText, url: z.string().max(2_000), note: text, createdAt: z.string().max(80) }).strict()).max(2_000).optional(),
     blocks: z.array(block).max(2_000),

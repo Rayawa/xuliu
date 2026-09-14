@@ -79,13 +79,14 @@ export function splitScheduleEntries(value: string) {
   const separated = normalized.split(/\r?\n|[;；]+/).map((part) => part.trim()).filter((part) => weekdayTextPattern.test(part) && periodTextPattern.test(part));
   if (separated.length > 1) return separated;
 
+  const weekdayMatches = [...normalized.matchAll(new RegExp(weekdayTextPattern.source, "g"))];
+  if (weekdayMatches.length <= 1) return [normalized];
+
   const weekStarts = [...normalized.matchAll(new RegExp(weekRulePattern.source, "g"))]
     .filter((match) => weekdayTextPattern.test(normalized.slice((match.index ?? 0) + match[0].length, (match.index ?? 0) + match[0].length + 24)))
     .map((match) => match.index ?? 0);
   if (weekStarts.length > 1) return weekStarts.map((start, index) => normalized.slice(start, weekStarts[index + 1] ?? normalized.length).trim());
 
-  const weekdayMatches = [...normalized.matchAll(new RegExp(weekdayTextPattern.source, "g"))];
-  if (weekdayMatches.length <= 1) return [normalized];
   const sharedWeeks = extractScheduleWeekRule(normalized.slice(0, weekdayMatches[0].index ?? 0));
   return weekdayMatches.map((match, index) => {
     const body = normalized.slice(index === 0 ? 0 : match.index, weekdayMatches[index + 1]?.index ?? normalized.length).trim();
