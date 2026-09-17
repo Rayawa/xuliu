@@ -8,7 +8,10 @@ import { saveLocalPreviewFile, downloadLocalPreviewFile } from "@/lib/local-prev
 
 const AttachmentPreview = dynamic(() => import("./AttachmentPreview"), { ssr: false });
 
+import type { Block } from "./DashboardClient";
+
 export type CourseNode = {
+  blocks?: Block[]; elapsed?: number;
   id: string; courseId?: string; title: string; date: string; time: string; location: string;
   requirements: string; attachments?: NodeAttachment[];
   outcomeText?: string; outcomeAttachments?: NodeAttachment[];

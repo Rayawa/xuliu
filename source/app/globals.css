@@ -1254,3 +1254,45 @@ a { color: inherit; }
 @media (max-width: 760px) { .aiLauncher { right: 14px; bottom: 76px; }.aiLauncher.open { right: 14px; z-index: 92; padding: 7px; }.aiLauncher.open b { display: none; }.aiDrawer { inset: 8px 8px 68px; z-index: 91; width: auto; border-radius: 18px; } }
 .academicReplaceOption { display: flex; align-items: flex-start; gap: 10px; padding: 14px; margin: 14px 0; border-radius: 12px; background: var(--surface, #f4f3ee); font-size: 13px; line-height: 1.6; }
 .academicReplaceOption input { margin-top: 4px; flex: 0 0 auto; }
+
+.taskTitleButton { padding: 0; border: 0; background: transparent; color: inherit; font: inherit; font-weight: 700; text-align: left; cursor: pointer; line-height: 1.5; }
+.taskTitleButton:hover,.taskRecordLink:hover { color: var(--accent); text-decoration: underline; }
+.taskTitleButton:focus-visible,.taskRecordLink:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 3px; }
+.taskRecordLink { display: block; width: fit-content; margin-top: 7px; padding: 0; border: 0; background: transparent; color: var(--accent); font-size: 12px; cursor: pointer; }
+.taskBody > small { display: block; color: #7c857e; margin: 3px 0; font-size: 11px; }
+.taskDetailGrid { display: grid; grid-template-columns: minmax(0, 1fr) 310px; gap: 22px; align-items: start; }
+.taskDetailGrid > .stack { min-width: 0; }
+.taskFocusAside { position: sticky; top: 24px; min-width: 0; }
+.taskParentLink { border: 0; background: transparent; padding: 0 0 18px; color: var(--accent); cursor: pointer; text-align: left; }
+.taskTimePanel,.taskChildrenPanel,.taskRequirements { padding: 24px; }
+.taskTimeStats { display: flex; gap: 32px; flex-wrap: wrap; margin: 22px 0; }
+.taskTimeStats > div { display: grid; gap: 5px; }
+.taskTimeStats strong { font-size: 27px; letter-spacing: -.04em; color: #35423a; }
+.taskTimeStats span { color: #879088; font-size: 12px; }
+.taskTimeHistory > div { display: grid; grid-template-columns: 100px 80px 1fr; align-items: center; gap: 10px; padding: 12px 0; border-top: 1px solid #e9ede8; font-size: 12px; }
+.taskTimeHistory time,.taskTimeHistory span,.taskTimeHistory > p { color: #7d877f; }
+.taskTimeHistory p { grid-column: 1 / -1; margin: 0; line-height: 1.6; overflow-wrap: anywhere; }
+.focusTaskLabel { display: grid; gap: 8px; font-size: 12px; color: rgba(255,255,255,.9); text-align: left; }
+.focusSettings { border-top: 1px solid #e3e8e1; margin-top: 18px; padding-top: 14px; text-align: left; }
+.focusSettings summary { cursor: pointer; font-size: 13px; font-weight: 600; }
+.focusSettings > label { display: grid; gap: 8px; margin-top: 16px; color: rgba(255,255,255,.9); font-size: 12px; }
+.focusSettings input[type=number] { padding: 10px; width: 100%; border: 1px solid #dfe5dc; border-radius: 9px; background: #fafbf8; color: #35423a; }
+.focusSettings > .focusSoundToggle { display: flex; align-items: center; gap: 8px; }
+.focusSettings input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--accent); }
+.focusSettings input[type=range] { width: 100%; accent-color: var(--accent); }
+.focusSettings > button { margin-top: 12px; }
+.focusSettings p,.focusMessage { font-size: 12px; line-height: 1.7; }
+.focusSettings p { color: rgba(255,255,255,.85); }
+.focusMessage { color: #465449; }
+.focusMessage { padding: 12px; margin: 14px 0 0; border-radius: 10px; background: color-mix(in srgb,var(--accent) 10%,white); }
+.focusReset { margin-top: 12px; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; font-size: 12px; }
+.focusReset button { border: 0; background: transparent; color: rgba(255,255,255,.9); text-decoration: underline; cursor: pointer; }
+.taskDetailPage .sectionHead { flex-wrap: wrap; gap: 12px; }
+.taskDetailPage .pageHeadActions { flex-wrap: wrap; }
+.overviewTaskActions { flex-wrap: wrap; }
+.activeFocusBar { position: fixed; z-index: 65; left: 280px; bottom: 16px; display: flex; align-items: center; gap: 14px; max-width: calc(100vw - 470px); padding: 12px 18px; border: 1px solid #dbe3d9; border-radius: 16px; background: #fff; box-shadow: 0 6px 24px #253a2920; font-size: 12px; }
+.activeFocusBar strong { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.activeFocusBar span { font-variant-numeric: tabular-nums; }
+.activeFocusBar button { flex-shrink: 0; border: 0; background: transparent; color: var(--accent); cursor: pointer; }
+@media (max-width: 1120px) { .taskDetailGrid { grid-template-columns: minmax(0,1fr); }.taskFocusAside { position: static; grid-row: 1; }.taskFocusAside .focusPanel { max-width: 100%; }.taskFocusAside .timerValue { font-size: 44px; margin: 14px 0; } }
+@media (max-width: 760px) { .taskTimePanel,.taskChildrenPanel,.taskRequirements { padding: 18px; }.taskTimeStats { gap: 20px; }.taskTimeHistory > div { grid-template-columns: 90px 70px 1fr; gap: 6px; }.activeFocusBar { left: 10px; bottom: 76px; max-width: calc(100vw - 80px); padding: 10px; gap: 8px; }.overviewTaskActions { grid-column: 2 / -1; justify-content: flex-start; }.taskDetailPage .pageHead h1 { overflow-wrap: anywhere; } }

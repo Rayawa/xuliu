@@ -203,10 +203,11 @@ function findOrThrow(items: JsonObject[], id: string, label: string) {
   return item;
 }
 
-function adjustTaskMinutes(state: JsonObject, taskId: string, delta: number) {
-  const tasks = objectArray(state.tasks);
+function adjustTaskMinutes(state: JsonObject, taskId: string, delta: number, targetKind: unknown = "task") {
+  const collection = targetKind === "milestone" ? "milestones" : "tasks";
+  const tasks = objectArray(state[collection]);
   findOrThrow(tasks, taskId, "关联任务");
-  state.tasks = tasks.map((task) => task.id === taskId
+  state[collection] = tasks.map((task) => task.id === taskId
     ? { ...task, elapsed: Math.max(0, Number(task.elapsed ?? 0) + delta) }
     : task);
 }
@@ -314,8 +315,8 @@ function updateEntity(state: JsonObject, entity: AiEntity, id: string, parentId:
     const oldMinutes = Number(current.minutes ?? 0);
     const nextTaskId = String(next.taskId ?? "");
     const nextMinutes = Number(next.minutes ?? 0);
-    adjustTaskMinutes(state, oldTaskId, -oldMinutes);
-    adjustTaskMinutes(state, nextTaskId, nextMinutes);
+    adjustTaskMinutes(state, oldTaskId, -oldMinutes, current.targetKind);
+    adjustTaskMinutes(state, nextTaskId, nextMinutes, next.targetKind);
   }
   if (entity === "habit" && typeof values.today === "boolean" && values.today !== current.today) {
     const currentDate = chinaDateKey();
@@ -374,8 +375,15 @@ function deleteEntity(state: JsonObject, entity: AiEntity, id: string, parentId:
   const items = objectArray(state[collection]);
   const current = findOrThrow(items, id, "目标内容");
 
-  if (entity === "focusEntry") adjustTaskMinutes(state, String(current.taskId ?? ""), -Number(current.minutes ?? 0));
-  if (entity === "task") state.timeEntries = objectArray(state.timeEntries).filter((entry) => entry.taskId !== id);
+  if (entity === "focusEntry") adjustTaskMinutes(state, String(current.taskId ?? ""), -Number(current.minutes ?? 0), current.targetKind);
+  if (entity === "task") {
+    state.timeEntries = objectArray(state.timeEntries).filter((entry) => entry.taskId !== id || entry.targetKind === "milestone");
+    for (const child of items) if (child.parentId === id) delete child.parentId;
+  }
+  if (entity === "milestone") {
+    state.timeEntries = objectArray(state.timeEntries).filter((entry) => entry.taskId !== id || entry.targetKind !== "milestone");
+    state.tasks = objectArray(state.tasks).map(task => { if (task.parentMilestoneId !== id) return task; const next = { ...task }; delete next.parentMilestoneId; return next; });
+  }
   if (entity === "course") state.milestones = objectArray(state.milestones).map((milestone) => milestone.courseId === id ? { ...milestone, courseId: undefined } : milestone);
   if (entity === "page") {
     const ids = pageDescendantIds(items, id);

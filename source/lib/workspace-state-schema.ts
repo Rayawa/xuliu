@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { createInitialFinanceState, isValidLocalDate, isValidLocalTime, isValidMonthKey } from "./finance.ts";
+import { parentError } from "./task-time.ts";
 import { MAX_COLLECTION_WEBSITES, normalizeWebsiteUrl } from "./tool-collections.ts";
 
 const id = z.string().min(1).max(120);
@@ -96,11 +97,12 @@ export const workspaceStateSchema = z.object({
   version: z.literal(5),
   tasks: z.array(z.object({
     id, title: shortText, area, source: shortText, due: date.optional(), done: z.boolean(), today: z.boolean(), elapsed: z.number().int().min(0).max(10_000_000),
+    parentId: id.optional(), parentMilestoneId: id.optional(), blocks: z.array(block).max(2000).optional(),
     mode: z.enum(["single", "multi"]).optional(), startDate: date.optional(), status: taskStatus.optional(), progress: z.number().int().min(0).max(100).optional(), progressLogs: z.array(taskProgressLog).max(2_000).optional(),
   }).strict().superRefine((task, context) => {
     if (task.mode === "multi" && task.startDate && task.due && task.startDate > task.due) context.addIssue({ code: "custom", message: "跨日任务开始日期不能晚于截止日期" });
   })).max(10_000),
-  milestones: z.array(z.object({ id, courseId: id.optional(), title: shortText, date, time, location: shortText, requirements: text, attachments: z.array(storedAttachment).max(50).optional(), outcomeText: text.optional(), outcomeAttachments: z.array(storedAttachment).max(50).optional(), area, done: z.boolean() }).strict()).max(10_000),
+  milestones: z.array(z.object({ id, courseId: id.optional(), title: shortText, date, time, location: shortText, requirements: text, attachments: z.array(storedAttachment).max(50).optional(), outcomeText: text.optional(), outcomeAttachments: z.array(storedAttachment).max(50).optional(), blocks: z.array(block).max(2000).optional(), elapsed: z.number().int().min(0).max(10000000).optional(), area, done: z.boolean() }).strict()).max(10_000),
   courses: z.array(z.object({
     id, title: shortText, term: shortText, teacher: shortText, location: shortText, school: z.enum(["pku", "bit"]).optional(), progress: z.number().int().min(0).max(100), requirements: text,
     schedule: z.array(z.object({ id, weekday: z.number().int().min(1).max(7), start: time, end: time, location: shortText, weeks: shortText.optional(), source: z.enum(["manual", "pku", "bit", "ics"]).optional() }).strict()).max(1_000),
@@ -146,7 +148,8 @@ export const workspaceStateSchema = z.object({
   recipes: z.array(z.object({ id, title: shortText, ingredients: text, note: text, blocks: z.array(block).max(2_000) }).strict()).max(2_000),
   pages: z.array(z.object({ id, space: z.enum(["thoughts", "free"]), parentId: id.nullable(), title: shortText, kind: z.enum(["folder", "page"]), blocks: z.array(block).max(2_000) }).strict()).max(10_000),
   daily: z.record(date, z.object({ note: text, gain: text, problem: text, feeling: text, tomorrow: text }).strict()),
-  timeEntries: z.array(z.object({ id, taskId: id, minutes: z.number().int().min(1).max(1_440), date, mode: shortText }).strict()).max(20_000),
+  timeEntries: z.array(z.object({ id, taskId: id, targetKind: z.enum(["task", "milestone"]).optional(), minutes: z.number().int().min(1).max(1_440), date, mode: shortText, note: shortText.optional() }).strict()).max(20_000),
+  focusSettings: z.object({ minutes: z.number().int().min(1).max(180), sound: z.boolean(), volume: z.number().int().min(0).max(100) }).strict().optional(),
   timetableSettings: z.object({ termStartDate: date, activeSchool: z.enum(["pku", "bit"]) }).strict().optional(),
   finance: z.object({
     entries: z.array(financeEntry).max(20_000),
@@ -155,7 +158,10 @@ export const workspaceStateSchema = z.object({
     incomeCategories: z.array(z.string().min(1).max(40)).max(200),
   }).strict(),
   themes: z.record(z.string().max(40), z.string().regex(/^#[0-9A-Fa-f]{6}$/)),
-}).strict();
+}).strict().superRefine((state, context) => {
+  const error = parentError(state.tasks, state.milestones);
+  if (error) context.addIssue({ code: "custom", path: ["tasks"], message: error });
+});
 
 export function createEmptyWorkspaceState() {
   return {
