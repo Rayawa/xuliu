@@ -205,7 +205,8 @@ a { color: inherit; }
 .taskList { margin-top: 13px; }
 .taskRow { display: grid; grid-template-columns: 24px minmax(0,1fr) auto; align-items: center; gap: 12px; padding: 14px 2px; border-top: 1px solid #e9ede9; }
 .taskRow:first-child { border-top: 0; }
-.taskRow.done .taskBody strong { color: #98a19b; text-decoration: line-through; }
+.taskRow.done .taskBody strong, .taskRow.done .taskTitleButton { color: var(--muted); text-decoration: line-through; }
+.taskBody .todayCompletionStatus { justify-self: start; }
 .checkButton, .habitCheck { width: 21px; height: 21px; display: grid; place-items: center; padding: 0; border: 1.5px solid #9daca3; border-radius: 7px; color: white; background: white; font-size: 12px; }
 .checkButton:has(+ .taskBody), .habitCheck { flex: 0 0 auto; }
 .taskRow.done .checkButton, .habitCheck.done { border-color: var(--accent); background: var(--accent); }
