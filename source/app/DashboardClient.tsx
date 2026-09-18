@@ -692,6 +692,7 @@ function TimetableViewV2({ data, setData, setDialog, openCourse, deleteDialog, d
   const [importOpen, setImportOpen] = useState(false);
   const [preset, setPreset] = useState<AcademicImportPreset>(data.timetableSettings.activeSchool);
   const [selectedSchool, setSelectedSchool] = useState<AcademicImportPreset>(data.timetableSettings.activeSchool);
+  const [selectedActualWeek, setSelectedActualWeek] = useState<number | null>(null);
   const [imported, setImported] = useState<ImportedCourse[]>([]);
   const [importing, setImporting] = useState(false);
   const [importFileName, setImportFileName] = useState("");
@@ -701,7 +702,11 @@ function TimetableViewV2({ data, setData, setDialog, openCourse, deleteDialog, d
   const weekdays = importWeekdays;
   const validCourses = data.courses.filter((course) => isCourseTitleCandidate(course.title));
   const schoolCourses = dualSchool ? validCourses.filter((course) => courseSchool(course) === selectedSchool) : validCourses;
-  const weekInfo = timetableWeekInfo(today, data.timetableSettings.termStartDate);
+  const currentWeekInfo = timetableWeekInfo(today, data.timetableSettings.termStartDate);
+  const weekInfo = selectedActualWeek === null ? currentWeekInfo
+    : timetableWeekInfo(addDays(data.timetableSettings.termStartDate, (selectedActualWeek - 1) * 7), data.timetableSettings.termStartDate);
+  const isCurrentWeek = selectedActualWeek === null || weekInfo?.actualWeek === currentWeekInfo?.actualWeek;
+  const weekOptions = Array.from({ length: Math.max(23, currentWeekInfo?.actualWeek ?? 1, selectedActualWeek ?? 1) }, (_, index) => index + 1);
   const formalWeekStart = addDays(data.timetableSettings.termStartDate, 21);
   const weekDates = weekInfo ? weekdays.map((_, index) => addDays(weekInfo.weekStartDate, index)) : [];
   const visibleEntries = weekInfo ? schoolCourses.flatMap((course) => course.schedule
@@ -789,12 +794,21 @@ function TimetableViewV2({ data, setData, setDialog, openCourse, deleteDialog, d
     <PageHead
       eyebrow={weekInfo ? `课表 ${weekInfo.timetableWeek} 周 · 实际第 ${weekInfo.actualWeek} 周${weekInfo.miniTerm ? " · 小学期" : ""}` : "本学期尚未开始"}
       title="课程表"
-      subtitle="只显示本周实际上课的课程；未填写周次的课程按每周课程处理"
+      subtitle="切换周次，查看对应日期的课程；未填写周次的课程按每周课程处理"
       action={<div className="pageHeadActions"><button className="softButton" onClick={() => setImportOpen((value) => !value)}>{importOpen ? "收起教务导入" : "⇧ 教务导入"}</button><button className="primaryButton" disabled={!schoolCourses.length || readOnly} title={schoolCourses.length ? "添加课程时间" : "请先在课内学习中新建课程，或通过教务导入创建课程"} onClick={addSlot}>＋ 添加课程时间</button></div>}
     />
 
-    <section className="panel timetableWeekBar" aria-label="当前教学周设置">
-      <div className="timetableWeekIdentity"><span>本周</span><strong>{weekInfo ? `${weekInfo.timetableWeek} 周` : "未开始"}</strong><small>{weekInfo ? `实际第 ${weekInfo.actualWeek} 周${weekInfo.miniTerm ? " · 小学期" : ""} · ${weekInfo.weekStartDate.slice(5).replace("-", "/")}—${weekInfo.weekEndDate.slice(5).replace("-", "/")}` : `第 1 周从 ${data.timetableSettings.termStartDate} 开始`}</small></div>
+    <section className="panel timetableWeekBar" aria-label="课表周次与学期设置">
+      <div className="timetableWeekNavigation" role="group" aria-label="切换课表周次">
+        <button className="softButton" disabled={!weekInfo || weekInfo.actualWeek <= 1} onClick={() => setSelectedActualWeek((weekInfo?.actualWeek ?? 1) - 1)}>上一周</button>
+        <label className="timetableWeekSelect"><span>查看周次</span><select value={weekInfo?.actualWeek ?? ""} onChange={(event) => setSelectedActualWeek(Number(event.target.value))}>
+          <option value="" disabled>选择周次</option>
+          {weekOptions.map((actualWeek) => <option key={actualWeek} value={actualWeek}>{actualWeek <= 3 ? `小学期 ${actualWeek - 4} 周` : `第 ${actualWeek - 3} 周`}{actualWeek === currentWeekInfo?.actualWeek ? " · 本周" : ""}</option>)}
+        </select></label>
+        <button className="softButton" onClick={() => setSelectedActualWeek((weekInfo?.actualWeek ?? 0) + 1)}>下一周</button>
+        <button className="softButton" disabled={isCurrentWeek} onClick={() => setSelectedActualWeek(null)}>回到本周</button>
+      </div>
+      <div className="timetableWeekIdentity" aria-live="polite"><span>{isCurrentWeek ? "本周" : "查看"}</span><strong>{weekInfo ? `${weekInfo.timetableWeek} 周` : "未开始"}</strong><small>{weekInfo ? `实际第 ${weekInfo.actualWeek} 周${weekInfo.miniTerm ? " · 小学期" : ""} · ${weekInfo.weekStartDate.replaceAll("-", "/")}—${weekInfo.weekEndDate.replaceAll("-", "/")}` : `小学期 -3 周从 ${data.timetableSettings.termStartDate} 开始`}</small></div>
       <label className="termStartField"><span>小学期 -3 周周一</span><input type="date" value={data.timetableSettings.termStartDate} disabled={readOnly} onChange={(event) => { const value = event.target.value; if (value) setData((current) => ({ ...current, timetableSettings: { ...current.timetableSettings, termStartDate: value } })); }} /><small>正式秋季第 1 周从 {formalWeekStart.slice(5).replace("-", "/")} 开始</small></label>
       {dualSchool ? <div className="timetableSchoolSwitch" role="group" aria-label="切换学校课表"><span>查看课表</span><div>{(["pku", "bit"] as const).map((school) => <button key={school} className={selectedSchool === school ? "active" : ""} onClick={() => changeSchool(school)}>{academicSchoolLabels[school]}</button>)}</div></div> : null}
     </section>
@@ -838,7 +852,7 @@ function TimetableViewV2({ data, setData, setDialog, openCourse, deleteDialog, d
       </div> : null}
     </section> : null}
 
-    <section className="panel timetableMatrixShell" aria-label="本周课程表">
+    <section className="panel timetableMatrixShell" aria-label={weekInfo ? `第 ${weekInfo.timetableWeek} 周课程表` : "课程表"}>
       <div className="timetableMatrix">
         <div className="timetableTimeHead"><span>TIMETABLE</span><strong>时间</strong></div>
         {weekdays.map((day, index) => <div className={`timetableColumnHead ${weekDates[index] === today ? "today" : ""}`} key={day}><strong>{day}</strong><span>{weekDates[index]?.slice(5).replace("-", "/")}</span></div>)}
@@ -850,7 +864,7 @@ function TimetableViewV2({ data, setData, setDialog, openCourse, deleteDialog, d
           })}
         </Fragment>)}
       </div>
-      {!visibleEntries.length && <div className="timetableGridNotice"><strong>{weekInfo ? `${weekInfo.timetableWeek} 周没有课程` : "本学期尚未开始"}</strong><span>{dualSchool ? `${academicSchoolLabels[selectedSchool]}课表当前周次没有已排课程，完整时间轴仍保留。` : "当前空间在这个周次没有已排课程，完整时间轴仍保留。"}</span></div>}
+      {!visibleEntries.length && <div className="timetableGridNotice"><strong>{weekInfo ? `${weekInfo.timetableWeek} 周没有课程` : "本学期尚未开始"}</strong><span>{weekInfo ? `${dualSchool ? academicSchoolLabels[selectedSchool] : "当前空间"}在所选周次没有已排课程，可切换其他周次查看。` : "可选择周次，提前查看本学期课程。"}</span></div>}
     </section>
   </div>;
 }
