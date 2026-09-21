@@ -80,8 +80,8 @@ function chinaDateKey(date = new Date()) {
 
 function parseEntityValues(entity: AiEntity, values: Record<string, unknown>) {
   const schemas: Record<AiEntity, z.ZodType> = {
-    task: z.object({ title: shortText, area: areaSchema, source: shortText, due: dateSchema.nullable(), done: z.boolean(), today: z.boolean(), mode: z.enum(["single", "multi"]), startDate: dateSchema.nullable(), status: z.enum(["未开始", "进行中", "已暂停", "已完成"]), progress: percentage }).partial().strict(),
-    milestone: z.object({ title: shortText, date: dateSchema, time: timeSchema, location: shortText, requirements: longText, area: areaSchema, done: z.boolean(), courseId: z.string().max(120).nullable() }).partial().strict(),
+    task: z.object({ title: shortText, requirements: longText, parentCandidate: z.boolean(), courseId: z.string().max(120).nullable(), area: areaSchema, source: shortText, due: dateSchema.nullable(), done: z.boolean(), today: z.boolean(), mode: z.enum(["single", "multi"]), startDate: dateSchema.nullable(), status: z.enum(["未开始", "进行中", "已暂停", "已完成"]), progress: percentage }).partial().strict(),
+    milestone: z.object({ title: shortText, date: dateSchema, time: timeSchema, location: shortText, requirements: longText, area: areaSchema, done: z.boolean(), courseId: z.string().max(120).nullable(), mode: z.enum(["single", "multi"]), parentCandidate: z.boolean() }).partial().strict(),
     course: z.object({ title: shortText, term: shortText, teacher: shortText, location: shortText, progress: percentage, requirements: longText, content: longText }).partial().strict(),
     courseSlot: z.object({ weekday: z.number().int().min(1).max(7), start: timeSchema, end: timeSchema, location: shortText, weeks: shortText }).partial().strict(),
     learning: z.object({ title: shortText, category: shortText, progress: percentage, goal: longText, content: longText }).partial().strict(),
@@ -112,7 +112,7 @@ function requireTitle(entity: AiEntity, values: JsonObject) {
 
 function defaultsFor(entity: AiEntity): JsonObject {
   const defaults: Record<AiEntity, JsonObject> = {
-    task: { title: "", area: "思考", source: "AI 助手", done: false, today: false, elapsed: 0, mode: "single", status: "未开始", progress: 0, progressLogs: [] },
+    task: { title: "", requirements: "", parentCandidate: false, area: "思考", source: "AI 助手", done: false, today: false, elapsed: 0, mode: "single", status: "未开始", progress: 0, progressLogs: [] },
     milestone: { title: "", date: "", time: "09:00", location: "", requirements: "", area: "思考", done: false },
     course: { title: "", term: "", teacher: "", location: "", progress: 0, requirements: "", schedule: [], blocks: contentBlocks("") },
     courseSlot: { weekday: 1, start: "08:00", end: "09:00", location: "", weeks: "", source: "manual" },
@@ -146,6 +146,7 @@ function withContent(target: JsonObject, values: JsonObject, entity: AiEntity) {
   }
   if (entity === "task" && next.due === null) delete next.due;
   if (entity === "task" && next.startDate === null) delete next.startDate;
+  if (entity === "task" && next.courseId === null) delete next.courseId;
   if (entity === "task") {
     next.mode = next.mode === "multi" ? "multi" : "single";
     next.progress = Math.min(100, Math.max(0, Math.round(Number(next.progress) || 0)));
@@ -161,7 +162,16 @@ function withContent(target: JsonObject, values: JsonObject, entity: AiEntity) {
     }
     if (next.mode !== "multi") delete next.startDate;
   }
-  if (entity === "milestone" && next.courseId === null) delete next.courseId;
+  if (entity === "milestone") {
+    if (next.courseId === null) delete next.courseId;
+    if (next.courseId) {
+      next.mode = next.mode === "multi" ? "multi" : "single";
+      next.parentCandidate = next.parentCandidate ?? next.mode === "multi";
+    } else {
+      delete next.mode;
+      delete next.parentCandidate;
+    }
+  }
   if (entity === "reminder" && next.intervalMinutes === null) delete next.intervalMinutes;
   return next;
 }
@@ -227,7 +237,7 @@ function createEntity(state: JsonObject, entity: AiEntity, parentId: string | un
     item.lastCompletedDate = chinaDateKey();
   }
 
-  if (entity === "milestone" && item.courseId) {
+  if (["task", "milestone"].includes(entity) && item.courseId) {
     findOrThrow(objectArray(state.courses), String(item.courseId), "关联课程");
   }
   if (entity === "page" && item.parentId) {
@@ -299,7 +309,7 @@ function updateEntity(state: JsonObject, entity: AiEntity, id: string, parentId:
   if (entity === "task" && (Number(next.progress ?? 0) !== Number(current.progress ?? 0) || next.status !== current.status || next.done !== current.done)) {
     next.progressLogs = [...objectArray(current.progressLogs).slice(-1_999), { id: crypto.randomUUID(), date: chinaDateKey(), progress: Number(next.progress ?? 0), status: next.status, note: "由 AI 更新任务" }];
   }
-  if (entity === "milestone" && next.courseId) findOrThrow(objectArray(state.courses), String(next.courseId), "关联课程");
+  if (["task", "milestone"].includes(entity) && next.courseId) findOrThrow(objectArray(state.courses), String(next.courseId), "关联课程");
   if (entity === "page") {
     const descendants = pageDescendantIds(items, id);
     if (current.kind === "folder" && descendants.size > 1 && (next.kind !== "folder" || next.space !== current.space)) {

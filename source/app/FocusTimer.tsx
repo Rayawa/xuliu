@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ReminderSoundPlayer } from "@/lib/reminder-alerts";
 import { elapsedSeconds, restoreFocusSession, type FocusSession, type FocusSettings, type TimeEntry, type WorkTarget } from "@/lib/task-time";
 
-export type FocusChoice = WorkTarget & { title: string; done: boolean };
+export type FocusChoice = WorkTarget & { title: string; done: boolean; group: "长期任务" | "短期任务" | "事项"; listed: boolean };
 const keyOf = (target: WorkTarget) => `${target.kind}:${target.id}`;
 const day = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; };
 const clock = (seconds: number) => `${String(Math.floor(seconds / 60)).padStart(2,"0")}:${String(Math.floor(seconds % 60)).padStart(2,"0")}`;
@@ -79,7 +79,7 @@ export function useFocusTimer({ scope, enabled, preview, choices, settings, onRe
     return () => { window.clearInterval(interval); document.removeEventListener("visibilitychange", tick); };
   }, [enabled, session?.id, session?.startedAt]);
 
-  const selectedKey = session ? keyOf(session.target) : (choices.some(t => keyOf(t) === selection) ? selection : choices.find(t => !t.done) ? keyOf(choices.find(t => !t.done)!) : choices[0] ? keyOf(choices[0]) : "");
+  const selectedKey = session ? keyOf(session.target) : (choices.some(t => keyOf(t) === selection) ? selection : choices.find(t => t.listed && !t.done) ? keyOf(choices.find(t => t.listed && !t.done)!) : "");
   const start = (target?: WorkTarget) => {
     if (!enabled) return;
     const value = sessionRef.current;
@@ -109,15 +109,18 @@ export function useFocusTimer({ scope, enabled, preview, choices, settings, onRe
 }
 export type FocusController = ReturnType<typeof useFocusTimer>;
 
-export default function FocusTimer({ controller: c, choices, onSettings, onManual }: {
-  controller: FocusController; choices: FocusChoice[]; onSettings: (value: FocusSettings) => void; onManual: (target: WorkTarget) => void;
+export default function FocusTimer({ controller: c, choices, onSettings, onManual, onOpen }: {
+  controller: FocusController; choices: FocusChoice[]; onSettings: (value: FocusSettings) => void; onManual: (target: WorkTarget) => void; onOpen: (target: WorkTarget) => void;
 }) {
   const selected = choices.find(t => keyOf(t) === c.selectedKey);
+  const visibleChoices = choices.filter((choice) => choice.listed || keyOf(choice) === c.selectedKey);
+  const groupedChoices = (["长期任务", "短期任务", "事项"] as const).map((group) => ({ group, choices: visibleChoices.filter((choice) => choice.group === group) })).filter((entry) => entry.choices.length);
   const [resetConfirm, setResetConfirm] = useState(false);
   return <section className="panel focusPanel" aria-label="任务计时器">
     <div className="modeSwitch"><button disabled={!c.enabled || Boolean(c.session)} className={c.mode === "pomodoro" ? "active" : ""} onClick={() => c.setMode("pomodoro")}>番茄钟</button><button disabled={!c.enabled || Boolean(c.session)} className={c.mode === "stopwatch" ? "active" : ""} onClick={() => c.setMode("stopwatch")}>正向计时</button></div>
     <div className="timerValue" aria-label="计时剩余或已用时间">{clock(c.seconds)}</div>
-    <label className="focusTaskLabel">计时任务<select aria-label="计时任务" value={c.selectedKey} disabled={!c.enabled || Boolean(c.session) || !choices.length} onChange={e => c.select(e.target.value)}><option value="" disabled>请选择任务</option>{choices.map(t => <option key={keyOf(t)} value={keyOf(t)}>{t.title}</option>)}</select></label>
+    <label className="focusTaskLabel">关联任务或事项<select aria-label="关联任务或事项" value={c.selectedKey} disabled={!c.enabled || Boolean(c.session) || !visibleChoices.length} onChange={e => c.select(e.target.value)}><option value="" disabled>请选择关联对象</option>{groupedChoices.map((entry) => <optgroup key={entry.group} label={entry.group}>{entry.choices.map((choice) => <option key={keyOf(choice)} value={keyOf(choice)}>{choice.title}</option>)}</optgroup>)}</select></label>
+    <button className="focusOpenTarget" type="button" disabled={!selected} onClick={() => selected && onOpen(selected)}>查看 / 编辑当前关联</button>
     <div className="timerActions"><button className="primaryButton" disabled={!c.enabled || !selected} onClick={() => c.session?.startedAt ? c.pause() : c.start()}>{c.session?.startedAt ? "暂停" : c.session ? "继续专注" : "开始专注"}</button><button className="softButton" disabled={!c.enabled || !c.session} onClick={c.finish}>结束并记入</button><button className="softButton" disabled={!c.enabled || !selected} onClick={() => selected && onManual(selected)}>补记</button></div>
     {c.session && <div className="focusReset">{resetConfirm ? <><span>放弃本轮尚未记录的时间？</span><button onClick={() => { c.discard(); setResetConfirm(false); }} disabled={!c.enabled}>确认重置</button><button onClick={() => setResetConfirm(false)}>保留</button></> : <button disabled={!c.enabled} onClick={() => setResetConfirm(true)}>重置本轮</button>}</div>}
     <details className="focusSettings"><summary>时长与声音</summary><label>番茄钟时长（分钟）<input aria-label="番茄钟时长（分钟）" type="number" min="1" max="180" value={c.settings.minutes} disabled={!c.enabled || Boolean(c.session)} onChange={e => { const n = Number(e.target.value); if (Number.isInteger(n) && n >= 1 && n <= 180) onSettings({ ...c.settings, minutes: n }); }} /></label><label className="focusSoundToggle"><input type="checkbox" checked={c.settings.sound} disabled={!c.enabled} onChange={e => onSettings({ ...c.settings, sound: e.target.checked })} />结束时播放提示音</label><label>提示音音量 · {c.settings.volume}%<input aria-label="提示音音量" type="range" min="0" max="100" value={c.settings.volume} disabled={!c.enabled} onChange={e => onSettings({ ...c.settings, volume: Number(e.target.value) })} /></label><button className="softButton" onClick={() => void c.previewSound()}>试听提示音</button><p>结束后自动记入该任务。浏览器或设备休眠时，提示可能延迟至页面恢复。</p></details>

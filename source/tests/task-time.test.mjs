@@ -47,7 +47,7 @@ test('legacy task data and rich records survive schema save/export/restore with 
   const legacy={...createEmptyWorkspaceState(),tasks:[task('paper',{elapsed:43,progressLogs:[{id:'log',date:'2026-09-16',progress:30,status:'进行中',note:'原进度'}]})],milestones:[node]};
   assert.deepEqual(workspaceStateSchema.parse(legacy),legacy);
   const blocks=[{id:'note',type:'text',text:'审稿意见',embeddedFiles:[{id:'f',url:'https://example.blob.vercel-storage.com/attachments/owner/draft.pdf',fileName:'论文.pdf',fileSize:100,mimeType:'application/pdf',uploadedAt:'2026-09-17'}]}];
-  const updated={...legacy,tasks:[{...legacy.tasks[0],blocks},task('review',{parentId:'paper',blocks}),task('node-review',{parentMilestoneId:node.id,blocks})],milestones:[{...node,blocks,elapsed:10}],focusSettings:{minutes:45,sound:true,volume:60},timeEntries:[{id:'time',taskId:node.id,targetKind:'milestone',minutes:10,date:'2026-09-17',mode:'manual',note:'修改引言'}]};
+  const updated={...legacy,tasks:[{...legacy.tasks[0],blocks,requirements:'提交 PDF，并附参考文献',parentCandidate:true,courseId:'course'},task('review',{parentId:'paper',blocks}),task('node-review',{parentMilestoneId:node.id,blocks})],milestones:[{...node,blocks,elapsed:10,mode:'multi',parentCandidate:true}],focusSettings:{minutes:45,sound:true,volume:60},timeEntries:[{id:'time',taskId:node.id,targetKind:'milestone',minutes:10,date:'2026-09-17',mode:'manual',note:'修改引言'}]};
   assert.deepEqual(workspaceStateSchema.parse(JSON.parse(JSON.stringify(updated))),updated);
   assert.equal(workspaceStateSchema.safeParse({...updated,focusSettings:{...updated.focusSettings,minutes:0}}).success,false);
   assert.equal(workspaceStateSchema.safeParse({...updated,tasks:[task('review',{parentId:'review'})]}).success,false);

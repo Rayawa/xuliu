@@ -97,12 +97,13 @@ export const workspaceStateSchema = z.object({
   version: z.literal(5),
   tasks: z.array(z.object({
     id, title: shortText, area, source: shortText, due: date.optional(), done: z.boolean(), today: z.boolean(), elapsed: z.number().int().min(0).max(10_000_000),
-    parentId: id.optional(), parentMilestoneId: id.optional(), blocks: z.array(block).max(2000).optional(),
+    parentId: id.optional(), parentMilestoneId: id.optional(), courseId: id.optional(), blocks: z.array(block).max(2000).optional(),
+    requirements: text.optional(), parentCandidate: z.boolean().optional(),
     mode: z.enum(["single", "multi"]).optional(), startDate: date.optional(), status: taskStatus.optional(), progress: z.number().int().min(0).max(100).optional(), progressLogs: z.array(taskProgressLog).max(2_000).optional(),
   }).strict().superRefine((task, context) => {
     if (task.mode === "multi" && task.startDate && task.due && task.startDate > task.due) context.addIssue({ code: "custom", message: "跨日任务开始日期不能晚于截止日期" });
   })).max(10_000),
-  milestones: z.array(z.object({ id, courseId: id.optional(), title: shortText, date, time, location: shortText, requirements: text, attachments: z.array(storedAttachment).max(50).optional(), outcomeText: text.optional(), outcomeAttachments: z.array(storedAttachment).max(50).optional(), blocks: z.array(block).max(2000).optional(), elapsed: z.number().int().min(0).max(10000000).optional(), area, done: z.boolean() }).strict()).max(10_000),
+  milestones: z.array(z.object({ id, courseId: id.optional(), title: shortText, date, time, location: shortText, requirements: text, attachments: z.array(storedAttachment).max(50).optional(), outcomeText: text.optional(), outcomeAttachments: z.array(storedAttachment).max(50).optional(), blocks: z.array(block).max(2000).optional(), elapsed: z.number().int().min(0).max(10000000).optional(), mode: z.enum(["single", "multi"]).optional(), parentCandidate: z.boolean().optional(), area, done: z.boolean() }).strict()).max(10_000),
   courses: z.array(z.object({
     id, title: shortText, term: shortText, teacher: shortText, location: shortText, school: z.enum(["pku", "bit"]).optional(), progress: z.number().int().min(0).max(100), requirements: text,
     schedule: z.array(z.object({ id, weekday: z.number().int().min(1).max(7), start: time, end: time, location: shortText, weeks: shortText.optional(), source: z.enum(["manual", "pku", "bit", "ics"]).optional() }).strict()).max(1_000),

@@ -68,6 +68,7 @@ const fieldLabels: Record<string, string> = {
   location: "地点",
   requirements: "要求",
   courseId: "关联课程",
+  parentCandidate: "可作为所属任务",
   term: "学期",
   teacher: "教师或说明",
   progress: "进度",

@@ -11,7 +11,7 @@ const AttachmentPreview = dynamic(() => import("./AttachmentPreview"), { ssr: fa
 import type { Block } from "./DashboardClient";
 
 export type CourseNode = {
-  blocks?: Block[]; elapsed?: number;
+  blocks?: Block[]; elapsed?: number; mode?: "single" | "multi"; parentCandidate?: boolean;
   id: string; courseId?: string; title: string; date: string; time: string; location: string;
   requirements: string; attachments?: NodeAttachment[];
   outcomeText?: string; outcomeAttachments?: NodeAttachment[];
@@ -112,7 +112,7 @@ export function CourseNodeForm({ courseId, location, date, access, onCreate, onC
   courseId: string; location: string; date: string; access: Access;
   onCreate: (node: CourseNode) => void; onCancel: () => void;
 }) {
-  const [draft, setDraft] = useState<CourseNode>(() => ({ id: crypto.randomUUID(), courseId, title: "", date, time: "09:00", location, requirements: "", attachments: [], area: "课内", done: false }));
+  const [draft, setDraft] = useState<CourseNode>(() => ({ id: crypto.randomUUID(), courseId, title: "", date, time: "09:00", location, requirements: "", attachments: [], mode: "single", parentCandidate: false, area: "课内", done: false }));
   const [blocked, setBlocked] = useState(false);
   const [discard, setDiscard] = useState(false);
   const submitted = useRef(false);
@@ -121,9 +121,11 @@ export function CourseNodeForm({ courseId, location, date, access, onCreate, onC
     event.preventDefault(); if (blocked || access.readOnly || submitted.current || !draft.title.trim()) return;
     submitted.current = true; onCreate({ ...draft, title: draft.title.trim() });
   }}>
-    <div className="courseNodeSectionHead"><div><h3>新增课程节点</h3><p>填写事项和要求，可在创建前添加图片与文件。</p></div></div>
+    <div className="courseNodeSectionHead"><div><h3>新增课程任务</h3><p>填写任务和要求，可在创建前添加图片与文件。</p></div></div>
     <div className="fieldGrid">
-      <label className="editField wide"><span>什么事情</span><input autoFocus required maxLength={500} value={draft.title} placeholder="考试 / 作业 / 汇报" onChange={(event) => patch({ title: event.target.value })} /></label>
+      <label className="editField wide"><span>任务名称</span><input autoFocus required maxLength={500} value={draft.title} placeholder="考试 / 作业 / 汇报" onChange={(event) => patch({ title: event.target.value })} /></label>
+      <label className="editField"><span>任务周期</span><select value={draft.mode ?? "single"} onChange={(event) => { const mode = event.target.value as "single" | "multi"; patch({ mode, parentCandidate: mode === "multi" }); }}><option value="single">短期任务</option><option value="multi">长期任务</option></select></label>
+      <label className="editField taskCandidateField"><span>所属任务备选</span><span><input type="checkbox" checked={draft.parentCandidate ?? false} onChange={(event) => patch({ parentCandidate: event.target.checked })} />允许其他任务归属于它</span></label>
       <label className="editField"><span>日期</span><input type="date" required value={draft.date} onChange={(event) => patch({ date: event.target.value })} /></label>
       <label className="editField"><span>时间</span><input type="time" required value={draft.time} onChange={(event) => patch({ time: event.target.value })} /></label>
       <label className="editField wide"><span>地点</span><input maxLength={500} value={draft.location} onChange={(event) => patch({ location: event.target.value })} /></label>
@@ -139,24 +141,34 @@ export function CourseNodeForm({ courseId, location, date, access, onCreate, onC
   </form>;
 }
 
-export function CourseNodeEditor({ node, access, onChange, onClose, onPendingChange }: {
+export function CourseNodeEditor({ node, access, onChange, onClose, onPendingChange, variant = node.courseId ? "courseTask" : "event" }: {
   node: CourseNode; access: Access; onChange: Change<CourseNode>; onClose: () => void;
-  onPendingChange: (blocked: boolean) => void;
+  onPendingChange: (blocked: boolean) => void; variant?: "courseTask" | "event";
 }) {
   const pending = useRef({ requirements: false, outcome: false });
   const [blocked, setBlocked] = useState(false);
+  const isCourseTask = variant === "courseTask";
   const reportPending = (section: "requirements" | "outcome", value: boolean) => {
     pending.current[section] = value;
     const anyPending = pending.current.requirements || pending.current.outcome;
     setBlocked(anyPending); onPendingChange(anyPending);
   };
   return <div className="courseNodeEditor">
-    <div className="courseNodeSectionHead"><h3>{node.title}</h3><button type="button" disabled={blocked} onClick={onClose}>收起</button></div>
-    <div className="courseNodeSections"><section><h4>作业要求</h4><p className="nodeHelp">保存老师的要求、题目和参考资料。</p><label className="editField"><span>具体要求</span><textarea readOnly={access.readOnly} maxLength={4000} value={node.requirements} placeholder="填写提交格式、字数、评分标准…" onChange={(event) => { const requirements = event.target.value; onChange((current) => ({ ...current, requirements })); }} /></label>
-      <NodeAttachments nodeId={node.id} label="要求" files={node.attachments ?? []} access={access} onBlockedChange={(value) => reportPending("requirements", value)} onChange={(update) => onChange((current) => ({ ...current, attachments: update(current.attachments ?? []) }))} />
+    <div className="courseNodeSectionHead"><div><span>{isCourseTask ? "课程任务" : "日历事项"}</span><h3>{node.title}</h3></div><button type="button" disabled={blocked} onClick={onClose}>收起</button></div>
+    <div className="fieldGrid courseNodeMetaFields">
+      <label className="editField wide"><span>{isCourseTask ? "任务名称" : "事项名称"}</span><input readOnly={access.readOnly} required maxLength={500} value={node.title} onChange={(event) => { const title = event.target.value; onChange((current) => ({ ...current, title })); }} /></label>
+      {isCourseTask && <label className="editField"><span>任务周期</span><select disabled={access.readOnly} value={node.mode ?? "single"} onChange={(event) => { const mode = event.target.value as "single" | "multi"; onChange((current) => ({ ...current, mode, parentCandidate: current.parentCandidate ?? (mode === "multi") })); }}><option value="single">短期任务</option><option value="multi">长期任务</option></select></label>}
+      {isCourseTask && <label className="editField taskCandidateField"><span>所属任务备选</span><span><input type="checkbox" disabled={access.readOnly} checked={node.parentCandidate ?? false} onChange={(event) => { const parentCandidate = event.target.checked; onChange((current) => ({ ...current, parentCandidate })); }} />允许其他任务归属于它</span></label>}
+      {!isCourseTask && <label className="editField"><span>所属领域</span><select disabled={access.readOnly} value={node.area} onChange={(event) => { const area = event.target.value as CourseNode["area"]; onChange((current) => ({ ...current, area })); }}><option>课内</option><option>课外</option><option>工作</option><option>生活</option><option>思考</option></select></label>}
+      <label className="editField"><span>日期</span><input readOnly={access.readOnly} type="date" required value={node.date} onChange={(event) => { const date = event.target.value; onChange((current) => ({ ...current, date })); }} /></label>
+      <label className="editField"><span>时间</span><input readOnly={access.readOnly} type="time" required value={node.time} onChange={(event) => { const time = event.target.value; onChange((current) => ({ ...current, time })); }} /></label>
+      <label className="editField wide"><span>地点</span><input readOnly={access.readOnly} maxLength={500} value={node.location} onChange={(event) => { const location = event.target.value; onChange((current) => ({ ...current, location })); }} /></label>
+    </div>
+    <div className="courseNodeSections"><section><h4>{isCourseTask ? "任务要求" : "事项说明"}</h4><p className="nodeHelp">{isCourseTask ? "保存老师的要求、题目和参考资料。" : "记录议程、携带材料和其他需要提前准备的信息。"}</p><label className="editField"><span>具体要求</span><textarea readOnly={access.readOnly} maxLength={4000} value={node.requirements} placeholder={isCourseTask ? "填写提交格式、字数、评分标准…" : "填写议程、地点补充或注意事项…"} onChange={(event) => { const requirements = event.target.value; onChange((current) => ({ ...current, requirements })); }} /></label>
+      <NodeAttachments nodeId={node.id} label={isCourseTask ? "要求" : "说明"} files={node.attachments ?? []} access={access} onBlockedChange={(value) => reportPending("requirements", value)} onChange={(update) => onChange((current) => ({ ...current, attachments: update(current.attachments ?? []) }))} />
     </section>
-    <section className="courseNodeOutcome"><h4>完成成果</h4><p className="nodeHelp">保存自己的作业文件、成果图片和补充说明。</p><label className="editField"><span>成果说明</span><textarea readOnly={access.readOnly} maxLength={4000} value={node.outcomeText ?? ""} placeholder="记录完成内容、版本或提交备注…" onChange={(event) => { const outcomeText = event.target.value; onChange((current) => ({ ...current, outcomeText })); }} /></label>
-      <NodeAttachments nodeId={node.id} label="成果" files={node.outcomeAttachments ?? []} access={access} onBlockedChange={(value) => reportPending("outcome", value)} onChange={(update) => onChange((current) => ({ ...current, outcomeAttachments: update(current.outcomeAttachments ?? []) }))} />
+    <section className="courseNodeOutcome"><h4>{isCourseTask ? "完成成果" : "事项记录"}</h4><p className="nodeHelp">{isCourseTask ? "保存自己的作业文件、成果图片和补充说明。" : "记录结论、后续动作和相关文件。"}</p><label className="editField"><span>{isCourseTask ? "成果说明" : "记录内容"}</span><textarea readOnly={access.readOnly} maxLength={4000} value={node.outcomeText ?? ""} placeholder={isCourseTask ? "记录完成内容、版本或提交备注…" : "记录事项结果和下一步…"} onChange={(event) => { const outcomeText = event.target.value; onChange((current) => ({ ...current, outcomeText })); }} /></label>
+      <NodeAttachments nodeId={node.id} label={isCourseTask ? "成果" : "记录"} files={node.outcomeAttachments ?? []} access={access} onBlockedChange={(value) => reportPending("outcome", value)} onChange={(update) => onChange((current) => ({ ...current, outcomeAttachments: update(current.outcomeAttachments ?? []) }))} />
     </section></div>
     {blocked && <p className="nodeHelp">请上传或移除待上传文件后再收起。</p>}
   </div>;

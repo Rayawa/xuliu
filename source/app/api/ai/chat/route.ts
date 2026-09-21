@@ -181,13 +181,13 @@ export async function POST(request: Request) {
 6. 记账的金额、收入/支出方向、日期任一不明确时只追问，不得猜测。金额用正整数分 amountCents；相对日期按 Asia/Shanghai 解析，并在确认卡中写明绝对日期。用户未说明具体时间时可省略 time，由服务器记录当前北京时间；用户明确了时间时使用 HH:mm。
 7. 新建实体 ID 由服务器生成，不得在 values 中提供 id、时间戳或权限字段。一次最多 20 个动作。
 8. 读取和搜索工具会分页；当问题需要完整数据且返回 hasMore=true 时，继续增加 offset 读取，不能把第一页误称为全部。
-9. 同一提案要先新增父实体、再新增其子内容时，可在较早的 entity create 动作声明唯一 ref（例如 ref:"course_math"），后续动作再用 {"$ref":"course_math"} 代替 id、parentId，或 values 中的页面 parentId、日程 courseId、专注记录 taskId。$ref 只能引用本提案中更早的新增实体，不能自引用、引用未来动作或重复声明；类型必须匹配。例如先 create course/ref:"course_math"，再 create courseSlot/parentId:{"$ref":"course_math"}。
+9. 同一提案要先新增父实体、再新增其子内容时，可在较早的 entity create 动作声明唯一 ref（例如 ref:"course_math"），后续动作再用 {"$ref":"course_math"} 代替 id、parentId，或 values 中的页面 parentId、任务或日程 courseId、专注记录 taskId。$ref 只能引用本提案中更早的新增实体，不能自引用、引用未来动作或重复声明；类型必须匹配。例如先 create course/ref:"course_math"，再 create courseSlot/parentId:{"$ref":"course_math"}。
 10. task 的 due 只能是 YYYY-MM-DD 或 null，任务本身不保存具体时刻，绝不能把日期和时间拼进 due。若用户要求“任务”且指定了几点，先说明此限制，并追问要创建只有截止日期的任务，还是带 date 与 time 的日历事项；用户明确要日程或日历事项时才使用 milestone。
-11. task 和 milestone 的 area 只能是课内、课外、工作、生活、思考之一；用户没有指定时可以省略。只有用户明确要求关联某门课程、且你已读取到真实课程 ID 时，milestone 才能提供 courseId；独立日历事项必须省略 courseId，不能用空字符串或课程名称代替 ID。其他未被用户提供、也不影响执行的可选字段应省略，不能用空字符串凑字段。
+11. task 和 milestone 的 area 只能是课内、课外、工作、生活、思考之一；用户没有指定时可以省略。只有用户明确要求关联某门课程、且你已读取到真实课程 ID 时，task 或 milestone 才能提供 courseId；独立日历事项必须省略 courseId，不能用空字符串或课程名称代替 ID。其他未被用户提供、也不影响执行的可选字段应省略，不能用空字符串凑字段。
 
 可用实体及 values 字段：
-- task: title, area（课内/课外/工作/生活/思考）, source, due（仅 YYYY-MM-DD 或 null）, done, today, mode（single/multi）, startDate（跨日任务开始日，仅 YYYY-MM-DD 或 null）, status（未开始/进行中/已暂停/已完成）, progress（0-100）
-- milestone: title, date（YYYY-MM-DD）, time（HH:mm）, location, requirements, area（课内/课外/工作/生活/思考）, done, courseId（仅真实课程 ID 或有效 $ref）
+- task: title, requirements, parentCandidate, courseId（仅真实课程 ID 或有效 $ref）, area（课内/课外/工作/生活/思考）, source, due（仅 YYYY-MM-DD 或 null）, done, today, mode（single=短期/multi=长期）, startDate（长期任务开始日，仅 YYYY-MM-DD 或 null）, status（未开始/进行中/已暂停/已完成）, progress（0-100）
+- milestone: title, date（YYYY-MM-DD）, time（HH:mm）, location, requirements, area（课内/课外/工作/生活/思考）, done, courseId（仅真实课程 ID 或有效 $ref）；关联课程时还可用 mode（single=短期/multi=长期）和 parentCandidate，独立事项省略这两个字段
 - course: title, term, teacher, location, progress, requirements, content
 - courseSlot（需 parentId=课程 ID）: weekday, start, end, location, weeks
 - learning: title, category, progress, goal, content

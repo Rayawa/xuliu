@@ -35,6 +35,8 @@ const milestoneActionValuesSchema = z.object({
   area: aiAreaSchema,
   done: z.boolean(),
   courseId: z.union([z.string().trim().min(1).max(120), createReferenceSchema, z.null()]),
+  mode: z.enum(["single", "multi"]),
+  parentCandidate: z.boolean(),
 }).partial().strict();
 
 function referenceName(value: unknown) {
@@ -136,9 +138,9 @@ export const entityActionSchema = z.preprocess(normalizeEntityActionInput, entit
   for (const [key, value] of Object.entries(operation.values)) {
     if (!referenceName(value)) continue;
     const supported = (key === "parentId" && operation.entity === "page")
-      || (key === "courseId" && operation.entity === "milestone")
+      || (key === "courseId" && ["task", "milestone"].includes(operation.entity))
       || (key === "taskId" && operation.entity === "focusEntry");
-    if (!supported) context.addIssue({ code: "custom", message: "$ref 仅可用于页面 parentId、日程 courseId 或专注记录 taskId", path: ["values", key] });
+    if (!supported) context.addIssue({ code: "custom", message: "$ref 仅可用于页面 parentId、任务或日程 courseId、专注记录 taskId", path: ["values", key] });
   }
   if (operation.action === "create") {
     if (operation.entity === "toolVersion") {
@@ -285,7 +287,7 @@ export const aiWorkspaceProposalInputSchema = z.object({
       { value: operation.id, path: ["operations", index, "id"], expectedEntity: operation.entity },
       { value: operation.parentId, path: ["operations", index, "parentId"], expectedEntity: nestedParentEntity[operation.entity] },
       { value: values.parentId, path: ["operations", index, "values", "parentId"], expectedEntity: operation.entity === "page" ? "page" : undefined },
-      { value: values.courseId, path: ["operations", index, "values", "courseId"], expectedEntity: operation.entity === "milestone" ? "course" : undefined },
+      { value: values.courseId, path: ["operations", index, "values", "courseId"], expectedEntity: ["task", "milestone"].includes(operation.entity) ? "course" : undefined },
       { value: values.taskId, path: ["operations", index, "values", "taskId"], expectedEntity: operation.entity === "focusEntry" ? "task" : undefined },
     ];
 
