@@ -219,9 +219,8 @@ a { color: inherit; }
 .areaTag.work, .calendarEvent.work { color: #7b6847; background: #f3eee4; }
 .areaTag.life, .calendarEvent.life { color: #80616c; background: #f3e9ee; }
 .areaTag.thought, .calendarEvent.thought { color: #526e60; background: #e7efe9; }
-.quickAdd { margin-top: 12px; padding-top: 16px; display: grid; grid-template-columns: 1fr auto; gap: 9px; border-top: 1px solid #e9ede9; }
-.quickAdd input, .ideaCapture input { width: 100%; padding: 12px 13px; border: 0; border-radius: 10px; background: #f3f5f2; font-size: 13px; }
-.quickAdd button, .ideaCapture button { padding: 0 17px; border: 0; border-radius: 10px; color: white; background: var(--accent); font-size: 12px; font-weight: 700; }
+.ideaCapture input { width: 100%; padding: 12px 13px; border: 0; border-radius: 10px; background: #f3f5f2; font-size: 13px; }
+.ideaCapture button { padding: 0 17px; border: 0; border-radius: 10px; color: white; background: var(--accent); font-size: 12px; font-weight: 700; }
 .focusPanel { border-color: var(--accent); color: white; background: var(--accent); text-align: center; }
 .modeSwitch { display: inline-grid; grid-template-columns: 1fr 1fr; padding: 3px; border-radius: 10px; background: rgba(255,255,255,.12); }
 .modeSwitch button { padding: 7px 12px; border: 0; border-radius: 8px; color: rgba(255,255,255,.7); background: transparent; font-size: 11px; }

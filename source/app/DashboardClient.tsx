@@ -659,7 +659,7 @@ export default function DashboardClient({ account, visibleAccounts, onLogout, de
   return <div className="shell" style={{ "--accent": theme } as React.CSSProperties}>
     <aside className={`sidebar ${mobileNav ? "open" : ""}`}><button className="brand" onClick={() => navigate("today")}><span className="brandMark">序</span><span>序流</span></button><div className="workspaceSwitcher"><span>当前空间</span><button className={!readOnly ? "active" : ""} onClick={() => { setWorkspaceOwner(account.id); setDetail(null); }}><i>{account.displayName.slice(0, 1)}</i><b>{account.displayName}</b><small>我的</small></button>{visibleAccounts.map((visible) => <button key={visible.id} className={workspaceOwner === visible.id ? "active" : ""} onClick={() => { setWorkspaceOwner(visible.id); setDetail(null); }}><i>{visible.displayName.slice(0, 1)}</i><b>{visible.displayName}</b><small>只读</small></button>)}</div><div className="navGroup">{navItems.slice(0, 5).map((item) => <NavButton key={item.id} {...item} active={active} onClick={navigate} />)}</div><div className="navCaption">我的空间</div><div className="navGroup">{navItems.slice(5).map((item) => <NavButton key={item.id} {...item} active={active} onClick={navigate} />)}</div><button className="exportButton" onClick={exportData}>导出数据备份</button><a className="changelogLink" href="/changelog" target="_blank" rel="noreferrer">更新日志 ↗</a>{!preview && <button className="logoutButton" onClick={onLogout}>退出登录</button>}<div className="sidebarFoot"><span className={`syncDot ${sync}`} />{sync === "saving" ? "正在保存" : sync === "readonly" ? "正在查看只读空间" : sync === "error" ? "云端连接异常" : sync === "preview" ? "本地预览 · 不会写入云端" : "已保存到云端"}</div></aside>
     <main className="main">{preview && <div className="readOnlyBanner">本地试运行 · 可测试任务计时、子任务与事项记录。示例数据仅在本次页面保留，刷新后重置。</div>}<header className="mobileHeader"><button className="iconButton" onClick={() => setMobileNav(true)}>☰</button><strong>序流</strong><span className={`syncDot ${sync}`} /></header>{updateAvailable && <div className="updateBanner"><span>网站已有新版本，为避免继续使用旧页面，请先刷新。</span><button disabled={sync === "saving"} onClick={reloadForUpdate}>{sync === "saving" ? "等待保存" : "立即刷新"}</button></div>}{readOnly && <div className="readOnlyBanner">正在查看 <strong>{visibleAccount.displayName}</strong> 的空间 · 只读</div>}{!loaded ? <div className="workspaceLoading">正在载入空间…</div> : <>{!detail && !workDetail && <ThemePicker color={theme} onChange={(color) => setData((current) => ({ ...current, themes: { ...current.themes, [active]: color } }))} />}{workDetail ? <TaskDetail key={`${workspaceOwner}:${workDetail.kind}:${workDetail.id}`} target={workDetail} data={data} setData={setData} access={{ ownerId: workspaceOwner, readOnly, preview }} focus={focus} focusPanel={focusPanel} onManual={setManualTarget} onOpen={setWorkDetail} onClose={() => setWorkDetail(null)} deleteDialog={deleteDialog} /> : detail ? <DetailRouter target={detail} data={data} setData={setData} back={() => setDetail(null)} setDialog={setDialog} deleteDialog={deleteDialog} access={{ ownerId: workspaceOwner, readOnly, preview }} /> : <>
-      {active === "today" && <TodayView data={data} setData={setData} tasks={todayTasks} milestones={data.milestones.filter((item) => item.date === today || Boolean(item.courseId && item.mode === "multi" && !item.done))} totalMinutes={data.timeEntries.filter((entry) => entry.date === today).reduce((sum, entry) => sum + entry.minutes, 0)} daily={daily} updateDaily={updateDaily} focusPanel={focusPanel} openWork={setWorkDetail} readOnly={readOnly} setPopup={setPopup} />}
+      {active === "today" && <TodayView data={data} setData={setData} tasks={todayTasks} milestones={data.milestones.filter((item) => item.date === today || Boolean(item.courseId && item.mode === "multi" && !item.done))} totalMinutes={data.timeEntries.filter((entry) => entry.date === today).reduce((sum, entry) => sum + entry.minutes, 0)} daily={daily} updateDaily={updateDaily} focusPanel={focusPanel} openWork={setWorkDetail} readOnly={readOnly} setPopup={setPopup} setDialog={setDialog} />}
       {active === "timetable" && <TimetableViewV2 data={data} setData={setData} setDialog={setDialog} openCourse={(id) => setDetail({ type: "course", id })} deleteDialog={deleteDialog} dualSchool={workspaceOwner === "owner"} readOnly={readOnly} />}
       {active === "tasks" && <TaskOverviewView data={data} setData={setData} setDialog={setDialog} openWork={setWorkDetail} readOnly={readOnly} />}
       {active === "calendar" && <CalendarView data={data} setData={setData} setDialog={setDialog} openWork={setWorkDetail} readOnly={readOnly} />}
@@ -696,41 +696,55 @@ function SyncChip() { return <span className="syncChip"><span />云端自动保�
 function PanelTitle({ title, subtitle, meta }: { title: string; subtitle: string; meta?: string }) { return <div className="panelHead"><div><h2>{title}</h2><p>{subtitle}</p></div>{meta && <span className="countChip">{meta}</span>}</div>; }
 function SectionHead({ title, subtitle, action }: { title: string; subtitle: string; action?: React.ReactNode }) { return <div className="sectionHead"><div><h2>{title}</h2><p>{subtitle}</p></div>{action}</div>; }
 
-function TodayView({ data, setData, tasks, milestones, totalMinutes, daily, updateDaily, focusPanel, openWork, readOnly, setPopup }: { data: AppState; setData: React.Dispatch<React.SetStateAction<AppState>>; tasks: TaskItem[]; milestones: Milestone[]; totalMinutes: number; daily: AppState["daily"][string]; updateDaily: (field: keyof AppState["daily"][string], value: string) => void; focusPanel: React.ReactNode; openWork: (target: WorkTarget) => void; readOnly: boolean; setPopup: (value: PopupState) => void }) {
-  const [quick, setQuick] = useState("");
-  const addTask = () => {
-    if (readOnly || !quick.trim()) return;
-    setData((current) => ({ ...current, tasks: [...current.tasks, { id: uid(), title: quick.trim(), area: "思考", source: "今日临时任务", requirements: "", parentCandidate: false, due: today, done: false, today: true, elapsed: 0, mode: "single", status: "未开始", progress: 0, progressLogs: [] }] }));
-    setQuick("");
-  };
+function TodayView({ data, setData, tasks, milestones, totalMinutes, daily, updateDaily, focusPanel, openWork, readOnly, setPopup, setDialog }: { data: AppState; setData: React.Dispatch<React.SetStateAction<AppState>>; tasks: TaskItem[]; milestones: Milestone[]; totalMinutes: number; daily: AppState["daily"][string]; updateDaily: (field: keyof AppState["daily"][string], value: string) => void; focusPanel: React.ReactNode; openWork: (target: WorkTarget) => void; readOnly: boolean; setPopup: (value: PopupState) => void; setDialog: (value: DialogConfig) => void }) {
+  const [creatingTask, setCreatingTask] = useState(false);
+  const addEvent = () => setDialog({
+    title: "新增事项",
+    description: "事项用于会议、预约、行程等日历事件；需要完成的内容请新增任务。",
+    submitLabel: "创建事项",
+    fields: [
+      { name: "title", label: "事项名称", placeholder: "例如：项目会议" },
+      { name: "date", label: "日期", type: "date", value: today },
+      { name: "time", label: "时间", type: "time", value: "09:00" },
+      { name: "location", label: "地点" },
+      { name: "requirements", label: "事项说明", type: "textarea", placeholder: "议程、携带材料或其他说明" },
+      { name: "area", label: "所属领域", type: "select", options: ["课内", "课外", "工作", "生活", "思考"], value: "工作" },
+    ],
+    onSubmit: (values) => {
+      const id = uid();
+      setData((current) => ({ ...current, milestones: [...current.milestones, { id, title: values.title.trim() || "未命名事项", date: values.date || today, time: values.time || "09:00", location: values.location.trim(), requirements: values.requirements.trim(), area: (values.area || "工作") as Area, done: false }] }));
+      openWork({ kind: "milestone", id });
+    },
+  });
   const courseTasks = milestones.filter((node) => Boolean(node.courseId));
   const calendarItems = milestones.filter((node) => !node.courseId);
   const taskGroups = [
     {
-      id: "multi",
-      title: "长期任务",
-      subtitle: "持续推进并记录进度",
-      entries: [
-        ...tasks.filter((task) => taskModeOf(task) === "multi").map((item) => ({ kind: "task" as const, item })),
-        ...courseTasks.filter((node) => node.mode === "multi").map((item) => ({ kind: "milestone" as const, item })),
-      ],
-    },
-    {
       id: "single",
       title: "短期任务",
-      subtitle: "在明确日期完成",
+      subtitle: "今天要完成的独立任务、课程任务和长期任务分支",
       entries: [
         ...tasks.filter((task) => taskModeOf(task) !== "multi").map((item) => ({ kind: "task" as const, item })),
         ...courseTasks.filter((node) => node.mode !== "multi").map((item) => ({ kind: "milestone" as const, item })),
       ],
     },
+    {
+      id: "multi",
+      title: "长期任务",
+      subtitle: "持续推进并记录进度；包含长期课程任务",
+      entries: [
+        ...tasks.filter((task) => taskModeOf(task) === "multi").map((item) => ({ kind: "task" as const, item })),
+        ...courseTasks.filter((node) => node.mode === "multi").map((item) => ({ kind: "milestone" as const, item })),
+      ],
+    },
   ];
   const allTaskEntries = taskGroups.flatMap((group) => group.entries);
   return <div className="page">
-    <PageHead eyebrow={(new Date().getMonth() + 1) + "月" + new Date().getDate() + "日 · " + new Intl.DateTimeFormat("zh-CN", { weekday: "long" }).format(new Date())} title="今天，把重要的事接起来。" subtitle={allTaskEntries.filter((entry) => !entry.item.done).length + " 项任务待完成 · 今日已专注 " + formatMinutes(totalMinutes)} action={<SyncChip />} />
+    <PageHead eyebrow={(new Date().getMonth() + 1) + "月" + new Date().getDate() + "日 · " + new Intl.DateTimeFormat("zh-CN", { weekday: "long" }).format(new Date())} title="今天，把重要的事接起来。" subtitle={allTaskEntries.filter((entry) => !entry.item.done).length + " 项任务待完成 · 今日已专注 " + formatMinutes(totalMinutes)} action={<div className="pageHeadActions"><button className="primaryButton" disabled={readOnly} onClick={() => setCreatingTask(true)}>＋ 新增任务</button><button className="softButton" disabled={readOnly} onClick={addEvent}>＋ 新增事项</button><SyncChip /></div>} />
+    {creatingTask && <TaskSettingsDialog tasks={data.tasks} milestones={data.milestones} courses={data.courses} onClose={() => setCreatingTask(false)} onSave={(task) => { setData((current) => ({ ...current, tasks: [...current.tasks, task] })); setCreatingTask(false); openWork({ kind: "task", id: task.id }); }} />}
     <div className="todayGrid"><div className="stack">
-      {taskGroups.map((group) => <section className="panel taskPanel todayCategoryPanel" key={group.id}>
-        <PanelTitle title={group.title} subtitle={group.id === "multi" ? "持续推进并记录进度；包含长期课程任务" : "在明确日期完成；包含今日课程任务"} meta={group.entries.filter((entry) => entry.item.done).length + " / " + group.entries.length} />
+      {taskGroups.map((group) => <Fragment key={group.id}><section className="panel taskPanel todayCategoryPanel">
+        <PanelTitle title={group.title} subtitle={group.subtitle} meta={group.entries.filter((entry) => entry.item.done).length + " / " + group.entries.length} />
         <div className="taskList">{group.entries.map((entry) => entry.kind === "task" ? <div key={"task-" + entry.item.id} className={"taskRow " + (entry.item.done ? "done" : "")}>
             <button className="checkButton" disabled={readOnly} aria-pressed={entry.item.done} aria-label={entry.item.done ? "标记未完成" : "标记完成"} onClick={() => setData((current) => ({ ...current, tasks: current.tasks.map((item) => item.id === entry.item.id ? withTaskCompletion(item, !item.done) : item) }))}>{entry.item.done ? "✓" : ""}</button>
             <div className="taskBody"><button className="taskTitleButton" onClick={() => openWork({ kind: "task", id: entry.item.id })}>{entry.item.title}</button>{entry.item.done && <span className="taskStatus 已完成 todayCompletionStatus">已完成</span>}<small>{entry.item.parentId ? "属于：" + (data.tasks.find((task) => task.id === entry.item.parentId)?.title ?? "上级任务") : entry.item.parentMilestoneId ? "属于：" + (data.milestones.find((node) => node.id === entry.item.parentMilestoneId)?.title ?? "关联对象") : entry.item.source}</small><button className="taskRecordLink" onClick={() => openWork({ kind: "task", id: entry.item.id })}>查看与编辑 · 已投入 {entry.item.elapsed} 分钟</button>{taskModeOf(entry.item) === "multi" && <><span>{taskProgressOf(entry.item)}% · {taskStatusOf(entry.item)}</span><i className="todayTaskProgress"><b style={{ width: taskProgressOf(entry.item) + "%" }} /></i></>}</div>
@@ -741,9 +755,7 @@ function TodayView({ data, setData, tasks, milestones, totalMinutes, daily, upda
             <span className={"areaTag " + areaClass[entry.item.area]}>{entry.item.area}</span>
           </div>)}</div>
         {!group.entries.length && <div className="emptyState compact"><h2>今天没有{group.title}</h2><p>{group.id === "multi" ? "长期任务会在推进期间持续显示。" : "设置为今天的短期任务会显示在这里。"}</p></div>}
-        {group.id === "single" && <div className="quickAdd"><input disabled={readOnly} value={quick} placeholder="添加一个短期临时任务…" onChange={(event) => setQuick(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") addTask(); }} /><button disabled={readOnly} onClick={addTask}>添加</button></div>}
-      </section>)}
-      <section className="panel taskPanel todayCategoryPanel"><PanelTitle title="事项" subtitle="会议、预约、行程等日历事项" meta={calendarItems.filter((item) => item.done).length + " / " + calendarItems.length} /><div className="taskList">{calendarItems.map((item) => <div className={"taskRow " + (item.done ? "done" : "")} key={item.id}><button className="checkButton" disabled={readOnly} aria-pressed={item.done} aria-label={(item.done ? "标记未完成：" : "标记完成：") + item.title} onClick={() => setData((current) => ({ ...current, milestones: current.milestones.map((node) => node.id === item.id ? { ...node, done: !node.done } : node) }))}>{item.done ? "✓" : ""}</button><div className="taskBody"><button className="taskTitleButton" onClick={() => openWork({ kind: "milestone", id: item.id })}>{item.title}</button>{item.done && <span className="taskStatus 已完成 todayCompletionStatus">已完成</span>}<span>{item.time} · {item.location || "未填写地点"}</span><button className="taskRecordLink" onClick={() => openWork({ kind: "milestone", id: item.id })}>查看与编辑 · 已投入 {item.elapsed ?? 0} 分钟</button></div><span className={"areaTag " + areaClass[item.area]}>{item.area}</span></div>)}</div>{!calendarItems.length && <div className="emptyState compact"><h2>今天没有事项</h2><p>今天的会议、预约和行程会显示在这里。</p></div>}</section>
+      </section>{group.id === "single" && <section className="panel taskPanel todayCategoryPanel"><PanelTitle title="事项" subtitle="会议、预约、行程等日历事项" meta={calendarItems.filter((item) => item.done).length + " / " + calendarItems.length} /><div className="taskList">{calendarItems.map((item) => <div className={"taskRow " + (item.done ? "done" : "")} key={item.id}><button className="checkButton" disabled={readOnly} aria-pressed={item.done} aria-label={(item.done ? "标记未完成：" : "标记完成：") + item.title} onClick={() => setData((current) => ({ ...current, milestones: current.milestones.map((node) => node.id === item.id ? { ...node, done: !node.done } : node) }))}>{item.done ? "✓" : ""}</button><div className="taskBody"><button className="taskTitleButton" onClick={() => openWork({ kind: "milestone", id: item.id })}>{item.title}</button>{item.done && <span className="taskStatus 已完成 todayCompletionStatus">已完成</span>}<span>{item.time} · {item.location || "未填写地点"}</span><button className="taskRecordLink" onClick={() => openWork({ kind: "milestone", id: item.id })}>查看与编辑 · 已投入 {item.elapsed ?? 0} 分钟</button></div><span className={"areaTag " + areaClass[item.area]}>{item.area}</span></div>)}</div>{!calendarItems.length && <div className="emptyState compact"><h2>今天没有事项</h2><p>今天的会议、预约和行程会显示在这里。</p></div>}</section>}</Fragment>)}
       <section className="panel notePanel"><PanelTitle title="今日随记" subtitle="收获、问题或突然出现的想法" meta="自动保存" /><textarea value={daily.note} onChange={(event) => updateDaily("note", event.target.value)} placeholder="此刻有什么值得记下来？" /></section>
     </div><div className="stack">{focusPanel}<div className="miniStats"><div><strong>{formatMinutes(totalMinutes)}</strong><span>今日专注</span></div><div><strong>{allTaskEntries.filter((entry) => entry.item.done).length}</strong><span>完成任务</span></div><div><strong>{Math.round(data.habits.filter((habit) => habit.today).length / Math.max(1, data.habits.length) * 100)}%</strong><span>习惯完成</span></div></div><section className="panel reminderPanel"><PanelTitle title="生活提醒" subtitle="一个项目可设置多个时间" /><div className="reminderList">{data.reminders.map((reminder) => <div className="reminderRow" key={reminder.id}><span className={"reminderIcon " + reminder.type}>{reminder.type === "sleep" ? "眠" : reminder.type === "break" ? "息" : reminder.type === "exercise" ? "动" : "提"}</span><div><strong>{reminder.title}</strong><span>{[...(reminder.type === "break" ? ["每 " + (reminder.intervalMinutes ?? 20) + " 分钟 · 自动计时"] : []), ...reminder.times].join(" / ")} · {reminder.enabled ? "等待提醒" : "已关闭"}</span></div><button className="softButton" onClick={() => setPopup({ eyebrow: "提醒预览", title: reminder.title, body: "你可以完成、延迟 5 分钟或关闭这条页面提示。" })}>预览</button></div>)}</div></section></div></div>
   </div>;
