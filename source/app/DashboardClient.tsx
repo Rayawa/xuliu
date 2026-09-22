@@ -713,7 +713,6 @@ function TodayView({ data, setData, tasks, milestones, totalMinutes, daily, upda
     onSubmit: (values) => {
       const id = uid();
       setData((current) => ({ ...current, milestones: [...current.milestones, { id, title: values.title.trim() || "未命名事项", date: values.date || today, time: values.time || "09:00", location: values.location.trim(), requirements: values.requirements.trim(), area: (values.area || "工作") as Area, done: false }] }));
-      openWork({ kind: "milestone", id });
     },
   });
   const courseTasks = milestones.filter((node) => Boolean(node.courseId));
@@ -741,7 +740,7 @@ function TodayView({ data, setData, tasks, milestones, totalMinutes, daily, upda
   const allTaskEntries = taskGroups.flatMap((group) => group.entries);
   return <div className="page">
     <PageHead eyebrow={(new Date().getMonth() + 1) + "月" + new Date().getDate() + "日 · " + new Intl.DateTimeFormat("zh-CN", { weekday: "long" }).format(new Date())} title="今天，把重要的事接起来。" subtitle={allTaskEntries.filter((entry) => !entry.item.done).length + " 项任务待完成 · 今日已专注 " + formatMinutes(totalMinutes)} action={<div className="pageHeadActions"><button className="primaryButton" disabled={readOnly} onClick={() => setCreatingTask(true)}>＋ 新增任务</button><button className="softButton" disabled={readOnly} onClick={addEvent}>＋ 新增事项</button><SyncChip /></div>} />
-    {creatingTask && <TaskSettingsDialog tasks={data.tasks} milestones={data.milestones} courses={data.courses} onClose={() => setCreatingTask(false)} onSave={(task) => { setData((current) => ({ ...current, tasks: [...current.tasks, task] })); setCreatingTask(false); openWork({ kind: "task", id: task.id }); }} />}
+    {creatingTask && <TaskSettingsDialog tasks={data.tasks} milestones={data.milestones} courses={data.courses} learning={data.learning} onClose={() => setCreatingTask(false)} onSave={(task) => { setData((current) => ({ ...current, tasks: [...current.tasks, task] })); setCreatingTask(false); }} />}
     <div className="todayGrid"><div className="stack">
       {taskGroups.map((group) => <Fragment key={group.id}><section className="panel taskPanel todayCategoryPanel">
         <PanelTitle title={group.title} subtitle={group.subtitle} meta={group.entries.filter((entry) => entry.item.done).length + " / " + group.entries.length} />
@@ -1029,7 +1028,7 @@ function TaskDetail({ target, data, setData, access, focus, focusPanel, onManual
       <section className="panel editorSection" aria-label={entityLabel + "记录空间"}><SectionHead title={entityLabel + "记录"} subtitle="记录思路、过程与结果；各入口共享这份内容" /><BlockEditor blocks={item.blocks ?? []} onChange={saveBlocks} access={access} /></section>
       {task?.progressLogs?.length ? <section className="panel taskProgressHistory"><SectionHead title="推进历史" subtitle="保留已有进度记录" />{[...task.progressLogs].reverse().slice(0, 20).map((log) => <div key={log.id}><time>{log.date}</time><span>{log.status} · {log.progress}%</span><p>{log.note}</p></div>)}</section> : null}
     </div><aside className="taskFocusAside">{focusPanel}</aside></div>
-    {editing && <TaskSettingsDialog tasks={data.tasks} milestones={data.milestones} courses={data.courses} task={editing === "new" ? undefined : editing} presetParent={editing === "new" ? target : undefined} onClose={() => setEditing(null)} onSave={saveTask} />}
+    {editing && <TaskSettingsDialog tasks={data.tasks} milestones={data.milestones} courses={data.courses} learning={data.learning} task={editing === "new" ? undefined : editing} presetParent={editing === "new" ? target : undefined} onClose={() => setEditing(null)} onSave={saveTask} />}
   </div>;
 }
 function TaskOverviewView({ data, setData, setDialog, openWork, readOnly }: { data: AppState; setData: React.Dispatch<React.SetStateAction<AppState>>; setDialog: (value: DialogConfig) => void; openWork: (target: WorkTarget) => void; readOnly: boolean }) {
@@ -1075,7 +1074,6 @@ function TaskOverviewView({ data, setData, setDialog, openWork, readOnly }: { da
     onSubmit: (values) => {
       const id = uid();
       setData((current) => ({ ...current, milestones: [...current.milestones, { id, title: values.title.trim() || "未命名事项", date: values.date || today, time: values.time || "09:00", location: values.location.trim(), requirements: values.requirements.trim(), area: (values.area || "工作") as Area, done: false }] }));
-      openWork({ kind: "milestone", id });
     },
   });
   const recordProgress = (task: TaskItem) => setDialog({
@@ -1114,24 +1112,30 @@ function TaskOverviewView({ data, setData, setDialog, openWork, readOnly }: { da
         </div>;
       })}{!section.items.length && <div className="emptyState compact"><h2>暂无{section.title}</h2><p>{scope === "done" ? "这里还没有已完成内容。" : "可从右上角新增，或修改已有内容的分类。"}</p></div>}</div>
     </section>)}</div>
-    {editingTask && <TaskSettingsDialog tasks={data.tasks} milestones={data.milestones} courses={data.courses} task={editingTask === "new" ? undefined : editingTask} onClose={() => setEditingTask(null)} onSave={(task) => { saveTask(task); setEditingTask(null); }} />}
+    {editingTask && <TaskSettingsDialog tasks={data.tasks} milestones={data.milestones} courses={data.courses} learning={data.learning} task={editingTask === "new" ? undefined : editingTask} onClose={() => setEditingTask(null)} onSave={(task) => { saveTask(task); setEditingTask(null); }} />}
   </div>;
 }
 
-function TaskSettingsDialog({ task, tasks, milestones, courses, presetParent, onClose, onSave }: { task?: TaskItem; tasks: TaskItem[]; milestones: Milestone[]; courses: Course[]; presetParent?: WorkTarget; onClose: () => void; onSave: (task: TaskItem) => void }) {
+function TaskSettingsDialog({ task, tasks, milestones, courses, learning, presetParent, onClose, onSave }: { task?: TaskItem; tasks: TaskItem[]; milestones: Milestone[]; courses: Course[]; learning: LearningArea[]; presetParent?: WorkTarget; onClose: () => void; onSave: (task: TaskItem) => void }) {
   const presetTask = presetParent?.kind === "task" ? tasks.find((item) => item.id === presetParent.id) : undefined;
   const presetNode = presetParent?.kind === "milestone" ? milestones.find((item) => item.id === presetParent.id) : undefined;
   const parentItem = presetTask ?? presetNode;
+  const classroomSubjects = Array.from(new Map(courses.filter((course) => isCourseTitleCandidate(course.title)).map((course) => [course.title.trim(), course])).values()).map((course) => ({ id: course.id, title: course.title.trim(), area: "课内" as const }));
+  const extracurricularSubjects = ["开发", "专业学习", "摄影", "日语"].flatMap((title) => {
+    const subject = learning.find((item) => item.title.trim() === title);
+    return subject ? [{ id: subject.id, title, area: "课外" as const }] : [];
+  });
+  const subjectOptions = [...classroomSubjects, ...extracurricularSubjects];
   const defaultEnd = new Date();
   defaultEnd.setDate(defaultEnd.getDate() + 7);
   const initialMode = taskModeOf(task ?? {});
   const [mode, setMode] = useState<TaskMode>(initialMode);
   const [origin, setOrigin] = useState<"course" | "other">(task ? task.courseId ? "course" : "other" : "course");
-  const [courseId, setCourseId] = useState(task?.courseId ?? presetNode?.courseId ?? courses[0]?.id ?? "");
+  const [courseId, setCourseId] = useState(task?.courseId ?? presetNode?.courseId ?? subjectOptions[0]?.id ?? "");
   const [title, setTitle] = useState(task?.title ?? "");
   const [requirements, setRequirements] = useState(task?.requirements ?? "");
-  const [area, setArea] = useState<Area>(task?.area ?? parentItem?.area ?? "课内");
-  const [source, setSource] = useState(task?.source ?? parentItem?.title ?? "");
+  const [area, setArea] = useState<Area>(task?.area ?? parentItem?.area ?? subjectOptions[0]?.area ?? "课内");
+  const [source, setSource] = useState(task?.source ?? parentItem?.title ?? subjectOptions[0]?.title ?? "");
   const [parent, setParent] = useState(task?.parentId ? "task:" + task.parentId : task?.parentMilestoneId ? "milestone:" + task.parentMilestoneId : presetParent ? presetParent.kind + ":" + presetParent.id : "");
   const [parentCandidate, setParentCandidate] = useState(task?.parentCandidate ?? initialMode === "multi");
   const excludedParents = new Set(task ? [task.id, ...descendantTasks(tasks, { kind: "task", id: task.id }).map((item) => item.id)] : []);
@@ -1145,13 +1149,14 @@ function TaskSettingsDialog({ task, tasks, milestones, courses, presetParent, on
   const [status, setStatus] = useState<TaskProgressStatus>(taskStatusOf(task ?? {}));
   const [progress, setProgress] = useState(taskProgressOf(task ?? {}));
   const [error, setError] = useState("");
+  const selectedSubject = subjectOptions.find((subject) => subject.id === courseId);
   const updateOrigin = (next: "course" | "other") => {
     setOrigin(next);
     if (next === "course") {
-      const selectedCourse = courses.find((course) => course.id === courseId) ?? courses[0];
-      setCourseId(selectedCourse?.id ?? "");
-      setArea("课内");
-      setSource(selectedCourse?.title ?? "课程任务");
+      const subject = selectedSubject ?? subjectOptions[0];
+      setCourseId(subject?.id ?? "");
+      setArea(subject?.area ?? "课内");
+      setSource(subject?.title ?? "学习任务");
     } else {
       setCourseId("");
       if (area === "课内") setArea("工作");
@@ -1171,7 +1176,7 @@ function TaskSettingsDialog({ task, tasks, milestones, courses, presetParent, on
   const submit = (event: React.FormEvent) => {
     event.preventDefault();
     if (!title.trim()) { setError("请填写任务名称"); return; }
-    if (origin === "course" && courses.length > 0 && !courseId) { setError("请选择所属课程"); return; }
+    if (origin === "course" && subjectOptions.length > 0 && !courseId) { setError("请选择所属学习科目"); return; }
     if (mode === "multi" && (!startDate || !due || startDate > due)) { setError("长期任务的开始日期不能晚于截止日期"); return; }
     let nextProgress = mode === "multi" ? Math.min(100, Math.max(0, Math.round(progress))) : (status === "已完成" ? 100 : 0);
     let nextStatus = status;
@@ -1180,7 +1185,6 @@ function TaskSettingsDialog({ task, tasks, milestones, courses, presetParent, on
     const changed = Boolean(task) && (nextProgress !== taskProgressOf(task!) || nextStatus !== taskStatusOf(task!));
     const progressLogs = [...(task?.progressLogs ?? [])];
     if (changed) progressLogs.push({ id: uid(), date: today, progress: nextProgress, status: nextStatus, note: "在任务设置中更新" });
-    const selectedCourse = courses.find((course) => course.id === courseId);
     const nextTask: TaskItem = {
       ...task,
       parentId: parent.startsWith("task:") ? parent.slice(5) : undefined,
@@ -1190,8 +1194,8 @@ function TaskSettingsDialog({ task, tasks, milestones, courses, presetParent, on
       title: title.trim().slice(0, 500),
       requirements: requirements.trim().slice(0, 4_000),
       parentCandidate,
-      area: origin === "course" ? "课内" : area,
-      source: origin === "course" ? selectedCourse?.title || source.trim() || "课程任务" : source.trim().slice(0, 500) || area + "任务",
+      area: origin === "course" ? selectedSubject?.area ?? area : area,
+      source: origin === "course" ? selectedSubject?.title || source.trim() || "学习任务" : source.trim().slice(0, 500) || area + "任务",
       due: due || undefined,
       done: nextStatus === "已完成",
       today: mode === "single" && due === today,
@@ -1208,14 +1212,14 @@ function TaskSettingsDialog({ task, tasks, milestones, courses, presetParent, on
   };
   const history = [...(task?.progressLogs ?? [])].reverse().slice(0, 5);
   return <div className="dialogScrim" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target) onClose(); }}><form className="appDialog taskSettingsDialog" role="dialog" aria-modal="true" aria-label={task ? "修改任务" : "新增任务"} onSubmit={submit}>
-    <div className="dialogHead"><div><span>任务设置</span><h2>{task ? "修改任务" : "新增任务"}</h2><p>先选择任务周期和所属领域；课程任务默认归入课内。</p></div><button type="button" aria-label="关闭" onClick={onClose}>×</button></div>
+    <div className="dialogHead"><div><span>任务设置</span><h2>{task ? "修改任务" : "新增任务"}</h2><p>先选择任务周期；学习任务可关联课内或课外学习科目。</p></div><button type="button" aria-label="关闭" onClick={onClose}>×</button></div>
     <div className="taskModePicker"><button type="button" className={mode === "single" ? "active" : ""} onClick={() => { setMode("single"); if (!task) setParentCandidate(false); }}><strong>短期任务</strong><span>一次或短期完成</span></button><button type="button" className={mode === "multi" ? "active" : ""} onClick={() => { if (!task && due === today) setDue(dateKey(defaultEnd)); setMode("multi"); if (!task) setParentCandidate(true); }}><strong>长期任务</strong><span>持续推进并记录进度</span></button></div>
-    <div className="taskOriginPicker"><button type="button" className={origin === "course" ? "active" : ""} onClick={() => updateOrigin("course")}><strong>课程任务</strong><span>默认归入课内并关联课程</span></button><button type="button" className={origin === "other" ? "active" : ""} onClick={() => updateOrigin("other")}><strong>其他任务</strong><span>工作、生活、思考或课外</span></button></div>
+    <div className="taskOriginPicker"><button type="button" className={origin === "course" ? "active" : ""} onClick={() => updateOrigin("course")}><strong>学习任务</strong><span>关联课内或课外学习科目</span></button><button type="button" className={origin === "other" ? "active" : ""} onClick={() => updateOrigin("other")}><strong>其他任务</strong><span>工作、生活或思考</span></button></div>
     <div className="dialogFields taskDialogFields">
       <label className="wide"><span>任务名称</span><input autoFocus required maxLength={500} value={title} placeholder="要完成什么？" onChange={(event) => setTitle(event.target.value)} /></label>
       <label className="wide"><span>具体要求</span><textarea maxLength={4000} value={requirements} placeholder="填写交付内容、完成标准、参考信息等…" onChange={(event) => setRequirements(event.target.value)} /></label>
-      {origin === "course" ? <><label><span>所属课程</span><select value={courseId} onChange={(event) => { const value = event.target.value; const course = courses.find((item) => item.id === value); setCourseId(value); setArea("课内"); setSource(course?.title ?? "课程任务"); }}><option value="">请选择课程</option>{courses.map((course) => <option value={course.id} key={course.id}>{course.title}</option>)}</select></label><label><span>所属领域</span><input value="课内" disabled /></label></> : <label><span>所属领域</span><select value={area} onChange={(event) => setArea(event.target.value as Area)}>{(["课内", "课外", "工作", "生活", "思考"] as Area[]).map((item) => <option key={item}>{item}</option>)}</select></label>}
-      <label><span>来源说明（可选）</span><input value={source} disabled={origin === "course"} placeholder={origin === "course" ? "由所属课程自动填写" : "项目、场景或来源"} onChange={(event) => setSource(event.target.value)} /></label>
+      {origin === "course" ? <><label><span>所属学习科目</span><select value={courseId} onChange={(event) => { const value = event.target.value; const subject = subjectOptions.find((item) => item.id === value); setCourseId(value); setArea(subject?.area ?? "课内"); setSource(subject?.title ?? "学习任务"); }}><option value="">请选择学习科目</option>{classroomSubjects.length > 0 && <optgroup label="课内学习科目">{classroomSubjects.map((subject) => <option value={subject.id} key={subject.id}>{subject.title}</option>)}</optgroup>}{extracurricularSubjects.length > 0 && <optgroup label="课外学习科目">{extracurricularSubjects.map((subject) => <option value={subject.id} key={subject.id}>{subject.title}</option>)}</optgroup>}</select></label><label><span>所属领域</span><input value={selectedSubject?.area ?? area} disabled /></label></> : <label><span>所属领域</span><select value={area} onChange={(event) => setArea(event.target.value as Area)}>{(["课内", "课外", "工作", "生活", "思考"] as Area[]).map((item) => <option key={item}>{item}</option>)}</select></label>}
+      <label><span>来源说明（可选）</span><input value={source} disabled={origin === "course"} placeholder={origin === "course" ? "由所属学习科目自动填写" : "项目、场景或来源"} onChange={(event) => setSource(event.target.value)} /></label>
       <label className="wide"><span>所属任务或事项</span><select value={parent} onChange={(event) => updateParent(event.target.value)}><option value="">独立任务</option>{(taskParents.length > 0 || nodeParents.length > 0) && <optgroup label="可作为上级的任务">{taskParents.map((item) => <option value={"task:" + item.id} key={item.id}>{taskModeOf(item) === "multi" ? "长期" : "短期"} · {item.area} · {item.title}</option>)}{nodeParents.map((item) => <option value={"milestone:" + item.id} key={"node-" + item.id}>{item.mode === "multi" ? "长期" : "短期"} · {item.area} · {item.title}</option>)}</optgroup>}{eventParents.length > 0 && <optgroup label="事项">{eventParents.map((item) => <option value={"milestone:" + item.id} key={"event-" + item.id}>{item.area} · {item.title}</option>)}</optgroup>}</select><small>任务候选只显示已开启“允许其他任务归属于它”的内容。</small></label>
       <label className="wide taskCandidateToggle"><span><input type="checkbox" checked={parentCandidate} onChange={(event) => setParentCandidate(event.target.checked)} />允许其他任务归属于它</span><small>开启后会进入“所属任务”备选清单；长期任务默认开启。</small></label>
       {mode === "multi" && <label><span>开始日期</span><input type="date" required value={startDate} onChange={(event) => setStartDate(event.target.value)} /></label>}
@@ -1246,7 +1250,6 @@ function CalendarView({ data, setData, setDialog, openWork, readOnly }: { data: 
     onSubmit: (values) => {
       const id = uid();
       setData((current) => ({ ...current, milestones: [...current.milestones, { id, title: values.title.trim() || "未命名事项", date: values.date || today, time: values.time || "09:00", location: values.location.trim(), requirements: values.requirements.trim(), area: (values.area || "工作") as Area, done: false }] }));
-      openWork({ kind: "milestone", id });
     },
   });
   return <div className="page"><PageHead eyebrow="全局时间线" title="日历" subtitle="课程任务与日历事项共同显示，点击任一条即可查看和编辑" action={<button className="primaryButton" disabled={readOnly} onClick={addNode}>＋ 新建事项</button>} /><section className="panel calendarPanel"><div className="weekHead">{"日一二三四五六".split("").map((day) => <span key={day}>周{day}</span>)}</div><div className="calendarGrid">{days.map((date) => { const key = dateKey(date); const events = data.milestones.filter((item) => item.date === key); return <div className={"calendarCell " + (key === today ? "today" : "")} key={key}><strong>{date.getDate()}</strong><div>{events.map((event) => <button type="button" key={event.id} className={"calendarEvent " + areaClass[event.area]} title={(event.courseId ? "课程任务" : "事项") + " · " + event.time + " " + event.location + " " + event.requirements} onClick={() => openWork({ kind: "milestone", id: event.id })}><small>{event.courseId ? "任务" : "事项"}</small>{event.time} {event.title}</button>)}</div></div>; })}</div></section></div>;
