@@ -94,7 +94,7 @@ const financeEntry = z.object({
 }).strict();
 
 export const workspaceStateSchema = z.object({
-  version: z.literal(5),
+  version: z.literal(6),
   tasks: z.array(z.object({
     id, title: shortText, area, source: shortText, due: date.optional(), done: z.boolean(), today: z.boolean(), elapsed: z.number().int().min(0).max(10_000_000),
     parentId: id.optional(), parentMilestoneId: id.optional(), courseId: id.optional(), blocks: z.array(block).max(2000).optional(),
@@ -166,11 +166,16 @@ export const workspaceStateSchema = z.object({
 
 export function createEmptyWorkspaceState() {
   return {
-    version: 5 as const,
+    version: 6 as const,
     tasks: [],
     milestones: [],
     courses: [],
-    learning: [],
+    learning: [
+      { id: "learning-default-development", title: "开发", category: "技术", progress: 0, goal: "", resources: [], blocks: [] },
+      { id: "learning-default-professional", title: "专业学习", category: "专业", progress: 0, goal: "", resources: [], blocks: [] },
+      { id: "learning-default-photography", title: "摄影", category: "兴趣", progress: 0, goal: "", resources: [], blocks: [] },
+      { id: "learning-default-japanese", title: "日语", category: "语言", progress: 0, goal: "", resources: [], blocks: [] },
+    ],
     research: [],
     ideas: [],
     tools: [],

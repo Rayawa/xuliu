@@ -113,7 +113,7 @@ function requireTitle(entity: AiEntity, values: JsonObject) {
 function defaultsFor(entity: AiEntity): JsonObject {
   const defaults: Record<AiEntity, JsonObject> = {
     task: { title: "", requirements: "", parentCandidate: false, area: "思考", source: "AI 助手", done: false, today: false, elapsed: 0, mode: "single", status: "未开始", progress: 0, progressLogs: [] },
-    milestone: { title: "", date: "", time: "09:00", location: "", requirements: "", area: "思考", done: false },
+    milestone: { title: "", date: "", time: "00:00", location: "", requirements: "", area: "思考", done: false },
     course: { title: "", term: "", teacher: "", location: "", progress: 0, requirements: "", schedule: [], blocks: contentBlocks("") },
     courseSlot: { weekday: 1, start: "08:00", end: "09:00", location: "", weeks: "", source: "manual" },
     learning: { title: "", category: "自主学习", progress: 0, goal: "", resources: [], blocks: contentBlocks("") },

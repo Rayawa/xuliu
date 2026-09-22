@@ -112,7 +112,7 @@ export function CourseNodeForm({ courseId, location, date, access, onCreate, onC
   courseId: string; location: string; date: string; access: Access;
   onCreate: (node: CourseNode) => void; onCancel: () => void;
 }) {
-  const [draft, setDraft] = useState<CourseNode>(() => ({ id: crypto.randomUUID(), courseId, title: "", date, time: "12:00", location, requirements: "", attachments: [], mode: "single", parentCandidate: false, area: "课内", done: false }));
+  const [draft, setDraft] = useState<CourseNode>(() => ({ id: crypto.randomUUID(), courseId, title: "", date, time: "00:00", location, requirements: "", attachments: [], mode: "single", parentCandidate: false, area: "课内", done: false }));
   const [blocked, setBlocked] = useState(false);
   const [discard, setDiscard] = useState(false);
   const submitted = useRef(false);

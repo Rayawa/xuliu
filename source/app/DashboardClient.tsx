@@ -90,7 +90,7 @@ type ToolItem = ToolCollectionFields & { id: string; title: string; status: stri
 type Reminder = { id: string; title: string; type: "exercise" | "break" | "sleep" | "custom"; times: string[]; time?: string; intervalMinutes?: number; enabled: boolean; lastFired?: string; snoozedUntil?: number };
 type Habit = { id: string; title: string; streak: number; today: boolean; schedule: string; lastCompletedDate?: string };
 type AppState = {
-  version: 5;
+  version: 6;
   tasks: TaskItem[];
   milestones: Milestone[];
   courses: Course[];
@@ -245,12 +245,24 @@ async function parseAcademicFile(file: File, preset: AcademicImportPreset) {
   return groupImportedCourses(flattened);
 }
 
+const defaultLearningAreas: LearningArea[] = [
+  { id: "learning-default-development", title: "开发", category: "技术", progress: 0, goal: "", resources: [], blocks: [] },
+  { id: "learning-default-professional", title: "专业学习", category: "专业", progress: 0, goal: "", resources: [], blocks: [] },
+  { id: "learning-default-photography", title: "摄影", category: "兴趣", progress: 0, goal: "", resources: [], blocks: [] },
+  { id: "learning-default-japanese", title: "日语", category: "语言", progress: 0, goal: "", resources: [], blocks: [] },
+];
+
+function withDefaultLearningAreas(items: LearningArea[]) {
+  const titles = new Set(items.map((item) => item.title.trim()));
+  return [...items, ...defaultLearningAreas.filter((item) => !titles.has(item.title)).map((item) => ({ ...item, resources: [], blocks: [] }))];
+}
+
 const initialState: AppState = {
-  version: 5,
+  version: 6,
   tasks: [],
   milestones: [],
   courses: [],
-  learning: [],
+  learning: withDefaultLearningAreas([]),
   research: [],
   ideas: [],
   tools: [],
@@ -291,6 +303,7 @@ function withTaskCompletion(task: TaskItem, completed: boolean, at = today): Tas
 function hydrateState(raw: unknown): AppState {
   if (!raw || typeof raw !== "object") return initialState;
   const saved = raw as Partial<AppState> & { resources?: { id: string; title: string; type: string; progress: number; url?: string; note?: string }[] };
+  const savedVersion = Number((raw as { version?: unknown }).version ?? 0);
   const courses = Array.isArray(saved.courses) ? saved.courses.map((item) => {
     const school: AcademicImportPreset = item.school === "bit" || item.schedule?.some((slot) => slot.source === "bit") ? "bit" : "pku";
     const rootLocationText = item.location ?? "";
@@ -300,7 +313,8 @@ function hydrateState(raw: unknown): AppState {
       school: item.school, progress: item.progress ?? 0, requirements: item.requirements ?? "", schedule: normalizedCourseSchedule(item.schedule, school), blocks: cleanStarterBlocks(item.blocks),
     };
   }) : [];
-  const learning = Array.isArray(saved.learning) ? saved.learning.map((item) => ({ ...item, resources: item.resources ?? [], blocks: cleanStarterBlocks(item.blocks) })) : saved.resources?.map((item) => ({ id: item.id, title: item.title, category: item.type, progress: item.progress, goal: item.note ?? "", resources: [{ id: uid(), title: item.title, type: item.type, url: item.url ?? "", progress: item.progress }], blocks: [] })) ?? [];
+  const normalizedLearning = Array.isArray(saved.learning) ? saved.learning.map((item) => ({ ...item, resources: item.resources ?? [], blocks: cleanStarterBlocks(item.blocks) })) : saved.resources?.map((item) => ({ id: item.id, title: item.title, category: item.type, progress: item.progress, goal: item.note ?? "", resources: [{ id: uid(), title: item.title, type: item.type, url: item.url ?? "", progress: item.progress }], blocks: [] })) ?? [];
+  const learning = savedVersion < 6 ? withDefaultLearningAreas(normalizedLearning) : normalizedLearning;
   const tasks = Array.isArray(saved.tasks) ? saved.tasks.map((item) => {
     const mode = taskModeOf(item);
     const progress = taskProgressOf(item);
@@ -316,7 +330,7 @@ function hydrateState(raw: unknown): AppState {
     };
   }) : [];
   return {
-    ...initialState, ...saved, version: 5, courses, learning,
+    ...initialState, ...saved, version: 6, courses, learning,
     tasks,
     milestones: Array.isArray(saved.milestones) ? saved.milestones.map((item) => ({ ...item, attachments: item.attachments ?? [], blocks: item.blocks ? cleanStarterBlocks(item.blocks) : undefined, mode: item.courseId ? item.mode ?? "single" : undefined, parentCandidate: item.courseId ? item.parentCandidate ?? tasks.some((task) => task.parentMilestoneId === item.id) : undefined })) : [],
     research: Array.isArray(saved.research) ? saved.research.map((item) => ({
@@ -351,7 +365,9 @@ function hydrateState(raw: unknown): AppState {
 function clientNormalizationChanged(raw: unknown, hydrated: AppState) {
   if (!raw || typeof raw !== "object") return false;
   const saved = raw as Partial<AppState>;
-  return JSON.stringify(Array.isArray(saved.tasks) ? saved.tasks : []) !== JSON.stringify(hydrated.tasks)
+  return saved.version !== hydrated.version
+    || JSON.stringify(Array.isArray(saved.tasks) ? saved.tasks : []) !== JSON.stringify(hydrated.tasks)
+    || JSON.stringify(Array.isArray(saved.learning) ? saved.learning : []) !== JSON.stringify(hydrated.learning)
     || JSON.stringify(Array.isArray(saved.habits) ? saved.habits : []) !== JSON.stringify(hydrated.habits)
     || JSON.stringify(Array.isArray(saved.reminders) ? saved.reminders : []) !== JSON.stringify(hydrated.reminders)
     || JSON.stringify(Array.isArray(saved.courses) ? saved.courses : []) !== JSON.stringify(hydrated.courses);
@@ -723,14 +739,14 @@ function TodayView({ data, setData, tasks, milestones, totalMinutes, daily, upda
     fields: [
       { name: "title", label: "事项名称", placeholder: "例如：项目会议" },
       { name: "date", label: "日期", type: "date", value: today },
-      { name: "time", label: "时间", type: "time", value: "09:00" },
+      { name: "time", label: "时间", type: "time", value: "00:00" },
       { name: "location", label: "地点" },
       { name: "requirements", label: "事项说明", type: "textarea", placeholder: "议程、携带材料或其他说明" },
       { name: "area", label: "所属领域", type: "select", options: ["课内", "课外", "工作", "生活", "思考"], value: "工作" },
     ],
     onSubmit: (values) => {
       const id = uid();
-      setData((current) => ({ ...current, milestones: [...current.milestones, { id, title: values.title.trim() || "未命名事项", date: values.date || today, time: values.time || "09:00", location: values.location.trim(), requirements: values.requirements.trim(), area: (values.area || "工作") as Area, done: false }] }));
+      setData((current) => ({ ...current, milestones: [...current.milestones, { id, title: values.title.trim() || "未命名事项", date: values.date || today, time: values.time || "00:00", location: values.location.trim(), requirements: values.requirements.trim(), area: (values.area || "工作") as Area, done: false }] }));
     },
   });
   const courseTasks = milestones.filter((node) => Boolean(node.courseId));
@@ -1072,14 +1088,14 @@ function TaskOverviewView({ data, setData, setDialog, openWork, requestDelete, r
     fields: [
       { name: "title", label: "事项名称", placeholder: "例如：项目会议" },
       { name: "date", label: "日期", type: "date", value: today },
-      { name: "time", label: "时间", type: "time", value: "09:00" },
+      { name: "time", label: "时间", type: "time", value: "00:00" },
       { name: "location", label: "地点" },
       { name: "requirements", label: "事项说明", type: "textarea", placeholder: "议程、携带材料或其他说明" },
       { name: "area", label: "所属领域", type: "select", options: ["课内", "课外", "工作", "生活", "思考"], value: "工作" },
     ],
     onSubmit: (values) => {
       const id = uid();
-      setData((current) => ({ ...current, milestones: [...current.milestones, { id, title: values.title.trim() || "未命名事项", date: values.date || today, time: values.time || "09:00", location: values.location.trim(), requirements: values.requirements.trim(), area: (values.area || "工作") as Area, done: false }] }));
+      setData((current) => ({ ...current, milestones: [...current.milestones, { id, title: values.title.trim() || "未命名事项", date: values.date || today, time: values.time || "00:00", location: values.location.trim(), requirements: values.requirements.trim(), area: (values.area || "工作") as Area, done: false }] }));
     },
   });
   const recordProgress = (task: TaskItem) => setDialog({
@@ -1127,10 +1143,7 @@ function TaskSettingsDialog({ task, tasks, milestones, courses, learning, preset
   const presetNode = presetParent?.kind === "milestone" ? milestones.find((item) => item.id === presetParent.id) : undefined;
   const parentItem = presetTask ?? presetNode;
   const classroomSubjects = Array.from(new Map(courses.filter((course) => isCourseTitleCandidate(course.title)).map((course) => [course.title.trim(), course])).values()).map((course) => ({ id: course.id, title: course.title.trim(), area: "课内" as const }));
-  const extracurricularSubjects = ["开发", "专业学习", "摄影", "日语"].flatMap((title) => {
-    const subject = learning.find((item) => item.title.trim() === title);
-    return subject ? [{ id: subject.id, title, area: "课外" as const }] : [];
-  });
+  const extracurricularSubjects = Array.from(new Map(learning.filter((item) => item.title.trim()).map((item) => [item.title.trim(), item])).values()).map((subject) => ({ id: subject.id, title: subject.title.trim(), area: "课外" as const }));
   const subjectOptions = [...classroomSubjects, ...extracurricularSubjects];
   const defaultEnd = new Date();
   defaultEnd.setDate(defaultEnd.getDate() + 7);
@@ -1248,14 +1261,14 @@ function CalendarView({ data, setData, setDialog, openWork, readOnly }: { data: 
     fields: [
       { name: "title", label: "事项名称", placeholder: "例如：项目会议" },
       { name: "date", label: "日期", type: "date", value: today },
-      { name: "time", label: "时间", type: "time", value: "09:00" },
+      { name: "time", label: "时间", type: "time", value: "00:00" },
       { name: "location", label: "地点" },
       { name: "requirements", label: "事项说明", type: "textarea" },
       { name: "area", label: "所属领域", type: "select", options: ["课内", "课外", "工作", "生活", "思考"], value: "工作" },
     ],
     onSubmit: (values) => {
       const id = uid();
-      setData((current) => ({ ...current, milestones: [...current.milestones, { id, title: values.title.trim() || "未命名事项", date: values.date || today, time: values.time || "09:00", location: values.location.trim(), requirements: values.requirements.trim(), area: (values.area || "工作") as Area, done: false }] }));
+      setData((current) => ({ ...current, milestones: [...current.milestones, { id, title: values.title.trim() || "未命名事项", date: values.date || today, time: values.time || "00:00", location: values.location.trim(), requirements: values.requirements.trim(), area: (values.area || "工作") as Area, done: false }] }));
     },
   });
   return <div className="page"><PageHead eyebrow="全局时间线" title="日历" subtitle="课程任务与日历事项共同显示，点击任一条即可查看和编辑" action={<button className="primaryButton" disabled={readOnly} onClick={addNode}>＋ 新建事项</button>} /><section className="panel calendarPanel"><div className="weekHead">{"日一二三四五六".split("").map((day) => <span key={day}>周{day}</span>)}</div><div className="calendarGrid">{days.map((date) => { const key = dateKey(date); const events = data.milestones.filter((item) => item.date === key); return <div className={"calendarCell " + (key === today ? "today" : "")} key={key}><strong>{date.getDate()}</strong><div>{events.map((event) => <button type="button" key={event.id} className={"calendarEvent " + areaClass[event.area]} title={(event.courseId ? "课程任务" : "事项") + " · " + event.time + " " + event.location + " " + event.requirements} onClick={() => openWork({ kind: "milestone", id: event.id })}><small>{event.courseId ? "任务" : "事项"}</small>{event.time} {event.title}</button>)}</div></div>; })}</div></section></div>;
