@@ -201,7 +201,9 @@ a { color: inherit; }
 
 .todayGrid { display: grid; grid-template-columns: minmax(0,1.45fr) minmax(320px,.8fr); gap: 21px; align-items: start; }
 .stack { display: grid; gap: 19px; }
-.taskPanel, .notePanel, .reminderPanel, .focusPanel { padding: 22px; }
+.taskPanel, .notePanel, .reminderPanel, .focusPanel, .todayHabitsPanel { padding: 22px; }
+.todayHabitList { max-height: 300px; overflow-y: auto; }
+.todayHabitRow { grid-template-columns: 30px minmax(0,1fr); padding: 12px 0; }
 .taskList { margin-top: 13px; }
 .taskRow { display: grid; grid-template-columns: 24px minmax(0,1fr) auto; align-items: center; gap: 12px; padding: 14px 2px; border-top: 1px solid #e9ede9; }
 .taskRow:first-child { border-top: 0; }
