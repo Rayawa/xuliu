@@ -152,7 +152,7 @@ export const workspaceStateSchema = z.object({
   timeEntries: z.array(z.object({ id, taskId: id, targetKind: z.enum(["task", "milestone"]).optional(), minutes: z.number().int().min(1).max(1_440), date, mode: shortText, note: shortText.optional() }).strict()).max(20_000),
   focusSettings: z.object({ minutes: z.number().int().min(1).max(180), sound: z.boolean(), volume: z.number().int().min(0).max(100) }).strict().optional(),
   timetableSettings: z.object({ termStartDate: date, activeSchool: z.enum(["pku", "bit"]) }).strict().optional(),
-  studyAutomation: z.object({ enabled: z.boolean(), processedKeys: z.array(shortText).max(20_000) }).strict().optional(),
+  studyAutomation: z.object({ enabled: z.boolean(), processedKeys: z.array(shortText).max(20_000), ruleVersion: z.number().int().min(1).max(100).optional() }).strict().optional(),
   finance: z.object({
     entries: z.array(financeEntry).max(20_000),
     budgets: z.record(z.string().refine(isValidMonthKey), z.object({ totalCents: z.number().int().nonnegative().max(100_000_000_00), categoryCents: z.record(z.string().min(1).max(40), z.number().int().nonnegative().max(100_000_000_00)) }).strict()),
@@ -189,7 +189,7 @@ export function createEmptyWorkspaceState() {
     daily: {},
     timeEntries: [],
     timetableSettings: { termStartDate: "2026-08-31", activeSchool: "pku" as const },
-    studyAutomation: { enabled: true, processedKeys: [] },
+    studyAutomation: { enabled: true, processedKeys: [], ruleVersion: 2 },
     finance: createInitialFinanceState(),
     themes: {},
   };

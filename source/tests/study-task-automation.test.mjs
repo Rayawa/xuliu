@@ -49,4 +49,5 @@ test("automatic task keys survive cloud validation and export", () => {
   const restored = workspaceStateSchema.parse(JSON.parse(JSON.stringify(state)));
   assert.equal(restored.milestones[0].automationKey, draft.automationKey);
   assert.deepEqual(restored.studyAutomation?.processedKeys, [draft.automationKey]);
+  assert.equal(restored.studyAutomation?.ruleVersion, 2);
 });

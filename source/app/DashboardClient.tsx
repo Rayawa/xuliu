@@ -110,7 +110,7 @@ type AppState = {
   focusSettings?: FocusSettings;
   finance: FinanceState;
   timetableSettings: { termStartDate: string; activeSchool: AcademicImportPreset };
-  studyAutomation: { enabled: boolean; processedKeys: string[] };
+  studyAutomation: { enabled: boolean; processedKeys: string[]; ruleVersion: number };
   themes: Record<string, string>;
 };
 
@@ -278,7 +278,7 @@ const initialState: AppState = {
   timeEntries: [],
   finance: createInitialFinanceState(),
   timetableSettings: { termStartDate: "2026-08-31", activeSchool: "pku" },
-  studyAutomation: { enabled: true, processedKeys: [] },
+  studyAutomation: { enabled: true, processedKeys: [], ruleVersion: 2 },
   themes: { today: "#718c7c", timetable: "#6d8291", tasks: "#7b846d", calendar: "#6f8295", review: "#8c7a91", finance: "#6f7f72", school: "#657f91", learning: "#80769a", thoughts: "#668476", work: "#8b7658", ideas: "#8a6f7d", tools: "#617f78", life: "#8b706d", free: "#738287" },
 };
 
@@ -340,10 +340,11 @@ function hydrateState(raw: unknown): AppState {
     };
   }) : [];
   const milestones = Array.isArray(saved.milestones) ? saved.milestones.map((item) => ({ ...item, attachments: item.attachments ?? [], blocks: item.blocks ? cleanStarterBlocks(item.blocks) : undefined, mode: item.courseId ? item.mode ?? "single" : undefined, parentCandidate: item.courseId ? item.parentCandidate ?? tasks.some((task) => task.parentMilestoneId === item.id) : undefined })) : [];
+  const resetAutomaticTasks = saved.studyAutomation?.ruleVersion !== 2;
   const invalidAutomaticKeys = new Set(milestones.flatMap((node) => {
     if (!node.automationKey) return [];
     const course = courses.find((item) => item.id === node.courseId);
-    return course && isCourseTitleCandidate(course.title) && courseUsesAutomatedStudyPlan(course.title) ? [] : [node.automationKey];
+    return !resetAutomaticTasks && course && isCourseTitleCandidate(course.title) && courseUsesAutomatedStudyPlan(course.title) ? [] : [node.automationKey];
   }));
   return {
     ...initialState, ...saved, version: 6, courses, learning,
@@ -377,6 +378,7 @@ function hydrateState(raw: unknown): AppState {
     studyAutomation: {
       enabled: saved.studyAutomation?.enabled !== false,
       processedKeys: Array.isArray(saved.studyAutomation?.processedKeys) ? saved.studyAutomation.processedKeys.filter((key) => !invalidAutomaticKeys.has(key)).slice(-20_000) : [],
+      ruleVersion: 2,
     },
     themes: { ...initialState.themes, ...(saved.themes ?? {}) },
   };
