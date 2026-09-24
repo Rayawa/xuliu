@@ -166,6 +166,9 @@ a { color: inherit; }
 .navButton.active { color: color-mix(in srgb, var(--accent) 75%, #243029); background: color-mix(in srgb, var(--accent) 15%, white); font-weight: 700; }
 .navButton.active > span { color: white; background: var(--accent); }
 .exportButton { width: calc(100% - 16px); margin: 22px 8px 0; padding: 10px; border: 1px solid var(--line); border-radius: 10px; color: var(--muted); background: rgba(255,255,255,.75); font-size: 12px; }
+.refreshButton { width: calc(100% - 16px); margin: 8px 8px 0; padding: 9px; border: 0; border-radius: 9px; color: var(--muted); background: transparent; font-size: 12px; }
+.refreshButton:hover { color: var(--accent); background: color-mix(in srgb,var(--accent) 8%,transparent); }
+.refreshButton:disabled { opacity: .55; }
 .sidebarFoot { margin-top: auto; display: flex; align-items: center; gap: 9px; padding: 23px 12px 3px; color: var(--faint); font-size: 12px; }
 .syncDot { width: 8px; height: 8px; border-radius: 50%; background: #7ca188; box-shadow: 0 0 0 4px #e6efe8; }
 .syncDot.saving { background: #b59a6d; animation: pulse 1s infinite alternate; }
@@ -208,8 +211,10 @@ a { color: inherit; }
 .taskRow { display: grid; grid-template-columns: 24px minmax(0,1fr) auto; align-items: center; gap: 12px; padding: 14px 2px; border-top: 1px solid #e9ede9; }
 .taskRow:first-child { border-top: 0; }
 .taskRow.done .taskBody strong, .taskRow.done .taskTitleButton { color: var(--muted); text-decoration: line-through; }
-.taskRowActions { display: flex; align-items: center; gap: 7px; }
+.taskRowActions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 7px; }
 .todayQuickDelete { width: 30px; height: 30px; font-size: 18px; }
+.quickPostponeButton { padding: 6px 8px; border: 0; border-radius: 8px; color: color-mix(in srgb,var(--accent) 76%,#4d5952); background: color-mix(in srgb,var(--accent) 10%,white); font-size: 10px; font-weight: 700; white-space: nowrap; }
+.quickPostponeButton:disabled { opacity: .45; }
 .taskBody .todayCompletionStatus { justify-self: start; }
 .checkButton, .habitCheck { width: 21px; height: 21px; display: grid; place-items: center; padding: 0; border: 1.5px solid #9daca3; border-radius: 7px; color: white; background: white; font-size: 12px; }
 .checkButton:has(+ .taskBody), .habitCheck { flex: 0 0 auto; }
@@ -616,6 +621,7 @@ a { color: inherit; }
 .dialogFields input, .dialogFields textarea, .dialogFields select { width: 100%; padding: 11px 12px; border: 1px solid var(--line); border-radius: 10px; background: #f8f9f7; font-size: 12px; }
 .dialogFields textarea { min-height: 90px; resize: vertical; }
 .dialogActions { margin-top: 24px; display: flex; justify-content: flex-end; gap: 9px; }
+.dialogDetailAction { margin-right: auto; }
 .pagePopup { position: fixed; z-index: 90; right: 26px; bottom: 26px; width: min(380px,calc(100% - 32px)); padding: 22px; border: 1px solid color-mix(in srgb, var(--accent) 30%, white); border-radius: 18px; background: white; box-shadow: 0 22px 70px rgba(31,43,36,.2); animation: popupIn .2s ease-out; }
 @keyframes popupIn { from { transform: translateY(12px); opacity: 0; } }
 .pagePopup > span { color: var(--accent); font-size: 10px; font-weight: 800; letter-spacing: .08em; }
@@ -644,6 +650,8 @@ a { color: inherit; }
   .main { margin-left: 0; }
   .mobileHeader { position: sticky; z-index: 19; top: 0; height: 56px; padding: 0 18px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); background: rgba(250,251,248,.92); backdrop-filter: blur(15px); }
   .iconButton { border: 0; background: transparent; font-size: 20px; }
+  .mobileHeaderActions { display: flex; align-items: center; gap: 13px; }
+  .refreshIconButton { width: 34px; height: 34px; padding: 0; border-radius: 10px; color: var(--muted); background: color-mix(in srgb,var(--accent) 8%,white); }
   .mobileTabs { position: fixed; z-index: 25; inset: auto 0 0; height: 67px; display: grid; grid-template-columns: repeat(4,1fr); border-top: 1px solid var(--line); background: rgba(250,251,248,.96); backdrop-filter: blur(15px); }
   .mobileTabs button { display: grid; place-items: center; align-content: center; gap: 4px; border: 0; color: var(--muted); background: transparent; font-size: 9px; }
   .mobileTabs button span { font-size: 13px; }
@@ -1308,6 +1316,7 @@ a { color: inherit; }
 .activeFocusBar button { flex-shrink: 0; border: 0; background: transparent; color: var(--accent); cursor: pointer; }
 @media (max-width: 1120px) { .taskDetailGrid { grid-template-columns: minmax(0,1fr); }.taskFocusAside { position: static; grid-row: 1; }.taskFocusAside .focusPanel { max-width: 100%; }.taskFocusAside .timerValue { font-size: 44px; margin: 14px 0; } }
 @media (max-width: 760px) { .taskTimePanel,.taskChildrenPanel,.taskRequirements { padding: 18px; }.taskTimeStats { gap: 20px; }.taskTimeHistory > div { grid-template-columns: 90px 70px 1fr; gap: 6px; }.activeFocusBar { left: 10px; bottom: 76px; max-width: calc(100vw - 80px); padding: 10px; gap: 8px; }.overviewTaskActions { grid-column: 2 / -1; justify-content: flex-start; }.taskDetailPage .pageHead h1 { overflow-wrap: anywhere; } }
+@media (max-width: 760px) { .taskRowActions { grid-column: 2 / -1; justify-content: flex-start; }.dialogActions { flex-wrap: wrap; }.dialogDetailAction { width: 100%; margin-right: 0; } }
 
 /* Task and event structure */
 .todayTaskGroup { margin-top: 18px; padding-top: 17px; border-top: 1px solid #e5eae5; }
