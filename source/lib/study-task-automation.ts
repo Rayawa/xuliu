@@ -1,4 +1,4 @@
-import { addDays, courseRunsInTimetableWeek, timetableWeekInfo } from "./timetable.ts";
+import { addDays, courseRunsInTimetableWeek, isCourseTitleCandidate, timetableWeekInfo } from "./timetable.ts";
 
 export type StudyCourseSlot = {
   id: string;
@@ -29,78 +29,64 @@ export type StudyTaskDraft = {
 type StudyStage = "before" | "during" | "after";
 type StudyMethod = Partial<Record<StudyStage, string>> & { skip?: boolean };
 
-const genericMethod: Required<Omit<StudyMethod, "skip">> = {
-  before: "查看本节资料，明确学习目标、主线和需要带到课堂的问题。",
-  during: "记录老师强调的概念、例题、方法选择和仍未解决的问题。",
-  after: "整理课堂补充，独立完成练习，并记录错因与下一步复习重点。",
-};
-
 const studyMethods: Array<{ matches: string[]; method: StudyMethod }> = [
   {
     matches: ["线性代数"],
     method: {
-      before: "用 GPT 根据教材或 PPT 整理本节主线、概念、公式和关键例题，快速预习，不追求一次学透。",
-      during: "重点观察老师怎样做例题、怎样选择方法，并把课堂补充直接记回已有笔记。",
-      after: "先独立完成作业，再分析题型、错因和通法，最后回到笔记完成自测。",
+      before: "用 GPT 总结课本和 PPT，形成笔记并完成预习。",
+      during: "看笔记、跟例题，并在原笔记上补充课堂内容。",
+      after: "用 GPT 分析已有错题、总结本节题型，再复习笔记并完成自测。",
     },
   },
   {
     matches: ["概率论"],
     method: {
-      before: "根据教材或 PPT 快速预习，先搞清这节课要解决什么随机问题。",
-      during: "例题优先关注为什么选择这个模型、为什么这样计数，不只抄答案。",
-      after: "按时完成作业和慕课测试；独立做题后总结题型、错因和常见变式。",
+      before: "用 GPT 总结课本和 PPT，形成笔记并完成预习。",
+      during: "看笔记和例题，重点理解题目为什么使用当前方法。",
+      after: "用 GPT 分析已有错题、总结本节题型，再复习笔记并完成自测。",
     },
   },
   {
     matches: ["税收理论", "税法"],
     method: {
-      before: "整理本节税种框架，先明确谁交、什么行为交、怎样计算。",
-      during: "补充老师强调的计算口径、特殊规定、例外和考试提示。",
-      after: "完成作业和对应计算题，并记录判断错在哪里、遗漏了什么条件。",
+      before: "用 GPT 总结课本，形成笔记并完成预习。",
+      during: "在已有笔记上补充老师强调的规则、例外和计算方法。",
+      after: "结合本节规则完成自主练习，再复习笔记。",
     },
   },
   {
     matches: ["会计学基础"],
     method: {
-      before: "把本节 Course Notes 整理成可上课使用的 Full Course Notes，快速看一遍主线和术语。",
-      during: "直接在 Full Course Notes 上补充老师解释、例题和考试提示，不另建重复笔记。",
-      after: "整理课堂补充，独立完成本节 Question Bank，并分析错题原因。",
+      before: "整理或转录本节 Course Notes，形成可上课使用的 Full Course Notes，并快速预习。",
+      during: "直接在转录版 Course Notes 上补充课堂笔记。",
+      after: "用 GPT 整理本节笔记，再独立练习本节 Question Bank。",
     },
   },
   {
     matches: ["大数据分析"],
     method: {
-      before: "Lecture 根据 PPT 做简明笔记；如为 Seminar 或 Workshop，先独立完成实践任务。",
-      during: "Lecture 补方法解释；Seminar 或 Workshop 重点订正，并记录任务、数据、方法、操作、输出和解释。",
-      after: "如为 Seminar 或 Workshop，不依赖 AI 独立重做一次，并补全本周实践记录。",
+      before: "Lecture 用 GPT 总结 PPT 并预习；Seminar 先独立完成练习题。",
+      during: "Lecture 看笔记并补笔记；Seminar 订正答案；Workshop 实际完成操作。",
+      after: "Lecture 用 GPT 二次整理笔记；Seminar 只补充错题或不会的部分；Workshop 独立重做关键操作。",
     },
   },
   {
     matches: ["经济学基础"],
     method: {
-      before: "Lecture 根据 PPT 和教材简明预习；Tutorial 先读指定教材并独立完成问题。",
-      during: "记录图形、因果关系和易混概念；Tutorial 重点订正并记录老师的判断逻辑。",
-      after: "Lecture 整理一次课堂补充；Tutorial 只整理错题和概念混淆点。",
+      before: "Lecture 用 GPT 总结 PPT 和课本并预习；Tutorial 阅读课本并完成练习题。",
+      during: "Lecture 根据总结笔记补充课堂内容；Tutorial 订正练习题并记录不会或做错的点。",
+      after: "Lecture 用 GPT 最后整理一次笔记；Tutorial 只复习错题和相关知识点。",
     },
   },
   {
     matches: ["马克思主义", "马原"],
     method: {
-      during: "保证出勤和课堂纪律，重点记录老师反复强调的概念、表述和材料分析思路。",
-      after: "结合教材和课堂内容整理成“概念 → 原理 → 为什么 → 可分析什么现实问题”。",
+      during: "结合课堂内容，在已有笔记上补充老师强调的重点。",
+      after: "需要时用 GPT 整理课本和课堂内容；专题结束时整理老师强调的原理、关键词和可分析的现实问题。",
     },
   },
   {
-    matches: ["文献检索"],
-    method: {
-      before: "明确本节要练习的检索或数据工具，并准备把课堂作业积累为报告素材。",
-      during: "掌握实际工具操作；调整检索式、筛选文献和获取数据时及时保留截图。",
-      after: "整理课堂作业、检索记录和证据截图，纳入文献调研报告素材。",
-    },
-  },
-  {
-    matches: ["会计学专业导论"],
+    matches: ["气候与社会", "文献检索", "会计学专业导论"],
     method: { skip: true },
   },
 ];
@@ -109,9 +95,14 @@ function normalizedTitle(title: string) {
   return title.normalize("NFKC").replace(/\s+/g, "").toLowerCase();
 }
 
-function methodFor(title: string): StudyMethod {
+function methodFor(title: string): StudyMethod | null {
   const normalized = normalizedTitle(title);
-  return studyMethods.find((entry) => entry.matches.some((match) => normalized.includes(normalizedTitle(match))))?.method ?? genericMethod;
+  return studyMethods.find((entry) => entry.matches.some((match) => normalized.includes(normalizedTitle(match))))?.method ?? null;
+}
+
+export function courseUsesAutomatedStudyPlan(title: string) {
+  const method = methodFor(title);
+  return Boolean(method && !method.skip);
 }
 
 function weekdayOf(dateKey: string) {
@@ -123,7 +114,7 @@ function sessionsForDate(courses: StudyCourse[], date: string, termStartDate: st
   const week = timetableWeekInfo(date, termStartDate);
   if (!week) return [];
   const weekday = weekdayOf(date);
-  return courses.flatMap((course) => {
+  return courses.filter((course) => isCourseTitleCandidate(course.title) && courseUsesAutomatedStudyPlan(course.title)).flatMap((course) => {
     const slots = course.schedule
       .filter((slot) => slot.weekday === weekday && courseRunsInTimetableWeek(slot.weeks, week.timetableWeek))
       .sort((left, right) => left.start.localeCompare(right.start));
@@ -144,8 +135,8 @@ function afterClassTime(end: string) {
 
 function stageDraft(currentDate: string, classDate: string, session: ReturnType<typeof sessionsForDate>[number], stage: StudyStage): StudyTaskDraft | null {
   const method = methodFor(session.course.title);
-  const instruction = method[stage];
-  if (method.skip || !instruction) return null;
+  const instruction = method?.[stage];
+  if (!method || method.skip || !instruction) return null;
   const first = session.slots[0];
   const last = session.slots[session.slots.length - 1];
   const locations = [...new Set(session.slots.map((slot) => slot.location || session.course.location).filter(Boolean))];

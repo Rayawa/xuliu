@@ -210,6 +210,12 @@ a { color: inherit; }
 .todayHabitList { max-height: 300px; overflow-y: auto; }
 .todayHabitRow { grid-template-columns: 30px minmax(0,1fr); padding: 12px 0; }
 .taskList { margin-top: 13px; }
+.groupedTaskList { display: grid; gap: 0; }
+.todayTaskSubgroup + .todayTaskSubgroup { margin-top: 10px; padding-top: 13px; border-top: 1px solid var(--line); }
+.todayTaskSubhead { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 4px 2px 7px; }
+.todayTaskSubhead strong { font-size: 13px; }
+.todayTaskSubhead span { color: var(--faint); font-size: 10px; text-align: right; }
+.todayTaskSubhead + .taskRow { border-top: 0; }
 .taskRow { display: grid; grid-template-columns: 24px minmax(0,1fr) auto; align-items: center; gap: 12px; padding: 14px 2px; border-top: 1px solid #e9ede9; }
 .taskRow:first-child { border-top: 0; }
 .taskRow.done .taskBody strong, .taskRow.done .taskTitleButton { color: var(--muted); text-decoration: line-through; }

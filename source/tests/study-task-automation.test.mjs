@@ -10,6 +10,7 @@ test("creates course-specific class and follow-up tasks plus tomorrow preparatio
     { id: "linear", title: "线性代数B", location: "", schedule: [slot("l1", 4, "08:00", "09:35"), slot("l2", 4, "10:00", "11:30")] },
     { id: "probability", title: "概率论与数理统计", location: "", schedule: [slot("p1", 5, "13:20", "14:55")] },
     { id: "intro", title: "会计学专业导论", location: "", schedule: [slot("i1", 4, "15:15", "16:50")] },
+    { id: "period-row", title: "第6节-第7节", location: "", schedule: [slot("bad", 4, "13:20", "14:55")] },
   ];
   const plan = createDailyStudyTaskPlan(courses, "2026-09-24", "2026-08-31");
 
@@ -21,22 +22,20 @@ test("creates course-specific class and follow-up tasks plus tomorrow preparatio
   ]);
   assert.equal(plan[0].time, "08:00");
   assert.equal(plan[1].time, "20:00");
-  assert.match(plan[0].requirements, /怎样选择方法/);
-  assert.match(plan[2].requirements, /解决什么随机问题/);
+  assert.match(plan[0].requirements, /跟例题/);
+  assert.match(plan[2].requirements, /课本和 PPT/);
   assert.ok(plan.every((task) => task.date === "2026-09-24"));
 });
 
-test("respects teaching weeks and falls back to a generic method", () => {
+test("respects teaching weeks and skips electives or courses without configured methods", () => {
   const courses = [
     { id: "inactive", title: "不在本周", location: "", schedule: [slot("x", 4, "08:00", "09:35", "2-16周")] },
-    { id: "other", title: "气候与社会", location: "教室A", schedule: [slot("o", 4, "18:30", "20:55")] },
+    { id: "elective", title: "气候与社会", location: "教室A", schedule: [slot("e", 4, "18:30", "20:55")] },
+    { id: "other", title: "未配置课程", location: "教室B", schedule: [slot("o", 4, "18:30", "20:55")] },
   ];
   const plan = createDailyStudyTaskPlan(courses, "2026-09-24", "2026-08-31");
 
-  assert.equal(plan.length, 2);
-  assert.ok(plan.every((task) => task.courseId === "other"));
-  assert.equal(plan[1].time, "21:55");
-  assert.match(plan[1].requirements, /独立完成练习/);
+  assert.deepEqual(plan, []);
 });
 
 test("automatic task keys survive cloud validation and export", () => {
