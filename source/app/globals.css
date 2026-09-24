@@ -169,6 +169,8 @@ a { color: inherit; }
 .refreshButton { width: calc(100% - 16px); margin: 8px 8px 0; padding: 9px; border: 0; border-radius: 9px; color: var(--muted); background: transparent; font-size: 12px; }
 .refreshButton:hover { color: var(--accent); background: color-mix(in srgb,var(--accent) 8%,transparent); }
 .refreshButton:disabled { opacity: .55; }
+.studyPlanPanel { padding: 24px; }
+.studyPlanPanel p { margin: 0 0 16px; color: var(--muted); font-size: 12px; line-height: 1.75; }
 .sidebarFoot { margin-top: auto; display: flex; align-items: center; gap: 9px; padding: 23px 12px 3px; color: var(--faint); font-size: 12px; }
 .syncDot { width: 8px; height: 8px; border-radius: 50%; background: #7ca188; box-shadow: 0 0 0 4px #e6efe8; }
 .syncDot.saving { background: #b59a6d; animation: pulse 1s infinite alternate; }

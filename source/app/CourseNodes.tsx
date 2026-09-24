@@ -11,7 +11,7 @@ const AttachmentPreview = dynamic(() => import("./AttachmentPreview"), { ssr: fa
 import type { Block } from "./DashboardClient";
 
 export type CourseNode = {
-  blocks?: Block[]; elapsed?: number; mode?: "single" | "multi"; parentCandidate?: boolean;
+  blocks?: Block[]; elapsed?: number; mode?: "single" | "multi"; parentCandidate?: boolean; automationKey?: string;
   id: string; courseId?: string; title: string; date: string; time: string; location: string;
   requirements: string; attachments?: NodeAttachment[];
   outcomeText?: string; outcomeAttachments?: NodeAttachment[];
