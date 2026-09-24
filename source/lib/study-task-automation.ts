@@ -26,6 +26,19 @@ export type StudyTaskDraft = {
   requirements: string;
 };
 
+export const STUDY_AUTOMATION_RULE_VERSION = 3;
+
+export function migratedStudyAutomationProcessedKeys(
+  processedKeys: unknown,
+  savedRuleVersion: unknown,
+  invalidKeys: ReadonlySet<string> = new Set<string>(),
+) {
+  if (savedRuleVersion !== STUDY_AUTOMATION_RULE_VERSION) return [];
+  return Array.isArray(processedKeys)
+    ? processedKeys.filter((key): key is string => typeof key === "string" && !invalidKeys.has(key)).slice(-20_000)
+    : [];
+}
+
 type StudyStage = "before" | "during" | "after";
 type StudyMethod = Partial<Record<StudyStage, string>> & { skip?: boolean };
 

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { STUDY_AUTOMATION_RULE_VERSION } from "./study-task-automation.ts";
 import { createInitialFinanceState, isValidLocalDate, isValidLocalTime, isValidMonthKey } from "./finance.ts";
 import { parentError } from "./task-time.ts";
 import { MAX_COLLECTION_WEBSITES, normalizeWebsiteUrl } from "./tool-collections.ts";
@@ -189,7 +190,7 @@ export function createEmptyWorkspaceState() {
     daily: {},
     timeEntries: [],
     timetableSettings: { termStartDate: "2026-08-31", activeSchool: "pku" as const },
-    studyAutomation: { enabled: true, processedKeys: [], ruleVersion: 2 },
+    studyAutomation: { enabled: true, processedKeys: [], ruleVersion: STUDY_AUTOMATION_RULE_VERSION },
     finance: createInitialFinanceState(),
     themes: {},
   };

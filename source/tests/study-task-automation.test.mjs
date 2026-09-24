@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createDailyStudyTaskPlan } from "../lib/study-task-automation.ts";
+import { createDailyStudyTaskPlan, migratedStudyAutomationProcessedKeys, STUDY_AUTOMATION_RULE_VERSION } from "../lib/study-task-automation.ts";
 import { createEmptyWorkspaceState, workspaceStateSchema } from "../lib/workspace-state-schema.ts";
 
 const slot = (id, weekday, start, end, weeks = "1-16周") => ({ id, weekday, start, end, location: "教学楼", weeks });
@@ -49,5 +49,11 @@ test("automatic task keys survive cloud validation and export", () => {
   const restored = workspaceStateSchema.parse(JSON.parse(JSON.stringify(state)));
   assert.equal(restored.milestones[0].automationKey, draft.automationKey);
   assert.deepEqual(restored.studyAutomation?.processedKeys, [draft.automationKey]);
-  assert.equal(restored.studyAutomation?.ruleVersion, 2);
+  assert.equal(restored.studyAutomation?.ruleVersion, STUDY_AUTOMATION_RULE_VERSION);
+});
+
+test("rule upgrades clear orphaned processed keys so today's plan can be rebuilt", () => {
+  const orphanedKey = "study:2026-09-24:during:linear:2026-09-24";
+  assert.deepEqual(migratedStudyAutomationProcessedKeys([orphanedKey], 2), []);
+  assert.deepEqual(migratedStudyAutomationProcessedKeys([orphanedKey], STUDY_AUTOMATION_RULE_VERSION), [orphanedKey]);
 });

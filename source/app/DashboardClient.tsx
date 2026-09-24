@@ -21,7 +21,7 @@ import { taskModeOf, taskOverlapsRange, taskProgressOf, taskScheduleSummary, tas
 import { updateAcademicCourses, courseContentPreserved } from "@/lib/academic-course-update";
 import { parseAcademicRows, parseAcademicIcs, groupImportedCourses, parseDelimitedRows, importWeekday } from "@/lib/academic-import";
 import { addDays, courseRunsInTimetableWeek, extractScheduleLocation, extractScheduleWeekRule, extractScheduleWeekday, isCourseTitleCandidate, officialTimetableRows, periodTimeRange, repairImportedTimetableSlot, splitScheduleEntries, timetableRowIndex, timetableWeekInfo } from "@/lib/timetable";
-import { courseUsesAutomatedStudyPlan, createDailyStudyTaskPlan } from "@/lib/study-task-automation";
+import { courseUsesAutomatedStudyPlan, createDailyStudyTaskPlan, migratedStudyAutomationProcessedKeys, STUDY_AUTOMATION_RULE_VERSION } from "@/lib/study-task-automation";
 
 type NavId = "today" | "timetable" | "tasks" | "calendar" | "review" | "finance" | "school" | "learning" | "thoughts" | "work" | "ideas" | "tools" | "life" | "free";
 type Area = "课内" | "课外" | "工作" | "生活" | "思考";
@@ -278,7 +278,7 @@ const initialState: AppState = {
   timeEntries: [],
   finance: createInitialFinanceState(),
   timetableSettings: { termStartDate: "2026-08-31", activeSchool: "pku" },
-  studyAutomation: { enabled: true, processedKeys: [], ruleVersion: 2 },
+  studyAutomation: { enabled: true, processedKeys: [], ruleVersion: STUDY_AUTOMATION_RULE_VERSION },
   themes: { today: "#718c7c", timetable: "#6d8291", tasks: "#7b846d", calendar: "#6f8295", review: "#8c7a91", finance: "#6f7f72", school: "#657f91", learning: "#80769a", thoughts: "#668476", work: "#8b7658", ideas: "#8a6f7d", tools: "#617f78", life: "#8b706d", free: "#738287" },
 };
 
@@ -340,7 +340,7 @@ function hydrateState(raw: unknown): AppState {
     };
   }) : [];
   const milestones = Array.isArray(saved.milestones) ? saved.milestones.map((item) => ({ ...item, attachments: item.attachments ?? [], blocks: item.blocks ? cleanStarterBlocks(item.blocks) : undefined, mode: item.courseId ? item.mode ?? "single" : undefined, parentCandidate: item.courseId ? item.parentCandidate ?? tasks.some((task) => task.parentMilestoneId === item.id) : undefined })) : [];
-  const resetAutomaticTasks = saved.studyAutomation?.ruleVersion !== 2;
+  const resetAutomaticTasks = saved.studyAutomation?.ruleVersion !== STUDY_AUTOMATION_RULE_VERSION;
   const invalidAutomaticKeys = new Set(milestones.flatMap((node) => {
     if (!node.automationKey) return [];
     const course = courses.find((item) => item.id === node.courseId);
@@ -377,8 +377,8 @@ function hydrateState(raw: unknown): AppState {
     },
     studyAutomation: {
       enabled: saved.studyAutomation?.enabled !== false,
-      processedKeys: Array.isArray(saved.studyAutomation?.processedKeys) ? saved.studyAutomation.processedKeys.filter((key) => !invalidAutomaticKeys.has(key)).slice(-20_000) : [],
-      ruleVersion: 2,
+      processedKeys: migratedStudyAutomationProcessedKeys(saved.studyAutomation?.processedKeys, saved.studyAutomation?.ruleVersion, invalidAutomaticKeys),
+      ruleVersion: STUDY_AUTOMATION_RULE_VERSION,
     },
     themes: { ...initialState.themes, ...(saved.themes ?? {}) },
   };
@@ -852,6 +852,29 @@ function TodayView({ data, setData, tasks, milestones, totalMinutes, daily, upda
   ];
   const allTaskEntries = taskGroups.flatMap((group) => group.entries);
   const automaticTasks = milestones.filter((node) => Boolean(node.automationKey));
+  const resetTodayStudyPlan = () => {
+    const todayPrefix = `study:${dateKey()}:`;
+    setData((current) => ({
+      ...current,
+      studyAutomation: {
+        ...current.studyAutomation,
+        enabled: true,
+        processedKeys: current.studyAutomation.processedKeys.filter((key) => !key.startsWith(todayPrefix)),
+      },
+    }));
+  };
+  const toggleStudyPlan = () => setData((current) => {
+    const enabled = !current.studyAutomation.enabled;
+    const todayPrefix = `study:${dateKey()}:`;
+    return {
+      ...current,
+      studyAutomation: {
+        ...current.studyAutomation,
+        enabled,
+        processedKeys: enabled ? current.studyAutomation.processedKeys.filter((key) => !key.startsWith(todayPrefix)) : current.studyAutomation.processedKeys,
+      },
+    };
+  });
   const renderTaskEntry = (entry: TodayTaskEntry) => entry.kind === "task" ? <div key={"task-" + entry.item.id} className={"taskRow " + (entry.item.done ? "done" : "")}>
     <button className="checkButton" disabled={readOnly} aria-pressed={entry.item.done} aria-label={entry.item.done ? "标记未完成" : "标记完成"} onClick={() => setData((current) => ({ ...current, tasks: current.tasks.map((item) => item.id === entry.item.id ? withTaskCompletion(item, !item.done) : item) }))}>{entry.item.done ? "✓" : ""}</button>
     <div className="taskBody"><button className="taskTitleButton" onClick={() => readOnly ? openWork({ kind: "task", id: entry.item.id }) : setEditingTask(entry.item)}>{entry.item.title}</button>{entry.item.done && <span className="taskStatus 已完成 todayCompletionStatus">已完成</span>}<small>{entry.item.parentId ? "属于：" + (data.tasks.find((task) => task.id === entry.item.parentId)?.title ?? "上级任务") : entry.item.parentMilestoneId ? "属于：" + (data.milestones.find((node) => node.id === entry.item.parentMilestoneId)?.title ?? "关联对象") : entry.item.source} · {taskModeOf(entry.item) === "multi" ? (entry.item.startDate || "未设开始") + " → " + (entry.item.due || "未设截止") : entry.item.due || "未设日期"}</small><button className="taskRecordLink" onClick={() => readOnly ? openWork({ kind: "task", id: entry.item.id }) : setEditingTask(entry.item)}>{readOnly ? "查看详细信息" : "修改基础信息"} · 已投入 {entry.item.elapsed} 分钟</button>{taskModeOf(entry.item) === "multi" && <><span>{taskProgressOf(entry.item)}% · {taskStatusOf(entry.item)}</span><i className="todayTaskProgress"><b style={{ width: taskProgressOf(entry.item) + "%" }} /></i></>}</div>
@@ -873,7 +896,7 @@ function TodayView({ data, setData, tasks, milestones, totalMinutes, daily, upda
         {!group.entries.length && <div className="emptyState compact"><h2>今天没有{group.title}</h2><p>{group.id === "multi" ? "长期任务会在推进期间持续显示。" : "设置为今天的短期任务会显示在这里。"}</p></div>}
       </section>{group.id === "single" && <section className="panel taskPanel todayCategoryPanel"><PanelTitle title="事项" subtitle="会议、预约、行程等日历事项" meta={calendarItems.filter((item) => item.done).length + " / " + calendarItems.length} /><div className="taskList">{calendarItems.map((item) => <div className={"taskRow " + (item.done ? "done" : "")} key={item.id}><button className="checkButton" disabled={readOnly} aria-pressed={item.done} aria-label={(item.done ? "标记未完成：" : "标记完成：") + item.title} onClick={() => setData((current) => ({ ...current, milestones: current.milestones.map((node) => node.id === item.id ? { ...node, done: !node.done } : node) }))}>{item.done ? "✓" : ""}</button><div className="taskBody"><button className="taskTitleButton" onClick={() => readOnly ? openWork({ kind: "milestone", id: item.id }) : setEditingNode(item)}>{item.title}</button>{item.done && <span className="taskStatus 已完成 todayCompletionStatus">已完成</span>}<span>{item.time} · {item.location || "未填写地点"}</span><button className="taskRecordLink" onClick={() => readOnly ? openWork({ kind: "milestone", id: item.id }) : setEditingNode(item)}>{readOnly ? "查看详细信息" : "修改基础信息"} · 已投入 {item.elapsed ?? 0} 分钟</button></div><div className="taskRowActions"><span className={"areaTag " + areaClass[item.area]}>{item.area}</span>{!item.done && <button type="button" className="quickPostponeButton" disabled={readOnly} aria-label={"将事项推迟一天：" + item.title} onClick={() => postponeWork({ kind: "milestone", id: item.id })}>＋1天</button>}<button type="button" className="miniRemove todayQuickDelete" disabled={readOnly} aria-label={"快捷删除事项：" + item.title} onClick={() => requestDelete({ kind: "milestone", id: item.id }, item.title)}>×</button></div></div>)}</div>{!calendarItems.length && <div className="emptyState compact"><h2>今天没有事项</h2><p>今天的会议、预约和行程会显示在这里。</p></div>}</section>}</Fragment>)}
       <section className="panel notePanel"><PanelTitle title="今日随记" subtitle="收获、问题或突然出现的想法" meta="自动保存" /><textarea value={daily.note} onChange={(event) => updateDaily("note", event.target.value)} placeholder="此刻有什么值得记下来？" /></section>
-    </div><div className="stack"><section className="panel studyPlanPanel"><PanelTitle title="课表学习计划" subtitle="按课表和分科学习方法自动安排" meta={data.studyAutomation.enabled ? "已开启" : "已暂停"} /><p>{data.studyAutomation.enabled ? `今天已自动安排 ${automaticTasks.length} 项；包括今日课上、课后和明日课前任务。` : "暂停期间不会继续生成新的学习任务，已有任务仍会保留。"}</p><button className="softButton" disabled={readOnly} onClick={() => setData((current) => ({ ...current, studyAutomation: { ...current.studyAutomation, enabled: !current.studyAutomation.enabled } }))}>{data.studyAutomation.enabled ? "暂停自动安排" : "开启自动安排"}</button></section>{focusPanel}<section className="panel todayHabitsPanel"><PanelTitle title="今日习惯" subtitle="在今日页直接完成打卡" meta={data.habits.filter((habit) => habit.today).length + " / " + data.habits.length} /><div className="todayHabitList">{data.habits.map((habit) => <div className="habitRow todayHabitRow" key={habit.id}><button className={`habitCheck ${habit.today ? "done" : ""}`} disabled={readOnly} aria-pressed={habit.today} aria-label={(habit.today ? "取消打卡：" : "完成打卡：") + habit.title} onClick={() => setData((current) => ({ ...current, habits: current.habits.map((item) => item.id === habit.id ? toggledHabit(item) : item) }))}>{habit.today ? "✓" : ""}</button><div><strong>{habit.title}</strong><span>{habit.schedule} · 连续 {habit.streak} 天</span></div></div>)}</div>{!data.habits.length && <div className="emptyState compact"><h2>还没有习惯</h2><p>可在“生活”页面添加日常习惯。</p></div>}</section><div className="miniStats"><div><strong>{formatMinutes(totalMinutes)}</strong><span>今日专注</span></div><div><strong>{allTaskEntries.filter((entry) => entry.item.done).length}</strong><span>完成任务</span></div><div><strong>{Math.round(data.habits.filter((habit) => habit.today).length / Math.max(1, data.habits.length) * 100)}%</strong><span>习惯完成</span></div></div><section className="panel reminderPanel"><PanelTitle title="生活提醒" subtitle="一个项目可设置多个时间" /><div className="reminderList">{data.reminders.map((reminder) => <div className="reminderRow" key={reminder.id}><span className={"reminderIcon " + reminder.type}>{reminder.type === "sleep" ? "眠" : reminder.type === "break" ? "息" : reminder.type === "exercise" ? "动" : "提"}</span><div><strong>{reminder.title}</strong><span>{[...(reminder.type === "break" ? ["每 " + (reminder.intervalMinutes ?? 20) + " 分钟 · 自动计时"] : []), ...reminder.times].join(" / ")} · {reminder.enabled ? "等待提醒" : "已关闭"}</span></div><button className="softButton" onClick={() => setPopup({ eyebrow: "提醒预览", title: reminder.title, body: "你可以完成、延迟 5 分钟或关闭这条页面提示。" })}>预览</button></div>)}</div></section></div></div>
+    </div><div className="stack"><section className="panel studyPlanPanel"><PanelTitle title="课表学习计划" subtitle="按课表和分科学习方法自动安排" meta={data.studyAutomation.enabled ? "已开启" : "已暂停"} /><p>{data.studyAutomation.enabled ? `今天已自动安排 ${automaticTasks.length} 项；包括今日课上、课后和明日课前任务。` : "暂停期间不会继续生成新的学习任务，已有任务仍会保留。"}</p><div className="studyPlanActions"><button className="softButton" disabled={readOnly} onClick={toggleStudyPlan}>{data.studyAutomation.enabled ? "暂停自动安排" : "开启自动安排"}</button>{data.studyAutomation.enabled && <button className="softButton" disabled={readOnly} onClick={resetTodayStudyPlan}>重新安排今天</button>}</div></section>{focusPanel}<section className="panel todayHabitsPanel"><PanelTitle title="今日习惯" subtitle="在今日页直接完成打卡" meta={data.habits.filter((habit) => habit.today).length + " / " + data.habits.length} /><div className="todayHabitList">{data.habits.map((habit) => <div className="habitRow todayHabitRow" key={habit.id}><button className={`habitCheck ${habit.today ? "done" : ""}`} disabled={readOnly} aria-pressed={habit.today} aria-label={(habit.today ? "取消打卡：" : "完成打卡：") + habit.title} onClick={() => setData((current) => ({ ...current, habits: current.habits.map((item) => item.id === habit.id ? toggledHabit(item) : item) }))}>{habit.today ? "✓" : ""}</button><div><strong>{habit.title}</strong><span>{habit.schedule} · 连续 {habit.streak} 天</span></div></div>)}</div>{!data.habits.length && <div className="emptyState compact"><h2>还没有习惯</h2><p>可在“生活”页面添加日常习惯。</p></div>}</section><div className="miniStats"><div><strong>{formatMinutes(totalMinutes)}</strong><span>今日专注</span></div><div><strong>{allTaskEntries.filter((entry) => entry.item.done).length}</strong><span>完成任务</span></div><div><strong>{Math.round(data.habits.filter((habit) => habit.today).length / Math.max(1, data.habits.length) * 100)}%</strong><span>习惯完成</span></div></div><section className="panel reminderPanel"><PanelTitle title="生活提醒" subtitle="一个项目可设置多个时间" /><div className="reminderList">{data.reminders.map((reminder) => <div className="reminderRow" key={reminder.id}><span className={"reminderIcon " + reminder.type}>{reminder.type === "sleep" ? "眠" : reminder.type === "break" ? "息" : reminder.type === "exercise" ? "动" : "提"}</span><div><strong>{reminder.title}</strong><span>{[...(reminder.type === "break" ? ["每 " + (reminder.intervalMinutes ?? 20) + " 分钟 · 自动计时"] : []), ...reminder.times].join(" / ")} · {reminder.enabled ? "等待提醒" : "已关闭"}</span></div><button className="softButton" onClick={() => setPopup({ eyebrow: "提醒预览", title: reminder.title, body: "你可以完成、延迟 5 分钟或关闭这条页面提示。" })}>预览</button></div>)}</div></section></div></div>
   </div>;
 }
 function TimetableViewV2({ data, setData, setDialog, openCourse, deleteDialog, dualSchool, readOnly }: { data: AppState; setData: React.Dispatch<React.SetStateAction<AppState>>; setDialog: (value: DialogConfig) => void; openCourse: (id: string) => void; deleteDialog: (title: string, onDelete: () => void) => void; dualSchool: boolean; readOnly: boolean }) {
