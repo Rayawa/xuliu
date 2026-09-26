@@ -11,7 +11,7 @@ export type FinanceEntry = {
   relatedProject: string;
   createdAt: string;
   updatedAt: string;
-  origin: "manual" | "ai";
+  origin: "manual" | "ai" | "wechat";
 };
 
 export type MonthlyBudget = {
@@ -123,7 +123,7 @@ export function normalizeFinanceState(raw: unknown): FinanceState {
       relatedProject: String(candidate.relatedProject ?? ""),
       createdAt: String(candidate.createdAt ?? new Date().toISOString()),
       updatedAt: String(candidate.updatedAt ?? candidate.createdAt ?? new Date().toISOString()),
-      origin: candidate.origin === "ai" ? "ai" : "manual",
+      origin: candidate.origin === "ai" || candidate.origin === "wechat" ? candidate.origin : "manual",
     } satisfies FinanceEntry];
   }) : fallback.entries;
   const budgets = saved.budgets && typeof saved.budgets === "object"

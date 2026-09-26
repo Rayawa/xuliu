@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   budgetInputToCents,
   centsToYuanInput,
@@ -20,12 +20,14 @@ import {
   type FinanceEntryType,
   type FinanceState,
 } from "@/lib/finance";
+import { mergeWeChatBillEntries, readWeChatBillFile, type WeChatBillImport } from "@/lib/wechat-bill-import";
 
 type FinanceViewProps = {
   finance: FinanceState;
   readOnly: boolean;
   projectOptions: string[];
   onChange: (updater: (current: FinanceState) => FinanceState) => void;
+  getWorkspaceBytes: () => number;
 };
 
 type EditorState = {
@@ -57,7 +59,8 @@ function monthLabel(value: string) {
   return `${year} 年 ${Number(month)} 月`;
 }
 
-export default function FinanceView({ finance, readOnly, projectOptions, onChange }: FinanceViewProps) {
+export default function FinanceView({ finance, readOnly, projectOptions, onChange, getWorkspaceBytes }: FinanceViewProps) {
+  const wechatFileInput = useRef<HTMLInputElement>(null);
   const [selectedMonth, setSelectedMonth] = useState(monthKey());
   const [typeFilter, setTypeFilter] = useState<"all" | FinanceEntryType>("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -67,6 +70,10 @@ export default function FinanceView({ finance, readOnly, projectOptions, onChang
   const [pendingDelete, setPendingDelete] = useState<FinanceEntry | null>(null);
   const [formError, setFormError] = useState("");
   const [budgetError, setBudgetError] = useState("");
+  const [importBusy, setImportBusy] = useState(false);
+  const [importError, setImportError] = useState("");
+  const [importNotice, setImportNotice] = useState("");
+  const [pendingImport, setPendingImport] = useState<{ fileName: string; result: WeChatBillImport; added: number; duplicates: number; projectedBytes: number; previewEntries: FinanceEntry[] } | null>(null);
 
   const monthEntries = useMemo(
     () => finance.entries.filter((entry) => entry.date.startsWith(selectedMonth)),
@@ -174,16 +181,54 @@ export default function FinanceView({ finance, readOnly, projectOptions, onChang
     URL.revokeObjectURL(link.href);
   };
 
+  const chooseWeChatBill = async (file: File | undefined) => {
+    if (!file || readOnly) return;
+    setImportBusy(true);
+    setImportError("");
+    setImportNotice("");
+    try {
+      const result = await readWeChatBillFile(file);
+      const merged = mergeWeChatBillEntries(finance, result.entries);
+      const addedEntries = merged.finance.entries.slice(0, merged.added);
+      const projectedBytes = getWorkspaceBytes() + new Blob([JSON.stringify(addedEntries)]).size + 4_000;
+      setPendingImport({ fileName: file.name, result, added: merged.added, duplicates: merged.duplicates, projectedBytes, previewEntries: addedEntries.slice(0, 5) });
+    } catch (error) {
+      setImportError(error instanceof Error ? error.message : "账单读取失败，请检查文件格式后重试。");
+    } finally {
+      setImportBusy(false);
+    }
+  };
+
+  const confirmWeChatImport = () => {
+    if (!pendingImport || readOnly || !pendingImport.added) return;
+    if (pendingImport.projectedBytes > 1_900_000) {
+      setImportError("导入后会超过当前空间的云端保存容量，请换用较短日期范围的账单。");
+      return;
+    }
+    const { added, result } = pendingImport;
+    onChange((current) => mergeWeChatBillEntries(current, result.entries).finance);
+    const latestDate = result.entries.reduce((latest, entry) => entry.date > latest ? entry.date : latest, "");
+    if (latestDate) setSelectedMonth(latestDate.slice(0, 7));
+    setTypeFilter("all");
+    setCategoryFilter("all");
+    setQuery("");
+    setPendingImport(null);
+    setImportNotice(`已添加 ${added} 笔微信账单，正在自动保存。`);
+  };
+
   return <div className="page financePage">
     <div className="pageHead financeHead">
       <div><div className="eyebrow">个人记账 · 人民币</div><h1>把每一笔，放回生活里。</h1><p>收入、支出、预算与项目关系集中记录；当前空间自动保存并同步。</p></div>
       <div className="financeHeadActions">
         <label className="monthPicker"><span>查看月份</span><input type="month" value={selectedMonth} onChange={(event) => setSelectedMonth(event.target.value || monthKey())} /></label>
         <button className="softButton" onClick={exportLedger}>导出筛选结果</button>
+        {!readOnly && <><input ref={wechatFileInput} className="financeFileInput" type="file" accept=".xlsx,.csv" aria-label="选择微信账单文件" onChange={(event) => { const file = event.currentTarget.files?.[0]; event.currentTarget.value = ""; void chooseWeChatBill(file); }} /><button className="softButton" disabled={importBusy} onClick={() => wechatFileInput.current?.click()}>{importBusy ? "正在读取账单…" : "导入微信账单"}</button></>}
         {!readOnly && <button className="softButton expenseAction" onClick={() => openCreate("expense")}>− 记支出</button>}
         {!readOnly && <button className="primaryButton" onClick={() => openCreate("income")}>＋ 记收入</button>}
       </div>
     </div>
+    {importError && <p className="financeImportMessage error" role="alert">{importError}</p>}
+    {importNotice && <p className="financeImportMessage" role="status">{importNotice}</p>}
 
     <section className="financeSummaryGrid" aria-label={`${monthLabel(selectedMonth)}收支概览`}>
       <article><span>本月收入</span><strong className="incomeText">{formatCny(summary.incomeCents)}</strong><small>{monthEntries.filter((entry) => entry.type === "income").length} 笔收入</small></article>
@@ -235,12 +280,23 @@ export default function FinanceView({ finance, readOnly, projectOptions, onChang
       </div>
       <div className="ledgerList">{filteredEntries.map((entry) => <article className="ledgerRow" key={entry.id}>
         <span className={`ledgerType ${entry.type}`}>{entry.type === "income" ? "收" : "支"}</span>
-        <div className="ledgerMain"><strong>{entry.note || entry.category}</strong><span>{entry.category}{entry.relatedProject ? ` · ${entry.relatedProject}` : ""}</span></div>
+        <div className="ledgerMain"><strong>{entry.note || entry.category}</strong><span>{entry.category}{entry.relatedProject ? ` · ${entry.relatedProject}` : ""}{entry.origin === "wechat" ? " · 微信导入" : ""}</span></div>
         <time>{entry.date}<br />{entry.time}</time>
         <b className={entry.type === "income" ? "incomeText" : "expenseText"}>{entry.type === "income" ? "+" : "−"}{formatCny(entry.amountCents)}</b>
         {!readOnly && <div className="ledgerActions"><button onClick={() => openEdit(entry)}>编辑</button><button className="dangerText" onClick={() => setPendingDelete(entry)}>删除</button></div>}
       </article>)}{!filteredEntries.length && <div className="financeEmpty ledgerEmpty"><strong>没有符合条件的记录</strong><span>调整筛选，或从右上角记一笔新的收支。</span></div>}</div>
     </section>
+
+    {pendingImport && <div className="financeModalScrim" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target) setPendingImport(null); }}><section className="financeModal financeImportModal" role="dialog" aria-modal="true" aria-labelledby="finance-import-title">
+      <div className="financeModalHead"><div><span>WECHAT BILL</span><h2 id="finance-import-title">确认导入微信账单</h2></div><button aria-label="关闭" onClick={() => setPendingImport(null)}>×</button></div>
+      <p className="financeImportIntro">{pendingImport.fileName} · 文件仅在本机浏览器解析。确认后，新记录会随当前空间自动保存。</p>
+      <div className="financeImportStats"><div><strong>{pendingImport.added}</strong><span>待新增</span></div><div><strong>{pendingImport.duplicates + pendingImport.result.skippedDuplicate}</strong><span>重复跳过</span></div><div><strong>{pendingImport.result.skippedNeutral}</strong><span>非收支</span></div><div><strong>{pendingImport.result.skippedUnsuccessful + pendingImport.result.skippedInvalid}</strong><span>失败或无效</span></div></div>
+      <p className="financeImportHint">按交易单号去重；重复导入同一账单不会重复记账。分类可在导入后逐笔编辑。</p>
+      {pendingImport.added > 0 && <div className="financeImportPreview"><strong>记录预览</strong>{pendingImport.previewEntries.map((entry) => <div key={entry.id}><span>{entry.date} · {entry.category} · {entry.note}</span><b className={entry.type === "income" ? "incomeText" : "expenseText"}>{entry.type === "income" ? "+" : "−"}{formatCny(entry.amountCents)}</b></div>)}</div>}
+      {!pendingImport.added && <p className="financeImportHint">没有需要新增的收支记录。</p>}
+      {pendingImport.projectedBytes > 1_900_000 && <p className="financeFormError" role="alert">导入后会超过当前空间的云端保存容量，请换用较短日期范围的账单。</p>}
+      <div className="financeModalActions"><button className="softButton" onClick={() => setPendingImport(null)}>取消</button><button className="primaryButton" disabled={!pendingImport.added || pendingImport.projectedBytes > 1_900_000} onClick={confirmWeChatImport}>确认导入 {pendingImport.added} 笔</button></div>
+    </section></div>}
 
     {editor && <div className="financeModalScrim" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target) setEditor(null); }}><section className="financeModal" role="dialog" aria-modal="true" aria-labelledby="finance-editor-title">
       <div className="financeModalHead"><div><span>{editor.entry.type === "income" ? "INCOME" : "EXPENSE"}</span><h2 id="finance-editor-title">{editor.mode === "edit" ? "编辑记录" : editor.entry.type === "income" ? "记录一笔收入" : "记录一笔支出"}</h2></div><button aria-label="关闭" onClick={() => setEditor(null)}>×</button></div>

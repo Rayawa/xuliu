@@ -91,7 +91,7 @@ const financeEntry = z.object({
   relatedProject: z.string().max(200),
   createdAt: z.string().max(80),
   updatedAt: z.string().max(80),
-  origin: z.enum(["manual", "ai"]),
+  origin: z.enum(["manual", "ai", "wechat"]),
 }).strict();
 
 export const workspaceStateSchema = z.object({
