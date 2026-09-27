@@ -1128,10 +1128,15 @@ a { color: inherit; }
 .financeCategoryName strong { font-size: 14px; }
 .financeCategoryName small { color: var(--muted); font-size: 11px; }
 .financeCategoryItem > summary > b { font-size: 15px; white-space: nowrap; }
-.financeCategoryItem > summary > i, .ledgerDayHead > i { color: var(--muted); font-style: normal; transition: transform .2s; }
-.financeCategoryItem[open] > summary > i, .ledgerDay[open] .ledgerDayHead > i { transform: rotate(180deg); }
+.financeCategoryItem > summary > i { color: var(--muted); font-style: normal; transition: transform .2s; }
+.financeCategoryItem[open] > summary > i { transform: rotate(180deg); }
 .financeCategoryTransactions { padding: 0 0 9px 55px; }
-.financeCategoryTransactions .ledgerRow:last-child { border-bottom: 0; }
+.financeDetailGroup + .financeDetailGroup { border-top: 1px solid var(--line); }
+.financeDetailGroupHead { display: flex; align-items: baseline; gap: 10px; padding: 13px 0 3px; }
+.financeDetailGroupHead strong { font-size: 12px; }
+.financeDetailGroupHead span { color: var(--muted); font-size: 10px; }
+.financeDetailGroupHead b { margin-left: auto; font-size: 12px; }
+.financeDetailGroup .ledgerRow:last-child { border-bottom: 0; }
 .financeDetails { margin: 0 0 14px; }
 .financeDetails > summary { display: flex; align-items: baseline; gap: 10px; padding: 15px 20px; border: 1px solid var(--line); border-radius: 15px; background: rgba(255,255,255,.86); cursor: pointer; list-style: none; }
 .financeDetails > summary::-webkit-details-marker { display: none; }
@@ -1186,18 +1191,27 @@ a { color: inherit; }
 .ledgerFilters { display: flex; flex-wrap: wrap; gap: 8px; padding-bottom: 14px; }
 .ledgerFilters input, .ledgerFilters select { min-height: 37px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 9px; background: #f8faf8; font-size: 11px; }
 .ledgerFilters input { width: min(250px,34vw); }
-.ledgerList { padding: 0 24px 10px; }
-.ledgerDay + .ledgerDay { border-top: 1px solid var(--line); }
-.ledgerDayHead { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 57px; color: var(--muted); cursor: pointer; list-style: none; }
-.ledgerDayHead::-webkit-details-marker { display: none; }
-.ledgerDayHead > span { display: grid; gap: 4px; margin-right: auto; }
-.ledgerDayHead strong { color: var(--text); font-size: 13px; }
-.ledgerDayHead small { color: var(--muted); font-size: 10px; }
-.ledgerDayHead > b { font-size: 14px; white-space: nowrap; }
-.ledgerDayRows { padding: 0 0 8px 12px; }
-.ledgerDayRows .ledgerRow:last-child { border-bottom: 0; }
+.financeCalendar { padding: 5px 24px 18px; }
+.financeCalendarWeekdays, .financeCalendarGrid { display: grid; grid-template-columns: repeat(7,minmax(0,1fr)); gap: 5px; }
+.financeCalendarWeekdays { margin-bottom: 5px; }
+.financeCalendarWeekdays span { padding: 3px 0; color: var(--muted); font-size: 11px; text-align: center; }
+.financeCalendarBlank { min-height: 56px; }
+.financeCalendarGrid button { min-width: 0; min-height: 56px; display: grid; align-content: start; gap: 5px; padding: 8px; border: 1px solid transparent; border-radius: 10px; color: var(--text); background: #f7f9f7; text-align: left; cursor: pointer; }
+.financeCalendarGrid button:hover { background: color-mix(in srgb,var(--accent) 8%,white); }
+.financeCalendarGrid button.active { border-color: var(--accent); background: color-mix(in srgb,var(--accent) 12%,white); }
+.financeCalendarGrid button strong { font-size: 13px; }
+.financeCalendarGrid button small { min-width: 0; overflow: hidden; color: var(--muted); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.financeSelectedDay { border-top: 1px solid var(--line); padding: 15px 24px 13px; }
+.financeSelectedDayHead, .financeSelectedDayHead > div:last-child { display: flex; align-items: baseline; gap: 16px; }
+.financeSelectedDayHead { justify-content: space-between; }
+.financeSelectedDayHead > div:first-child { display: grid; gap: 4px; }
+.financeSelectedDayHead strong { font-size: 13px; }
+.financeSelectedDayHead span { color: var(--muted); font-size: 10px; white-space: nowrap; }
+.financeSelectedDayHead b { color: var(--text); font-size: 11px; }
+.financeSelectedDayEntries .ledgerRow:last-child { border-bottom: 0; }
+.financeSelectedDayEmpty { min-height: 85px; }
+.financeCalendarHint { margin: 0; padding: 0 24px 18px; color: var(--muted); font-size: 11px; text-align: center; }
 .ledgerRow { display: grid; grid-template-columns: 38px minmax(0,1fr) 48px 120px 84px; align-items: center; gap: 13px; padding: 11px 0; border-bottom: 1px solid #e9ede9; }
-.ledgerDay .ledgerRow:last-child { border-bottom: 0; }
 .ledgerType { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 11px; font-size: 14px; font-weight: 800; }
 .ledgerType.income { color: #4f7963; background: #e8f1eb; }
 .ledgerType.expense { color: #966159; background: #f5e9e7; }
@@ -1208,7 +1222,6 @@ a { color: inherit; }
 .ledgerRow > b { font-size: 13px; text-align: right; white-space: nowrap; }
 .ledgerActions { display: flex; justify-content: flex-end; gap: 3px; }
 .ledgerActions button { padding: 6px; border: 0; color: var(--muted); background: transparent; font-size: 10px; }
-.ledgerEmpty { min-height: 220px; }
 .financeModalScrim { position: fixed; z-index: 80; inset: 0; display: grid; place-items: center; padding: 22px; background: rgba(31,39,34,.44); backdrop-filter: blur(5px); }
 .financeModal { width: min(560px,100%); max-height: min(760px,92vh); overflow-y: auto; padding: 26px; border: 1px solid rgba(217,223,218,.95); border-radius: 22px; background: #fff; box-shadow: 0 30px 100px rgba(28,39,32,.22); }
 .financeModal.compact { width: min(450px,100%); }
@@ -1289,8 +1302,15 @@ a { color: inherit; }
   .ledgerFilters { display: grid; grid-template-columns: 1fr 1fr; justify-content: stretch; }
   .ledgerFilters input { width: 100%; grid-column: 1 / -1; }
   .ledgerTools { margin: 0 15px; }
-  .ledgerList { padding: 0 15px 8px; }
-  .ledgerDayRows { padding-left: 0; }
+  .financeCalendar { padding: 2px 15px 14px; }
+  .financeCalendarWeekdays, .financeCalendarGrid { gap: 3px; }
+  .financeCalendarGrid button, .financeCalendarBlank { min-height: 51px; }
+  .financeCalendarGrid button { padding: 5px 3px; text-align: center; }
+  .financeCalendarGrid button small { font-size: 9px; }
+  .financeSelectedDay { padding: 14px 15px; }
+  .financeSelectedDayHead { display: grid; gap: 9px; }
+  .financeSelectedDayHead > div:last-child { flex-wrap: wrap; gap: 8px 14px; }
+  .financeCalendarHint { padding: 0 15px 15px; }
   .ledgerRow { grid-template-columns: 38px minmax(0,1fr) auto; gap: 10px; }
   .ledgerRow time { grid-column: 2; }
   .ledgerRow > b { grid-column: 3; grid-row: 1; }

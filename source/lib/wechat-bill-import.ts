@@ -1,5 +1,5 @@
 import { parseDelimitedRows } from "./academic-import.ts";
-import { classifyWeChatCategory, merchantCategoryKey, merchantFromEntry, transactionCategoryKey } from "./finance-categories.ts";
+import { classifyWeChatCategory, merchantCategoryKey, merchantFromEntry, normalizeMerchantName, paymentAmountKey, transactionCategoryKey } from "./finance-categories.ts";
 import { isValidLocalDate, isValidLocalTime, yuanToCents, type FinanceEntry, type FinanceEntryType, type FinanceState } from "./finance.ts";
 
 export type WeChatBillImport = {
@@ -119,12 +119,42 @@ export async function readWeChatBillFile(file: File) {
   throw new Error("请选择微信个人对账导出的 .xlsx 或 .csv 文件；压缩包需要先解压。");
 }
 
-function resolveImportedCategory(finance: FinanceState, entry: FinanceEntry, inferred: string) {
+type LearnedPayment = { category: string; purpose: string };
+
+function learnedPayments(finance: FinanceState) {
+  const examples = new Map<string, { categories: Set<string>; purposes: Set<string> }>();
+  for (const entry of finance.entries) {
+    if (entry.origin !== "wechat" || entry.updatedAt === entry.createdAt) continue;
+    const merchant = merchantFromEntry(entry.note, entry.merchant);
+    if (!merchant || merchant === "微信支付") continue;
+    const note = entry.note.trim();
+    const editedNote = note && !normalizeMerchantName(note).startsWith(normalizeMerchantName(merchant));
+    const purpose = entry.purpose?.trim() || (editedNote ? note.slice(0, 80) : "");
+    const inferred = classifyWeChatCategory(entry.type, { counterparty: merchant, product: note, amountCents: entry.amountCents });
+    if (!purpose && entry.category === inferred) continue;
+    const key = paymentAmountKey(entry.type, merchant, entry.amountCents);
+    const group = examples.get(key) || { categories: new Set<string>(), purposes: new Set<string>() };
+    group.categories.add(entry.category);
+    if (purpose) group.purposes.add(purpose);
+    examples.set(key, group);
+  }
+  return new Map([...examples].map(([key, group]) => [key, group.categories.size === 1
+    ? { category: [...group.categories][0], purpose: group.purposes.size === 1 ? [...group.purposes][0] : "" }
+    : null] as const));
+}
+
+function resolveImportedPayment(finance: FinanceState, entry: FinanceEntry, inferred: string, learned: ReturnType<typeof learnedPayments>) {
   const merchant = merchantFromEntry(entry.note, entry.merchant);
   const specific = finance.merchantCategories?.[transactionCategoryKey(entry.type, merchant, entry.note)];
-  if (specific) return specific;
-  if (inferred !== "其他" && inferred !== "其他收入") return inferred;
-  return finance.merchantCategories?.[merchantCategoryKey(entry.type, merchant)] || inferred;
+  const detail = entry.note.split(" · ").slice(1).join(" ");
+  const explicit = detail ? classifyWeChatCategory(entry.type, { product: detail }) : "其他";
+  const key = paymentAmountKey(entry.type, merchant, entry.amountCents);
+  const learnedRule = learned.get(key);
+  const rule: LearnedPayment | undefined = learnedRule === null ? undefined : finance.paymentRules?.[key] || learnedRule;
+  const recognized = explicit !== "其他" && explicit !== "其他收入" ? explicit : undefined;
+  const category = specific || recognized || rule?.category || (inferred !== "其他" && inferred !== "其他收入" ? inferred : undefined)
+    || finance.merchantCategories?.[merchantCategoryKey(entry.type, merchant)] || inferred;
+  return { category, purpose: rule?.category === category && (!recognized || recognized === category) ? rule.purpose : "" };
 }
 
 export function mergeWeChatBillEntries(finance: FinanceState, imported: FinanceEntry[], options: { updateExistingCategories?: boolean } = {}) {
@@ -135,16 +165,22 @@ export function mergeWeChatBillEntries(finance: FinanceState, imported: FinanceE
     return true;
   });
   if (finance.entries.length + additions.length > MAX_ENTRIES) throw new Error("记账记录将超过 20000 笔，请先整理旧记录。");
-  const suggestedCategory = (entry: FinanceEntry) => resolveImportedCategory(finance, entry, entry.category);
-  const categorizedAdditions = additions.map((entry) => ({ ...entry, category: suggestedCategory(entry) }));
+  const learned = learnedPayments(finance);
+  const suggestedPayment = (entry: FinanceEntry) => resolveImportedPayment(finance, entry, entry.category, learned);
+  const categorizedAdditions = additions.map((entry) => {
+    const suggestion = suggestedPayment(entry);
+    return { ...entry, category: suggestion.category, ...(suggestion.purpose ? { purpose: suggestion.purpose } : {}) };
+  });
   const importedById = options.updateExistingCategories ? new Map(imported.map((entry) => [entry.id, entry])) : null;
   let recategorized = 0;
   const existingEntries = importedById ? finance.entries.map((entry) => {
     const suggested = importedById.get(entry.id);
-    const category = suggested ? suggestedCategory(suggested) : entry.category;
-    if (!suggested || category === entry.category) return entry;
+    const payment = suggested ? suggestedPayment(suggested) : null;
+    const category = payment?.category ?? entry.category;
+    const purpose = entry.purpose || (entry.note === payment?.purpose ? "" : payment?.purpose || "");
+    if (!suggested || (category === entry.category && purpose === (entry.purpose || ""))) return entry;
     recategorized += 1;
-    return { ...entry, category, updatedAt: new Date().toISOString() };
+    return { ...entry, category, ...(purpose ? { purpose } : {}), updatedAt: new Date().toISOString() };
   }) : finance.entries;
   const categories = [...categorizedAdditions, ...existingEntries.filter((entry) => importedById?.has(entry.id))];
   return {
@@ -162,14 +198,17 @@ export function mergeWeChatBillEntries(finance: FinanceState, imported: FinanceE
 
 export function recategorizeWeChatMonth(finance: FinanceState, month: string) {
   let changed = 0;
+  const learned = learnedPayments(finance);
   const entries = finance.entries.map((entry) => {
     if (entry.origin !== "wechat" || !entry.date.startsWith(month)) return entry;
     const merchant = merchantFromEntry(entry.note, entry.merchant);
     const inferred = classifyWeChatCategory(entry.type, { counterparty: merchant, product: entry.note, amountCents: entry.amountCents });
-    const category = resolveImportedCategory(finance, entry, inferred);
-    if (category === entry.category) return entry;
+    const payment = resolveImportedPayment(finance, entry, inferred, learned);
+    const category = payment.category;
+    const purpose = entry.purpose || (entry.note === payment.purpose ? "" : payment.purpose);
+    if (category === entry.category && purpose === (entry.purpose || "")) return entry;
     changed += 1;
-    return { ...entry, category, updatedAt: new Date().toISOString() };
+    return { ...entry, category, ...(purpose ? { purpose } : {}), updatedAt: new Date().toISOString() };
   });
   return {
     changed,

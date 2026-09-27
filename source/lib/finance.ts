@@ -10,6 +10,7 @@ export type FinanceEntry = {
   date: string;
   time: string;
   note: string;
+  purpose?: string;
   relatedProject: string;
   createdAt: string;
   updatedAt: string;
@@ -28,6 +29,7 @@ export type FinanceState = {
   expenseCategories: string[];
   incomeCategories: string[];
   merchantCategories: Record<string, string>;
+  paymentRules: Record<string, { category: string; purpose: string }>;
 };
 
 export const defaultExpenseCategories = expenseCategoryChoices;
@@ -35,7 +37,7 @@ export const defaultIncomeCategories = incomeCategoryChoices;
 
 function canonicalExpenseCategory(value: string) {
   const category = value.trim();
-  return category === "人情" ? "人情往来" : category;
+  return ({ 人情: "人情往来", 学习: "教育", 居住: "住房", 健康: "医疗健康" } as Record<string, string>)[category] || category;
 }
 
 export function localDateKey(date = new Date()) {
@@ -69,6 +71,7 @@ export function createInitialFinanceState(): FinanceState {
     expenseCategories: [...defaultExpenseCategories],
     incomeCategories: [...defaultIncomeCategories],
     merchantCategories: {},
+    paymentRules: {},
   };
 }
 
@@ -80,19 +83,20 @@ export function createPreviewFinanceState(): FinanceState {
       { id: "finance-demo-1", type: "expense", amountCents: 2860, category: "餐饮", date: dayInCurrentMonth(2), time: "12:18", note: "午餐", relatedProject: "", createdAt: now, updatedAt: now, origin: "manual" },
       { id: "finance-demo-2", type: "expense", amountCents: 1580, category: "交通", date: dayInCurrentMonth(4), time: "08:35", note: "地铁与公交", relatedProject: "", createdAt: now, updatedAt: now, origin: "manual" },
       { id: "finance-demo-3", type: "income", amountCents: 120000, category: "兼职", date: dayInCurrentMonth(6), time: "19:20", note: "设计项目结算", relatedProject: "AI 学习工具", createdAt: now, updatedAt: now, origin: "manual" },
-      { id: "finance-demo-4", type: "expense", amountCents: 8990, category: "学习", date: dayInCurrentMonth(8), time: "15:10", note: "课程资料", relatedProject: "财务管理", createdAt: now, updatedAt: now, origin: "manual" },
+      { id: "finance-demo-4", type: "expense", amountCents: 8990, category: "教育", date: dayInCurrentMonth(8), time: "15:10", note: "课程资料", relatedProject: "财务管理", createdAt: now, updatedAt: now, origin: "manual" },
       { id: "finance-demo-5", type: "expense", amountCents: 4280, category: "购物", date: dayInCurrentMonth(12), time: "17:42", note: "生活用品", relatedProject: "", createdAt: now, updatedAt: now, origin: "manual" },
       { id: "finance-demo-6", type: "expense", amountCents: 3590, category: "餐饮", date: dayInCurrentMonth(15), time: "18:36", note: "朋友聚餐", relatedProject: "", createdAt: now, updatedAt: now, origin: "manual" },
     ],
     budgets: {
       [currentMonth]: {
         totalCents: 300000,
-        categoryCents: { 餐饮: 90000, 交通: 30000, 学习: 60000, 购物: 50000 },
+        categoryCents: { 餐饮: 90000, 交通: 30000, 教育: 60000, 购物: 50000 },
       },
     },
     expenseCategories: [...defaultExpenseCategories],
     incomeCategories: [...defaultIncomeCategories],
     merchantCategories: {},
+    paymentRules: {},
   };
 }
 
@@ -133,6 +137,7 @@ export function normalizeFinanceState(raw: unknown): FinanceState {
       date: String(candidate.date),
       time: isValidLocalTime(String(candidate.time ?? "")) ? String(candidate.time) : "12:00",
       note: String(candidate.note ?? ""),
+      ...(typeof candidate.purpose === "string" && candidate.purpose.trim() ? { purpose: candidate.purpose.trim().slice(0, 80) } : {}),
       relatedProject: String(candidate.relatedProject ?? ""),
       createdAt: String(candidate.createdAt ?? new Date().toISOString()),
       updatedAt: String(candidate.updatedAt ?? candidate.createdAt ?? new Date().toISOString()),
@@ -164,6 +169,16 @@ export function normalizeFinanceState(raw: unknown): FinanceState {
         const key = normalizeMerchantName(merchant);
         const label = String(category ?? "").trim();
         return key && label && label.length <= 40 ? [[key, key.startsWith("expense:") ? canonicalExpenseCategory(label) : label]] : [];
+      }))
+      : {},
+    paymentRules: saved.paymentRules && typeof saved.paymentRules === "object"
+      ? Object.fromEntries(Object.entries(saved.paymentRules).slice(0, 500).flatMap(([rawKey, rule]) => {
+        if (!rule || typeof rule !== "object") return [];
+        const key = normalizeMerchantName(rawKey);
+        const category = String(rule.category ?? "").trim();
+        const purpose = String(rule.purpose ?? "").trim();
+        return key && key.length <= 200 && category && category.length <= 40 && purpose.length <= 80
+          ? [[key, { category: key.startsWith("expense:") ? canonicalExpenseCategory(category) : category, purpose }]] : [];
       }))
       : {},
   };
@@ -236,13 +251,14 @@ export function financeCsv(entries: FinanceEntry[]) {
     return `"${safe.replace(/"/g, '""')}"`;
   };
   const rows = [
-    ["日期", "时间", "类型", "金额（元）", "分类", "关联项目", "备注"],
+    ["日期", "时间", "类型", "金额（元）", "分类", "识别用途", "关联项目", "备注"],
     ...entries.slice().sort((a, b) => b.date.localeCompare(a.date) || b.time.localeCompare(a.time) || b.updatedAt.localeCompare(a.updatedAt)).map((entry) => [
       entry.date,
       entry.time,
       entry.type === "income" ? "收入" : "支出",
       centsToYuanInput(entry.amountCents),
       entry.category,
+      entry.purpose ?? "",
       entry.relatedProject,
       entry.note,
     ]),

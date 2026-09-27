@@ -88,6 +88,7 @@ const financeEntry = z.object({
   date,
   time,
   note: z.string().max(500),
+  purpose: z.string().max(80).optional(),
   relatedProject: z.string().max(200),
   createdAt: z.string().max(80),
   updatedAt: z.string().max(80),
@@ -161,6 +162,7 @@ export const workspaceStateSchema = z.object({
     expenseCategories: z.array(z.string().min(1).max(40)).max(200),
     incomeCategories: z.array(z.string().min(1).max(40)).max(200),
     merchantCategories: z.record(z.string().min(1).max(200), z.string().min(1).max(40)).optional(),
+    paymentRules: z.record(z.string().min(1).max(200), z.object({ category: z.string().min(1).max(40), purpose: z.string().max(80) }).strict()).optional(),
   }).strict(),
   themes: z.record(z.string().max(40), z.string().regex(/^#[0-9A-Fa-f]{6}$/)),
 }).strict().superRefine((state, context) => {
