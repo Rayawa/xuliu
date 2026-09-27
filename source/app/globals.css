@@ -1108,11 +1108,19 @@ a { color: inherit; }
 .monthPicker input { min-height: 37px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: white; }
 .expenseAction { color: #8a5f59; background: #f5eae8; }
 .primaryButton:disabled, .softButton:disabled { cursor: not-allowed; opacity: .5; }
-.financeSummaryGrid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 13px; margin-bottom: 18px; }
+.financeSummaryGrid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 13px; margin-bottom: 18px; }
 .financeSummaryGrid article { min-width: 0; display: grid; gap: 8px; padding: 20px; border: 1px solid var(--line); border-radius: 17px; background: rgba(255,255,255,.86); box-shadow: 0 10px 30px rgba(42,57,49,.045); }
 .financeSummaryGrid span, .financeSummaryGrid small { color: var(--muted); font-size: 11px; }
 .financeSummaryGrid strong { overflow: hidden; font-size: clamp(20px,2.1vw,28px); letter-spacing: -.045em; text-overflow: ellipsis; white-space: nowrap; }
 .financeSummaryGrid article.overBudget { border-color: #dfc0ba; background: #fff8f6; }
+.financeDetails { margin-top: 16px; }
+.financeDetails > summary { display: flex; align-items: baseline; gap: 10px; padding: 15px 20px; border: 1px solid var(--line); border-radius: 15px; background: rgba(255,255,255,.86); cursor: pointer; list-style: none; }
+.financeDetails > summary::-webkit-details-marker { display: none; }
+.financeDetails > summary span { font-size: 13px; font-weight: 750; }
+.financeDetails > summary small { color: var(--muted); font-size: 10px; }
+.financeDetails > summary b { margin-left: auto; color: var(--muted); font-size: 15px; transition: transform .2s; }
+.financeDetails[open] > summary { margin-bottom: 16px; }
+.financeDetails[open] > summary b { transform: rotate(180deg); }
 .incomeText { color: #4d8063 !important; }
 .expenseText { color: #a05f59 !important; }
 .financeInsightGrid { display: grid; grid-template-columns: minmax(0,1.15fr) minmax(340px,.85fr); gap: 17px; margin-bottom: 17px; }
@@ -1155,8 +1163,12 @@ a { color: inherit; }
 .ledgerFilters input, .ledgerFilters select { min-height: 37px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 9px; background: #f8faf8; font-size: 11px; }
 .ledgerFilters input { width: min(250px,34vw); }
 .ledgerList { padding: 0 22px 10px; }
-.ledgerRow { display: grid; grid-template-columns: 38px minmax(0,1fr) 98px 120px 84px; align-items: center; gap: 13px; padding: 15px 0; border-bottom: 1px solid #e9ede9; }
-.ledgerType { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 11px; font-size: 11px; font-weight: 800; }
+.ledgerDay + .ledgerDay { border-top: 1px solid var(--line); }
+.ledgerDayHead { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 15px 0 5px; color: var(--muted); font-size: 11px; }
+.ledgerDayHead strong { color: var(--text); font-size: 12px; }
+.ledgerRow { display: grid; grid-template-columns: 38px minmax(0,1fr) 48px 120px 84px; align-items: center; gap: 13px; padding: 11px 0; border-bottom: 1px solid #e9ede9; }
+.ledgerDay .ledgerRow:last-child { border-bottom: 0; }
+.ledgerType { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 11px; font-size: 14px; font-weight: 800; }
 .ledgerType.income { color: #4f7963; background: #e8f1eb; }
 .ledgerType.expense { color: #966159; background: #f5e9e7; }
 .ledgerMain { min-width: 0; display: grid; gap: 4px; }
@@ -1177,6 +1189,9 @@ a { color: inherit; }
 .financeImportStats strong { font-size: 22px; }
 .financeImportStats span, .financeImportHint { color: var(--muted); font-size: 11px; }
 .financeImportHint { margin: 15px 0 0; line-height: 1.6; }
+.financeImportReclassify { display: flex; align-items: flex-start; gap: 10px; margin-top: 16px; padding: 13px; border: 1px solid var(--line); border-radius: 12px; background: #f8faf8; font-size: 12px; line-height: 1.5; cursor: pointer; }
+.financeImportReclassify input { margin-top: 3px; accent-color: var(--accent); }
+.financeImportReclassify small { display: block; margin-top: 3px; color: var(--muted); font-size: 10px; }
 .financeImportPreview { display: grid; gap: 0; margin-top: 18px; }
 .financeImportPreview > strong { margin-bottom: 5px; font-size: 12px; }
 .financeImportPreview > div { display: flex; justify-content: space-between; gap: 16px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 11px; }
@@ -1190,6 +1205,15 @@ a { color: inherit; }
 .entryTypeSwitch button { padding: 10px; border: 0; border-radius: 9px; color: var(--muted); background: transparent; font-weight: 700; }
 .entryTypeSwitch button.active.expense { color: #8e5d56; background: #fff; box-shadow: 0 3px 12px rgba(66,49,45,.08); }
 .entryTypeSwitch button.active.income { color: #4d7861; background: #fff; box-shadow: 0 3px 12px rgba(45,66,53,.08); }
+.financeCategorySection { display: grid; gap: 10px; margin: 20px 0; }
+.financeCategorySection > span, .financeCategorySection label { color: var(--muted); font-size: 11px; font-weight: 700; }
+.financeCategorySection > small { color: var(--muted); font-size: 10px; line-height: 1.5; }
+.financeCategoryChoices { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 7px; }
+.financeCategoryChoices button { display: flex; align-items: center; gap: 6px; min-width: 0; min-height: 38px; padding: 7px 9px; border: 1px solid var(--line); border-radius: 10px; color: var(--text); background: #f8faf8; font-size: 11px; text-align: left; cursor: pointer; }
+.financeCategoryChoices button i { font-size: 13px; font-style: normal; }
+.financeCategoryChoices button.active { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb,var(--accent) 8%,white); font-weight: 700; }
+.financeCategorySection label { display: grid; gap: 7px; }
+.financeCategorySection input { width: 100%; min-height: 39px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; color: var(--text); background: #f8faf8; font-size: 12px; }
 .amountField { display: grid; gap: 7px; }
 .amountField > span, .financeFormGrid label > span { color: var(--muted); font-size: 11px; font-weight: 700; }
 .amountField > div { display: flex; align-items: center; border-bottom: 1px solid var(--line-strong); }
@@ -1223,7 +1247,7 @@ a { color: inherit; }
   .financeImportStats { grid-template-columns: 1fr 1fr; }
   .financeSummaryGrid { gap: 8px; }
   .financeSummaryGrid article { padding: 15px 12px; }
-  .financeSummaryGrid strong { font-size: 19px; }
+  .financeSummaryGrid strong { font-size: clamp(13px,3.8vw,19px); }
   .financeChartPanel, .budgetPanel { padding: 18px 15px; }
   .totalBudgetRow, .categoryBudgetGrid { grid-template-columns: 1fr; }
   .ledgerToolbar { align-items: stretch; flex-direction: column; padding: 18px 15px; }
@@ -1234,6 +1258,7 @@ a { color: inherit; }
   .ledgerRow time { grid-column: 2; }
   .ledgerRow > b { grid-column: 3; grid-row: 1; }
   .ledgerActions { grid-column: 2 / -1; justify-content: flex-start; }
+  .financeCategoryChoices { grid-template-columns: repeat(3,minmax(0,1fr)); }
   .financeModalScrim { align-items: end; padding: 0; }
   .financeModal { max-height: 90vh; padding: 22px 18px; border-radius: 22px 22px 0 0; }
   .financeFormGrid { grid-template-columns: 1fr; }

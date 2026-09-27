@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createInitialFinanceState, normalizeFinanceState } from "../lib/finance.ts";
+import { merchantCategoryKey } from "../lib/finance-categories.ts";
 import { mergeWeChatBillEntries, parseWeChatBillCsv, parseWeChatBillRows } from "../lib/wechat-bill-import.ts";
 import { workspaceStateSchema } from "../lib/workspace-state-schema.ts";
 
@@ -62,4 +63,41 @@ test("spreadsheet date cells keep the transaction day and time", async () => {
   assert.equal(result.entries[0].date, "2026-09-24");
   assert.equal(result.entries[0].time, "08:05");
   assert.equal(result.entries[0].amountCents, 1990);
+});
+
+test("WeChat import recognizes campus top-ups, gifts, restaurants and everyday merchants", async () => {
+  const rows = [header.split(","),
+    ["2026-09-24 09:00:00", "商户消费", "北京理工大学", "付款", "支出", "¥30.00", "零钱", "支付成功", "campus", "", ""],
+    ["2026-09-24 10:00:00", "商户消费", "文创小店", "纪念品", "支出", "¥25.00", "零钱", "支付成功", "gift", "", ""],
+    ["2026-09-24 11:00:00", "商户消费", "川味饭店", "付款", "支出", "¥28.00", "零钱", "支付成功", "food", "", ""],
+    ["2026-09-24 12:00:00", "商户消费", "中国移动", "话费", "支出", "¥20.00", "零钱", "支付成功", "mobile", "", ""],
+    ["2026-09-24 13:00:00", "商户消费", "楼下便利店", "日用品", "支出", "¥12.00", "零钱", "支付成功", "daily", "", ""],
+  ];
+  const parsed = await parseWeChatBillRows(rows);
+  assert.deepEqual(parsed.entries.map((entry) => entry.category), ["校园卡充值", "人情往来", "餐饮", "通讯", "日常生活"]);
+  assert.equal(parsed.entries[0].merchant, "北京理工大学");
+});
+
+test("reimport can update old categories without duplicating records; merchant edits guide later imports", async () => {
+  const rows = [header.split(","),
+    ["2026-09-24 09:00:00", "商户消费", "北京理工大学", "付款", "支出", "¥30.00", "零钱", "支付成功", "campus", "", ""],
+    ["2026-09-24 10:00:00", "商户消费", "黑狗科技", "微信支付", "支出", "¥15.00", "零钱", "支付成功", "tech", "", ""],
+    ["2026-09-24 11:00:00", "转账", "黑狗科技", "退款", "收入", "¥5.00", "零钱", "已收钱", "refund", "", ""],
+  ];
+  const parsed = await parseWeChatBillRows(rows);
+  const previous = createInitialFinanceState();
+  previous.entries = [{ ...parsed.entries[0], category: "其他" }];
+  previous.merchantCategories[merchantCategoryKey("expense", "黑狗科技")] = "通讯";
+  const unchanged = mergeWeChatBillEntries(previous, parsed.entries);
+  assert.equal(unchanged.added, 2);
+  assert.equal(unchanged.recategorized, 0);
+  assert.equal(unchanged.finance.entries.find((entry) => entry.id === parsed.entries[0].id)?.category, "其他");
+  assert.equal(unchanged.finance.entries.find((entry) => entry.id === parsed.entries[1].id)?.category, "通讯");
+  assert.equal(unchanged.finance.entries.find((entry) => entry.id === parsed.entries[2].id)?.category, "其他收入");
+  const updated = mergeWeChatBillEntries(previous, parsed.entries, { updateExistingCategories: true });
+  assert.equal(updated.added, 2);
+  assert.equal(updated.recategorized, 1);
+  assert.equal(updated.finance.entries.find((entry) => entry.id === parsed.entries[0].id)?.category, "校园卡充值");
+  assert.equal(workspaceStateSchema.shape.finance.safeParse(updated.finance).success, true);
+  assert.equal(normalizeFinanceState(JSON.parse(JSON.stringify(updated.finance))).merchantCategories[merchantCategoryKey("expense", "黑狗科技")], "通讯");
 });

@@ -92,6 +92,7 @@ const financeEntry = z.object({
   createdAt: z.string().max(80),
   updatedAt: z.string().max(80),
   origin: z.enum(["manual", "ai", "wechat"]),
+  merchant: z.string().max(200).optional(),
 }).strict();
 
 export const workspaceStateSchema = z.object({
@@ -159,6 +160,7 @@ export const workspaceStateSchema = z.object({
     budgets: z.record(z.string().refine(isValidMonthKey), z.object({ totalCents: z.number().int().nonnegative().max(100_000_000_00), categoryCents: z.record(z.string().min(1).max(40), z.number().int().nonnegative().max(100_000_000_00)) }).strict()),
     expenseCategories: z.array(z.string().min(1).max(40)).max(200),
     incomeCategories: z.array(z.string().min(1).max(40)).max(200),
+    merchantCategories: z.record(z.string().min(1).max(200), z.string().min(1).max(40)).optional(),
   }).strict(),
   themes: z.record(z.string().max(40), z.string().regex(/^#[0-9A-Fa-f]{6}$/)),
 }).strict().superRefine((state, context) => {

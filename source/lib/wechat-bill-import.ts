@@ -1,4 +1,5 @@
 import { parseDelimitedRows } from "./academic-import.ts";
+import { classifyWeChatCategory, merchantCategoryKey, merchantFromEntry } from "./finance-categories.ts";
 import { isValidLocalDate, isValidLocalTime, yuanToCents, type FinanceEntry, type FinanceEntryType, type FinanceState } from "./finance.ts";
 
 export type WeChatBillImport = {
@@ -37,27 +38,6 @@ function parseDateTime(value: unknown) {
   const date = `${matched[1]}-${matched[2].padStart(2, "0")}-${matched[3].padStart(2, "0")}`;
   const time = `${matched[4].padStart(2, "0")}:${matched[5]}`;
   return isValidLocalDate(date) && isValidLocalTime(time) ? { date, time } : null;
-}
-
-function categoryFor(type: FinanceEntryType, transactionType: string, counterparty: string, product: string) {
-  const title = `${transactionType} ${counterparty} ${product}`;
-  if (type === "income") {
-    if (/奖学金|助学金/.test(title)) return "奖学金";
-    if (/工资|薪资/.test(title)) return "工资";
-    if (/报销/.test(title)) return "报销";
-    if (/红包|礼金/.test(title)) return "礼金";
-    if (/兼职|稿费/.test(title)) return "兼职";
-    return "其他收入";
-  }
-  if (/地铁|公交|打车|出租车|高铁|火车票|机票|滴滴|交通/.test(title)) return "交通";
-  if (/餐饮|外卖|食堂|饭店|餐厅|奶茶|咖啡|早餐|午餐|晚餐/.test(title)) return "餐饮";
-  if (/教材|图书|课程|学费|培训|文具/.test(title)) return "学习";
-  if (/房租|租金|水费|电费|燃气|物业/.test(title)) return "居住";
-  if (/医院|药店|医疗|挂号|体检/.test(title)) return "健康";
-  if (/电影|演出|游戏|娱乐/.test(title)) return "娱乐";
-  if (/红包|礼金/.test(title)) return "人情";
-  if (/超市|便利店|购物|百货|淘宝|京东/.test(title)) return "购物";
-  return "其他";
 }
 
 async function entryId(sourceKey: string) {
@@ -110,7 +90,7 @@ export async function parseWeChatBillRows(rawRows: unknown[][]): Promise<WeChatB
     const type: FinanceEntryType = direction === "收入" ? "income" : "expense";
     const note = [counterparty, product, memo, status.includes("退款") ? status : ""].filter(Boolean).filter((part, position, parts) => parts.indexOf(part) === position).join(" · ").slice(0, 500)
       || transactionType || "微信支付";
-    result.entries.push({ id, type, amountCents, category: categoryFor(type, transactionType, counterparty, product), date: when.date, time: when.time, note, relatedProject: "", createdAt: importTime, updatedAt: importTime, origin: "wechat" });
+    result.entries.push({ id, type, amountCents, category: classifyWeChatCategory(type, { transactionType, counterparty, product, memo }), date: when.date, time: when.time, note, relatedProject: "", createdAt: importTime, updatedAt: importTime, origin: "wechat", ...(counterparty ? { merchant: counterparty.slice(0, 200) } : {}) });
   }
   return result;
 }
@@ -139,7 +119,7 @@ export async function readWeChatBillFile(file: File) {
   throw new Error("请选择微信个人对账导出的 .xlsx 或 .csv 文件；压缩包需要先解压。");
 }
 
-export function mergeWeChatBillEntries(finance: FinanceState, imported: FinanceEntry[]) {
+export function mergeWeChatBillEntries(finance: FinanceState, imported: FinanceEntry[], options: { updateExistingCategories?: boolean } = {}) {
   const known = new Set(finance.entries.map((entry) => entry.id));
   const additions = imported.filter((entry) => {
     if (known.has(entry.id)) return false;
@@ -147,14 +127,27 @@ export function mergeWeChatBillEntries(finance: FinanceState, imported: FinanceE
     return true;
   });
   if (finance.entries.length + additions.length > MAX_ENTRIES) throw new Error("记账记录将超过 20000 笔，请先整理旧记录。");
+  const suggestedCategory = (entry: FinanceEntry) => finance.merchantCategories?.[merchantCategoryKey(entry.type, merchantFromEntry(entry.note, entry.merchant))] || entry.category;
+  const categorizedAdditions = additions.map((entry) => ({ ...entry, category: suggestedCategory(entry) }));
+  const importedById = options.updateExistingCategories ? new Map(imported.map((entry) => [entry.id, entry])) : null;
+  let recategorized = 0;
+  const existingEntries = importedById ? finance.entries.map((entry) => {
+    const suggested = importedById.get(entry.id);
+    const category = suggested ? suggestedCategory(suggested) : entry.category;
+    if (!suggested || category === entry.category) return entry;
+    recategorized += 1;
+    return { ...entry, category, updatedAt: new Date().toISOString() };
+  }) : finance.entries;
+  const categories = [...categorizedAdditions, ...existingEntries.filter((entry) => importedById?.has(entry.id))];
   return {
     finance: {
       ...finance,
-      entries: [...additions, ...finance.entries],
-      expenseCategories: [...new Set([...finance.expenseCategories, ...additions.filter((entry) => entry.type === "expense").map((entry) => entry.category)])],
-      incomeCategories: [...new Set([...finance.incomeCategories, ...additions.filter((entry) => entry.type === "income").map((entry) => entry.category)])],
+      entries: [...categorizedAdditions, ...existingEntries],
+      expenseCategories: [...new Set([...finance.expenseCategories, ...categories.filter((entry) => entry.type === "expense").map((entry) => entry.category)])],
+      incomeCategories: [...new Set([...finance.incomeCategories, ...categories.filter((entry) => entry.type === "income").map((entry) => entry.category)])],
     },
     added: additions.length,
     duplicates: imported.length - additions.length,
+    recategorized,
   };
 }

@@ -1,3 +1,5 @@
+import { expenseCategoryChoices, incomeCategoryChoices, normalizeMerchantName } from "./finance-categories.ts";
+
 export type FinanceEntryType = "income" | "expense";
 
 export type FinanceEntry = {
@@ -12,6 +14,7 @@ export type FinanceEntry = {
   createdAt: string;
   updatedAt: string;
   origin: "manual" | "ai" | "wechat";
+  merchant?: string;
 };
 
 export type MonthlyBudget = {
@@ -24,10 +27,11 @@ export type FinanceState = {
   budgets: Record<string, MonthlyBudget>;
   expenseCategories: string[];
   incomeCategories: string[];
+  merchantCategories: Record<string, string>;
 };
 
-export const defaultExpenseCategories = ["餐饮", "交通", "学习", "购物", "居住", "健康", "娱乐", "人情", "其他"];
-export const defaultIncomeCategories = ["工资", "兼职", "奖学金", "报销", "礼金", "其他收入"];
+export const defaultExpenseCategories = expenseCategoryChoices;
+export const defaultIncomeCategories = incomeCategoryChoices;
 
 export function localDateKey(date = new Date()) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
@@ -59,6 +63,7 @@ export function createInitialFinanceState(): FinanceState {
     budgets: {},
     expenseCategories: [...defaultExpenseCategories],
     incomeCategories: [...defaultIncomeCategories],
+    merchantCategories: {},
   };
 }
 
@@ -82,6 +87,7 @@ export function createPreviewFinanceState(): FinanceState {
     },
     expenseCategories: [...defaultExpenseCategories],
     incomeCategories: [...defaultIncomeCategories],
+    merchantCategories: {},
   };
 }
 
@@ -124,6 +130,7 @@ export function normalizeFinanceState(raw: unknown): FinanceState {
       createdAt: String(candidate.createdAt ?? new Date().toISOString()),
       updatedAt: String(candidate.updatedAt ?? candidate.createdAt ?? new Date().toISOString()),
       origin: candidate.origin === "ai" || candidate.origin === "wechat" ? candidate.origin : "manual",
+      ...(typeof candidate.merchant === "string" && candidate.merchant.trim() ? { merchant: candidate.merchant.trim().slice(0, 200) } : {}),
     } satisfies FinanceEntry];
   }) : fallback.entries;
   const budgets = saved.budgets && typeof saved.budgets === "object"
@@ -141,6 +148,13 @@ export function normalizeFinanceState(raw: unknown): FinanceState {
     budgets,
     expenseCategories: uniqueStrings(saved.expenseCategories, defaultExpenseCategories),
     incomeCategories: uniqueStrings(saved.incomeCategories, defaultIncomeCategories),
+    merchantCategories: saved.merchantCategories && typeof saved.merchantCategories === "object"
+      ? Object.fromEntries(Object.entries(saved.merchantCategories).slice(0, 500).flatMap(([merchant, category]) => {
+        const key = normalizeMerchantName(merchant);
+        const label = String(category ?? "").trim();
+        return key && label && label.length <= 40 ? [[key, label]] : [];
+      }))
+      : {},
   };
 }
 
