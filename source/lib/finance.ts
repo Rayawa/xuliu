@@ -33,6 +33,11 @@ export type FinanceState = {
 export const defaultExpenseCategories = expenseCategoryChoices;
 export const defaultIncomeCategories = incomeCategoryChoices;
 
+function canonicalExpenseCategory(value: string) {
+  const category = value.trim();
+  return category === "人情" ? "人情往来" : category;
+}
+
 export function localDateKey(date = new Date()) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
@@ -122,7 +127,9 @@ export function normalizeFinanceState(raw: unknown): FinanceState {
       id: String(candidate.id),
       type: candidate.type,
       amountCents,
-      category: String(candidate.category || (candidate.type === "income" ? "其他收入" : "其他")),
+      category: candidate.type === "expense"
+        ? canonicalExpenseCategory(String(candidate.category || "其他"))
+        : String(candidate.category || "其他收入"),
       date: String(candidate.date),
       time: isValidLocalTime(String(candidate.time ?? "")) ? String(candidate.time) : "12:00",
       note: String(candidate.note ?? ""),
@@ -137,30 +144,34 @@ export function normalizeFinanceState(raw: unknown): FinanceState {
     ? Object.fromEntries(Object.entries(saved.budgets).flatMap(([month, budget]) => {
       if (!isValidMonthKey(month) || !budget || typeof budget !== "object") return [];
       const candidate = budget as Partial<MonthlyBudget>;
-      const categoryCents = candidate.categoryCents && typeof candidate.categoryCents === "object"
-        ? Object.fromEntries(Object.entries(candidate.categoryCents).map(([category, cents]) => [category, finiteCents(cents)]))
-        : {};
+      const categoryCents: Record<string, number> = {};
+      if (candidate.categoryCents && typeof candidate.categoryCents === "object") {
+        for (const [category, cents] of Object.entries(candidate.categoryCents)) {
+          const canonical = canonicalExpenseCategory(category);
+          if (category === canonical || !(canonical in categoryCents)) categoryCents[canonical] = finiteCents(cents);
+        }
+      }
       return [[month, { totalCents: finiteCents(candidate.totalCents), categoryCents } satisfies MonthlyBudget]];
     }))
     : fallback.budgets;
   return {
     entries,
     budgets,
-    expenseCategories: uniqueStrings(saved.expenseCategories, defaultExpenseCategories),
+    expenseCategories: uniqueStrings(saved.expenseCategories, defaultExpenseCategories, canonicalExpenseCategory),
     incomeCategories: uniqueStrings(saved.incomeCategories, defaultIncomeCategories),
     merchantCategories: saved.merchantCategories && typeof saved.merchantCategories === "object"
       ? Object.fromEntries(Object.entries(saved.merchantCategories).slice(0, 500).flatMap(([merchant, category]) => {
         const key = normalizeMerchantName(merchant);
         const label = String(category ?? "").trim();
-        return key && label && label.length <= 40 ? [[key, label]] : [];
+        return key && label && label.length <= 40 ? [[key, key.startsWith("expense:") ? canonicalExpenseCategory(label) : label]] : [];
       }))
       : {},
   };
 }
 
-function uniqueStrings(value: unknown, fallback: string[]) {
+function uniqueStrings(value: unknown, fallback: string[], normalize = (category: string) => category) {
   if (!Array.isArray(value)) return [...fallback];
-  const normalized = value.map((item) => String(item).trim()).filter(Boolean);
+  const normalized = value.map((item) => normalize(String(item).trim())).filter(Boolean);
   return [...new Set([...fallback, ...normalized])];
 }
 
