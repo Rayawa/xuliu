@@ -1,5 +1,5 @@
 import { parseDelimitedRows } from "./academic-import.ts";
-import { classifyWeChatCategory, merchantCategoryKey, merchantFromEntry } from "./finance-categories.ts";
+import { classifyWeChatCategory, merchantCategoryKey, merchantFromEntry, transactionCategoryKey } from "./finance-categories.ts";
 import { isValidLocalDate, isValidLocalTime, yuanToCents, type FinanceEntry, type FinanceEntryType, type FinanceState } from "./finance.ts";
 
 export type WeChatBillImport = {
@@ -90,7 +90,7 @@ export async function parseWeChatBillRows(rawRows: unknown[][]): Promise<WeChatB
     const type: FinanceEntryType = direction === "收入" ? "income" : "expense";
     const note = [counterparty, product, memo, status.includes("退款") ? status : ""].filter(Boolean).filter((part, position, parts) => parts.indexOf(part) === position).join(" · ").slice(0, 500)
       || transactionType || "微信支付";
-    result.entries.push({ id, type, amountCents, category: classifyWeChatCategory(type, { transactionType, counterparty, product, memo }), date: when.date, time: when.time, note, relatedProject: "", createdAt: importTime, updatedAt: importTime, origin: "wechat", ...(counterparty ? { merchant: counterparty.slice(0, 200) } : {}) });
+    result.entries.push({ id, type, amountCents, category: classifyWeChatCategory(type, { transactionType, counterparty, product, memo, amountCents }), date: when.date, time: when.time, note, relatedProject: "", createdAt: importTime, updatedAt: importTime, origin: "wechat", ...(counterparty ? { merchant: counterparty.slice(0, 200) } : {}) });
   }
   return result;
 }
@@ -119,6 +119,14 @@ export async function readWeChatBillFile(file: File) {
   throw new Error("请选择微信个人对账导出的 .xlsx 或 .csv 文件；压缩包需要先解压。");
 }
 
+function resolveImportedCategory(finance: FinanceState, entry: FinanceEntry, inferred: string) {
+  const merchant = merchantFromEntry(entry.note, entry.merchant);
+  const specific = finance.merchantCategories?.[transactionCategoryKey(entry.type, merchant, entry.note)];
+  if (specific) return specific;
+  if (inferred !== "其他" && inferred !== "其他收入") return inferred;
+  return finance.merchantCategories?.[merchantCategoryKey(entry.type, merchant)] || inferred;
+}
+
 export function mergeWeChatBillEntries(finance: FinanceState, imported: FinanceEntry[], options: { updateExistingCategories?: boolean } = {}) {
   const known = new Set(finance.entries.map((entry) => entry.id));
   const additions = imported.filter((entry) => {
@@ -127,7 +135,7 @@ export function mergeWeChatBillEntries(finance: FinanceState, imported: FinanceE
     return true;
   });
   if (finance.entries.length + additions.length > MAX_ENTRIES) throw new Error("记账记录将超过 20000 笔，请先整理旧记录。");
-  const suggestedCategory = (entry: FinanceEntry) => finance.merchantCategories?.[merchantCategoryKey(entry.type, merchantFromEntry(entry.note, entry.merchant))] || entry.category;
+  const suggestedCategory = (entry: FinanceEntry) => resolveImportedCategory(finance, entry, entry.category);
   const categorizedAdditions = additions.map((entry) => ({ ...entry, category: suggestedCategory(entry) }));
   const importedById = options.updateExistingCategories ? new Map(imported.map((entry) => [entry.id, entry])) : null;
   let recategorized = 0;
@@ -149,5 +157,27 @@ export function mergeWeChatBillEntries(finance: FinanceState, imported: FinanceE
     added: additions.length,
     duplicates: imported.length - additions.length,
     recategorized,
+  };
+}
+
+export function recategorizeWeChatMonth(finance: FinanceState, month: string) {
+  let changed = 0;
+  const entries = finance.entries.map((entry) => {
+    if (entry.origin !== "wechat" || !entry.date.startsWith(month)) return entry;
+    const merchant = merchantFromEntry(entry.note, entry.merchant);
+    const inferred = classifyWeChatCategory(entry.type, { counterparty: merchant, product: entry.note, amountCents: entry.amountCents });
+    const category = resolveImportedCategory(finance, entry, inferred);
+    if (category === entry.category) return entry;
+    changed += 1;
+    return { ...entry, category, updatedAt: new Date().toISOString() };
+  });
+  return {
+    changed,
+    finance: changed ? {
+      ...finance,
+      entries,
+      expenseCategories: [...new Set([...finance.expenseCategories, ...entries.filter((entry) => entry.origin === "wechat" && entry.type === "expense").map((entry) => entry.category)])],
+      incomeCategories: [...new Set([...finance.incomeCategories, ...entries.filter((entry) => entry.origin === "wechat" && entry.type === "income").map((entry) => entry.category)])],
+    } : finance,
   };
 }

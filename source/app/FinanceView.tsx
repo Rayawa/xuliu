@@ -22,8 +22,8 @@ import {
   type FinanceEntryType,
   type FinanceState,
 } from "@/lib/finance";
-import { categoryGlyphs, merchantCategoryKey, merchantFromEntry } from "@/lib/finance-categories";
-import { mergeWeChatBillEntries, readWeChatBillFile, type WeChatBillImport } from "@/lib/wechat-bill-import";
+import { categoryGlyphs, merchantFromEntry, transactionCategoryKey } from "@/lib/finance-categories";
+import { mergeWeChatBillEntries, readWeChatBillFile, recategorizeWeChatMonth, type WeChatBillImport } from "@/lib/wechat-bill-import";
 
 type FinanceViewProps = {
   finance: FinanceState;
@@ -75,6 +75,7 @@ export default function FinanceView({ finance, readOnly, projectOptions, onChang
   const [editor, setEditor] = useState<EditorState | null>(null);
   const [amountInput, setAmountInput] = useState("");
   const [pendingDelete, setPendingDelete] = useState<FinanceEntry | null>(null);
+  const [pendingRecategorize, setPendingRecategorize] = useState<{ month: string; count: number } | null>(null);
   const [formError, setFormError] = useState("");
   const [budgetError, setBudgetError] = useState("");
   const [importBusy, setImportBusy] = useState(false);
@@ -89,6 +90,13 @@ export default function FinanceView({ finance, readOnly, projectOptions, onChang
   );
   const summary = useMemo(() => financeSummary(finance.entries, selectedMonth), [finance.entries, selectedMonth]);
   const categoryTotals = useMemo(() => expenseByCategory(finance.entries, selectedMonth), [finance.entries, selectedMonth]);
+  const expenseEntriesByCategory = useMemo(() => monthEntries
+    .filter((entry) => entry.type === "expense")
+    .sort((a, b) => b.date.localeCompare(a.date) || b.time.localeCompare(a.time))
+    .reduce<Record<string, FinanceEntry[]>>((groups, entry) => {
+      (groups[entry.category] ??= []).push(entry);
+      return groups;
+    }, {}), [monthEntries]);
   const currentBudget = finance.budgets[selectedMonth] ?? { totalCents: 0, categoryCents: {} };
   const budgetRemaining = currentBudget.totalCents - summary.expenseCents;
   const budgetRate = currentBudget.totalCents ? Math.round(summary.expenseCents / currentBudget.totalCents * 100) : 0;
@@ -105,6 +113,7 @@ export default function FinanceView({ finance, readOnly, projectOptions, onChang
   }, {});
   const monthSeries = recentMonthKeys(6).map((month) => ({ month, ...financeSummary(finance.entries, month) }));
   const trendMax = Math.max(1, ...monthSeries.flatMap((item) => [item.incomeCents, item.expenseCents]));
+  const reclassifiableCount = useMemo(() => recategorizeWeChatMonth(finance, selectedMonth).changed, [finance, selectedMonth]);
 
   const openCreate = (type: FinanceEntryType) => {
     const entry = blankEntry(type);
@@ -154,7 +163,7 @@ export default function FinanceView({ finance, readOnly, projectOptions, onChang
         ...current,
         entries: exists ? current.entries.map((entry) => entry.id === nextEntry.id ? nextEntry : entry) : [nextEntry, ...current.entries],
         [categoryKey]: [...new Set([...current[categoryKey], category])],
-        merchantCategories: learnMerchant ? { ...current.merchantCategories, [merchantCategoryKey(nextEntry.type, merchant)]: category } : current.merchantCategories,
+        merchantCategories: learnMerchant ? { ...current.merchantCategories, [transactionCategoryKey(nextEntry.type, merchant, nextEntry.note)]: category } : current.merchantCategories,
       };
     });
     setEditor(null);
@@ -164,6 +173,14 @@ export default function FinanceView({ finance, readOnly, projectOptions, onChang
     if (!pendingDelete) return;
     onChange((current) => ({ ...current, entries: current.entries.filter((entry) => entry.id !== pendingDelete.id) }));
     setPendingDelete(null);
+  };
+
+  const confirmRecategorize = () => {
+    if (!pendingRecategorize || readOnly) return;
+    const { month } = pendingRecategorize;
+    onChange((current) => recategorizeWeChatMonth(current, month).finance);
+    setPendingRecategorize(null);
+    setImportNotice(`已重新识别 ${monthLabel(month)}的微信账单分类，正在自动保存。`);
   };
 
   const updateBudget = (patch: { totalCents?: number; category?: string; categoryCents?: number }) => {
@@ -237,9 +254,17 @@ export default function FinanceView({ finance, readOnly, projectOptions, onChang
     setImportNotice(`已添加 ${added} 笔${updated ? `，更新 ${updated} 笔分类` : ""}，正在自动保存。`);
   };
 
+  const renderEntry = (entry: FinanceEntry, showDate = false) => <article className="ledgerRow" key={entry.id}>
+    <span className={`ledgerType ${entry.type}`}>{categoryGlyphs[entry.category] || (entry.type === "income" ? "收" : "记")}</span>
+    <div className="ledgerMain"><strong>{entry.note || entry.category}</strong><span>{showDate ? `${entry.date} · ` : ""}{entry.category}{entry.relatedProject ? ` · ${entry.relatedProject}` : ""}{entry.origin === "wechat" ? " · 微信" : ""}</span></div>
+    <time>{entry.time}</time>
+    <b className={entry.type === "income" ? "incomeText" : "expenseText"}>{entry.type === "income" ? "+" : "−"}{formatCny(entry.amountCents)}</b>
+    {!readOnly && <div className="ledgerActions"><button onClick={() => openEdit(entry)} aria-label={`编辑${entry.note || entry.category}`}>编辑</button><button className="dangerText" onClick={() => setPendingDelete(entry)} aria-label={`删除${entry.note || entry.category}`}>删除</button></div>}
+  </article>;
+
   return <div className="page financePage">
     <div className="pageHead financeHead">
-      <div><div className="eyebrow">个人记账</div><h1>记账</h1><p>按日期查看收支，分类、统计和预算都在下方。</p></div>
+      <div><div className="eyebrow">个人记账</div><h1>记账</h1></div>
       <div className="financeHeadActions">
         <label className="monthPicker"><span>查看月份</span><input type="month" value={selectedMonth} onChange={(event) => setSelectedMonth(event.target.value || monthKey())} /></label>
         {!readOnly && <><input ref={wechatFileInput} className="financeFileInput" type="file" accept=".xlsx,.csv" aria-label="选择微信账单文件" onChange={(event) => { const file = event.currentTarget.files?.[0]; event.currentTarget.value = ""; void chooseWeChatBill(file); }} /><button className="softButton" disabled={importBusy} onClick={() => wechatFileInput.current?.click()}>{importBusy ? "正在读取账单…" : "导入微信账单"}</button></>}
@@ -250,36 +275,13 @@ export default function FinanceView({ finance, readOnly, projectOptions, onChang
     {importError && <p className="financeImportMessage error" role="alert">{importError}</p>}
     {importNotice && <p className="financeImportMessage" role="status">{importNotice}</p>}
 
-    <section className="financeSummaryGrid" aria-label={`${monthLabel(selectedMonth)}收支概览`}>
-      <article><span>本月支出</span><strong className="expenseText">{formatCny(summary.expenseCents)}</strong><small>{monthEntries.filter((entry) => entry.type === "expense").length} 笔支出</small></article>
-      <article><span>本月收入</span><strong className="incomeText">{formatCny(summary.incomeCents)}</strong><small>{monthEntries.filter((entry) => entry.type === "income").length} 笔收入</small></article>
-      <article><span>本月结余</span><strong>{formatSignedCny(summary.netCents)}</strong><small>{summary.netCents >= 0 ? "收支保持正向" : "支出超过收入"}</small></article>
-    </section>
-
-    <section className="panel ledgerPanel">
-      <div className="ledgerToolbar">
-        <div><h2>收支明细</h2><p>{monthLabel(selectedMonth)} · {filteredEntries.length} 笔</p></div>
-        <div className="ledgerFilters">
-          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索备注、分类或项目" />
-          <select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value as "all" | FinanceEntryType)}><option value="all">全部类型</option><option value="expense">支出</option><option value="income">收入</option></select>
-          <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}><option value="all">全部分类</option>{allCategories.map((category) => <option key={category}>{category}</option>)}</select>
-          <button className="softButton" onClick={exportLedger}>导出</button>
-        </div>
-      </div>
-      <div className="ledgerList">{Object.entries(entriesByDay).map(([day, entries]) => <div className="ledgerDay" key={day}>
-        <div className="ledgerDayHead"><strong>{dayLabel(day)}</strong><span>{entries?.length ?? 0} 笔</span></div>
-        {entries?.map((entry) => <article className="ledgerRow" key={entry.id}>
-          <span className={`ledgerType ${entry.type}`}>{categoryGlyphs[entry.category] || (entry.type === "income" ? "收" : "记")}</span>
-          <div className="ledgerMain"><strong>{entry.note || entry.category}</strong><span>{entry.category}{entry.relatedProject ? ` · ${entry.relatedProject}` : ""}{entry.origin === "wechat" ? " · 微信" : ""}</span></div>
-          <time>{entry.time}</time>
-          <b className={entry.type === "income" ? "incomeText" : "expenseText"}>{entry.type === "income" ? "+" : "−"}{formatCny(entry.amountCents)}</b>
-          {!readOnly && <div className="ledgerActions"><button onClick={() => openEdit(entry)} aria-label={`编辑${entry.note || entry.category}`}>编辑</button><button className="dangerText" onClick={() => setPendingDelete(entry)} aria-label={`删除${entry.note || entry.category}`}>删除</button></div>}
-        </article>)}
-      </div>)}{!filteredEntries.length && <div className="financeEmpty ledgerEmpty"><strong>没有符合条件的记录</strong><span>调整筛选，或添加一笔收支。</span></div>}</div>
+    <section className="panel financeOverview" aria-label={`${monthLabel(selectedMonth)}收支概览`}>
+      <div className="financeOverviewPrimary"><span>{monthLabel(selectedMonth)} · 总支出</span><strong className="expenseText">{formatCny(summary.expenseCents)}</strong><small>{monthEntries.filter((entry) => entry.type === "expense").length} 笔支出</small></div>
+      <div className="financeOverviewSecondary"><div><span>总收入</span><b className="incomeText">{formatCny(summary.incomeCents)}</b></div><div><span>结余</span><b>{formatSignedCny(summary.netCents)}</b></div></div>
     </section>
 
     <details className="financeDetails">
-      <summary><span>统计与预算</span><small>{currentBudget.totalCents ? `预算剩余 ${formatSignedCny(budgetRemaining)}` : "分类、趋势与预算设置"}</small><b aria-hidden="true">⌄</b></summary>
+      <summary><span>查看统计详情</span><small>{currentBudget.totalCents ? `预算剩余 ${formatSignedCny(budgetRemaining)}` : "趋势与预算"}</small><b aria-hidden="true">⌄</b></summary>
     <div className="financeInsightGrid">
       <section className="panel financeChartPanel">
         <div className="sectionHead"><div><h2>近六个月趋势</h2><p>收入与支出按月对照</p></div><div className="financeLegend"><span className="incomeDot" />收入<span className="expenseDot" />支出</div></div>
@@ -289,12 +291,6 @@ export default function FinanceView({ finance, readOnly, projectOptions, onChang
         </div>)}</div>
       </section>
 
-      <section className="panel financeChartPanel categoryPanel">
-        <div className="sectionHead"><div><h2>支出分类</h2><p>{monthLabel(selectedMonth)}的主要去向</p></div><span className="countChip">{categoryTotals.length} 类</span></div>
-        <div className="categoryBars">{categoryTotals.length ? categoryTotals.slice(0, 6).map((item) => <div key={item.category}>
-          <span>{item.category}</span><i><b style={{ width: `${Math.max(4, item.amountCents / Math.max(1, summary.expenseCents) * 100)}%` }} /></i><strong>{Math.round(item.amountCents / Math.max(1, summary.expenseCents) * 100)}% · {formatCny(item.amountCents)}</strong>
-        </div>) : <div className="financeEmpty">本月还没有支出记录。</div>}</div>
-      </section>
     </div>
 
     <section className="panel budgetPanel">
@@ -313,6 +309,37 @@ export default function FinanceView({ finance, readOnly, projectOptions, onChang
     </section>
 
     </details>
+
+    <section className="panel financeCategoryPanel" aria-label="支出分类">
+      <div className="financeSectionTitle"><div><h2>支出分类</h2><span>{categoryTotals.length} 类 · 点开查看每笔支出</span></div></div>
+      {categoryTotals.length ? <div className="financeCategoryList">{categoryTotals.map((item) => <details className="financeCategoryItem" key={item.category}>
+        <summary><span className="financeCategoryGlyph">{categoryGlyphs[item.category] || "记"}</span><span className="financeCategoryName"><strong>{item.category}</strong><small>{expenseEntriesByCategory[item.category]?.length ?? 0} 笔 · {Math.round(item.amountCents / summary.expenseCents * 100)}%</small></span><b>{formatCny(item.amountCents)}</b><i aria-hidden="true">⌄</i></summary>
+        <div className="financeCategoryTransactions">{expenseEntriesByCategory[item.category]?.map((entry) => renderEntry(entry, true))}</div>
+      </details>)}</div> : <div className="financeEmpty">本月还没有支出记录。</div>}
+    </section>
+
+    <section className="panel ledgerPanel">
+      <div className="ledgerToolbar">
+        <div><h2>每日收支</h2><p>每天只显示支出合计，点开查看当日记录</p></div>
+        {!readOnly && reclassifiableCount > 0 && <button className="softButton" onClick={() => setPendingRecategorize({ month: selectedMonth, count: reclassifiableCount })}>更新本月微信分类 · {reclassifiableCount} 笔</button>}
+      </div>
+      <details className="ledgerTools"><summary>搜索、筛选与导出 <span>⌄</span></summary><div className="ledgerFilters">
+        <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索备注、分类或项目" />
+        <select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value as "all" | FinanceEntryType)}><option value="all">全部类型</option><option value="expense">支出</option><option value="income">收入</option></select>
+        <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}><option value="all">全部分类</option>{allCategories.map((category) => <option key={category}>{category}</option>)}</select>
+        <button className="softButton" onClick={exportLedger}>导出</button>
+      </div></details>
+      <div className="ledgerList">{Object.entries(entriesByDay).map(([day, entries]) => <details className="ledgerDay" key={day}>
+        <summary className="ledgerDayHead"><span><strong>{dayLabel(day)}</strong><small>{entries.length} 笔</small></span><b className="expenseText">支出 {formatCny(entries.reduce((total, entry) => total + (entry.type === "expense" ? entry.amountCents : 0), 0))}</b><i aria-hidden="true">⌄</i></summary>
+        <div className="ledgerDayRows">{entries.map((entry) => renderEntry(entry))}</div>
+      </details>)}{!filteredEntries.length && <div className="financeEmpty ledgerEmpty"><strong>没有符合条件的记录</strong><span>调整筛选，或添加一笔收支。</span></div>}</div>
+    </section>
+
+    {pendingRecategorize && <div className="financeModalScrim"><section className="financeModal compact" role="alertdialog" aria-modal="true" aria-labelledby="finance-recategorize-title">
+      <div className="financeModalHead"><div><span>WECHAT BILL</span><h2 id="finance-recategorize-title">更新本月分类？</h2></div></div>
+      <p className="deleteDescription">按新的识别规则更新 {pendingRecategorize.count} 笔微信记录的分类。金额、日期和备注保持不变；已记住的商户分类优先保留。</p>
+      <div className="financeModalActions"><button className="softButton" onClick={() => setPendingRecategorize(null)}>取消</button><button className="primaryButton" onClick={confirmRecategorize}>确认更新</button></div>
+    </section></div>}
 
     {pendingImport && <div className="financeModalScrim" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target) setPendingImport(null); }}><section className="financeModal financeImportModal" role="dialog" aria-modal="true" aria-labelledby="finance-import-title">
       <div className="financeModalHead"><div><span>WECHAT BILL</span><h2 id="finance-import-title">确认导入微信账单</h2></div><button aria-label="关闭" onClick={() => setPendingImport(null)}>×</button></div>
