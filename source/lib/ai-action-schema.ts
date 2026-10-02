@@ -104,7 +104,7 @@ export const entityActionSchema = z.preprocess(normalizeEntityActionInput, entit
     if (due !== null && (typeof due !== "string" || !isValidLocalDate(due))) {
       context.addIssue({
         code: "custom",
-        message: "任务截止日期必须使用 YYYY-MM-DD；需要具体时间请创建日历事项",
+        message: "任务截止日期必须使用 YYYY-MM-DD；具体时间请另填 dueTime",
         path: ["values", "due"],
       });
     }
@@ -112,6 +112,14 @@ export const entityActionSchema = z.preprocess(normalizeEntityActionInput, entit
   if (operation.entity === "task" && Object.prototype.hasOwnProperty.call(operation.values, "startDate")) {
     const startDate = operation.values.startDate;
     if (startDate !== null && (typeof startDate !== "string" || !isValidLocalDate(startDate))) context.addIssue({ code: "custom", message: "跨日任务开始日期必须使用 YYYY-MM-DD", path: ["values", "startDate"] });
+  }
+  if (operation.entity === "task" && Object.prototype.hasOwnProperty.call(operation.values, "dueTime")) {
+    const dueTime = operation.values.dueTime;
+    if (dueTime !== null && (typeof dueTime !== "string" || !isValidLocalTime(dueTime))) context.addIssue({ code: "custom", message: "任务截止时间必须使用 HH:mm", path: ["values", "dueTime"] });
+  }
+  if (operation.entity === "task" && Object.prototype.hasOwnProperty.call(operation.values, "plannedDate")) {
+    const plannedDate = operation.values.plannedDate;
+    if (plannedDate !== null && (typeof plannedDate !== "string" || !isValidLocalDate(plannedDate))) context.addIssue({ code: "custom", message: "计划推进日必须使用 YYYY-MM-DD", path: ["values", "plannedDate"] });
   }
   if (operation.entity === "task" && operation.values.mode !== undefined && !["single", "multi"].includes(String(operation.values.mode))) context.addIssue({ code: "custom", message: "任务方式只能是 single 或 multi", path: ["values", "mode"] });
   if (operation.entity === "task" && operation.values.status !== undefined && !["未开始", "进行中", "已暂停", "已完成"].includes(String(operation.values.status))) context.addIssue({ code: "custom", message: "任务状态无效", path: ["values", "status"] });

@@ -864,6 +864,13 @@ a { color: inherit; }
 .taskModePicker button.active { border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); background: color-mix(in srgb, var(--accent) 10%, white); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 18%, transparent); }
 .taskDialogFields { grid-template-columns: 1fr 1fr; }
 .taskDialogFields label.wide { grid-column: 1 / -1; }
+.taskDialogFields label.wide small { color: var(--muted); font-size: 10px; line-height: 1.5; }
+.taskSettingsAttachments { grid-column: 1 / -1; display: grid; gap: 8px; }
+.taskSettingsAttachments > strong { color: var(--muted); font-size: 11px; }
+.subjectLinkedTasks { margin-top: 20px; border-top: 1px solid var(--line); padding-top: 16px; }
+.subjectLinkedTasks > h3 { margin: 0 0 8px; font-size: 13px; }
+.subjectLinkedTasks .taskRow { grid-template-columns: minmax(0,1fr) auto; }
+.subjectLinkedTasks .taskBody > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .taskDialogFields input[type="range"] { padding: 7px 0; accent-color: var(--accent); }
 .taskProgressHistory { margin-top: 18px; display: grid; gap: 7px; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: #f8faf8; }
 .taskProgressHistory > strong { margin-bottom: 2px; font-size: 11px; }

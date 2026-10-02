@@ -1,0 +1,4 @@
+# Local recovery copies, tools, and package caches stay on this computer.
+/.local-archive/
+/.local-tools/
+/.local-cache/

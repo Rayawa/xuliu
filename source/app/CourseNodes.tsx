@@ -22,8 +22,8 @@ type Change<T> = (update: (current: T) => T) => void;
 
 function fileSize(bytes: number) { return bytes < 1024 * 1024 ? `${Math.ceil(bytes / 1024)} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`; }
 
-function NodeAttachments({ nodeId, label, files, onChange, access, onBlockedChange }: {
-  nodeId: string; label: string; files: NodeAttachment[]; onChange: Change<NodeAttachment[]>;
+export function NodeAttachments({ nodeId, scope = "milestone", label, files, onChange, access, onBlockedChange }: {
+  nodeId: string; scope?: "milestone" | "task"; label: string; files: NodeAttachment[]; onChange: Change<NodeAttachment[]>;
   access: Access; onBlockedChange: (blocked: boolean) => void;
 }) {
   const [pending, setPending] = useState<File[]>([]);
@@ -59,8 +59,8 @@ function NodeAttachments({ nodeId, label, files, onChange, access, onBlockedChan
         const id = crypto.randomUUID();
         const safeName = file.name.replace(/[\\/?%*:|"<>]/g, "-").slice(0, 220) || "attachment";
         setProgress(1);
-        const result = await uploadBlob(`attachments/${access.ownerId}/milestone-${nodeId}/${id}/${safeName}`, file, {
-          access: "private", handleUploadUrl: "/api/files", clientPayload: JSON.stringify({ blockId: `milestone:${nodeId}` }),
+        const result = await uploadBlob(`attachments/${access.ownerId}/${scope}-${nodeId}/${id}/${safeName}`, file, {
+          access: "private", handleUploadUrl: "/api/files", clientPayload: JSON.stringify({ blockId: `${scope}:${nodeId}` }),
           multipart: file.size > 5 * 1024 * 1024, contentType: file.type || "application/octet-stream",
           onUploadProgress: ({ percentage }) => { if (mounted.current) setProgress(Math.max(1, Math.round(percentage))); },
         });

@@ -3,6 +3,8 @@ export type TaskProgressStatus = "未开始" | "进行中" | "已暂停" | "已�
 
 export type TaskScheduleLike = {
   due?: string;
+  dueTime?: string;
+  plannedDate?: string;
   today?: boolean;
   done?: boolean;
   mode?: TaskMode;
@@ -31,7 +33,8 @@ export function taskStatusOf(task: TaskScheduleLike): TaskProgressStatus {
 }
 
 export function taskScheduledForDate(task: TaskScheduleLike, targetDate: string) {
-  if (taskModeOf(task) === "single") return task.due === targetDate;
+  if (taskModeOf(task) === "single") return task.due === targetDate || task.plannedDate === targetDate
+    || Boolean(task.progressLogs?.some((entry) => entry.date === targetDate));
   const start = task.startDate || task.due || targetDate;
   const due = task.due || "9999-12-31";
   return start <= targetDate && targetDate <= due
@@ -39,7 +42,7 @@ export function taskScheduledForDate(task: TaskScheduleLike, targetDate: string)
 }
 
 export function taskVisibleToday(task: TaskScheduleLike, targetDate: string) {
-  if (taskModeOf(task) === "single") return taskScheduledForDate(task, targetDate) || (!task.due && task.today === true);
+  if (taskModeOf(task) === "single") return taskScheduledForDate(task, targetDate) || (!task.due && !task.plannedDate && task.today === true);
   if (task.done || task.status === "已完成") {
     return task.due === targetDate || Boolean(task.progressLogs?.some((entry) => entry.date === targetDate));
   }
@@ -47,7 +50,7 @@ export function taskVisibleToday(task: TaskScheduleLike, targetDate: string) {
 }
 
 export function taskOverlapsRange(task: TaskScheduleLike, rangeStart: string, rangeEnd: string) {
-  if (taskModeOf(task) === "single") return Boolean(task.due && task.due >= rangeStart && task.due <= rangeEnd);
+  if (taskModeOf(task) === "single") return [task.due, task.plannedDate].some((date) => Boolean(date && date >= rangeStart && date <= rangeEnd));
   const start = task.startDate || task.due || rangeStart;
   const due = task.due || "9999-12-31";
   return start <= rangeEnd && due >= rangeStart;
@@ -63,11 +66,15 @@ function dayDifference(from: string, to: string) {
 }
 
 export function taskScheduleSummary(task: TaskScheduleLike, targetDate: string) {
-  if (taskModeOf(task) === "single") return task.due || "未设日期";
+  if (taskModeOf(task) === "single") return `${task.plannedDate ? `${task.plannedDate} 计划推进 · ` : ""}${task.due ? `截止 ${taskDeadlineLabel(task)}` : "未设截止"}`;
   const start = task.startDate || task.due || targetDate;
   const due = task.due || "";
   if (start > targetDate) return `${dayDifference(targetDate, start)} 天后开始`;
   if (!due) return `第 ${dayDifference(start, targetDate) + 1} 天 · 未设截止`;
   if (due < targetDate) return `已逾期 ${dayDifference(due, targetDate)} 天`;
   return `第 ${dayDifference(start, targetDate) + 1} 天 · 剩 ${dayDifference(targetDate, due)} 天`;
+}
+
+export function taskDeadlineLabel(task: TaskScheduleLike) {
+  return task.due ? `${task.due}${task.dueTime ? ` ${task.dueTime}` : ""}` : "未设截止";
 }

@@ -80,7 +80,7 @@ function chinaDateKey(date = new Date()) {
 
 function parseEntityValues(entity: AiEntity, values: Record<string, unknown>) {
   const schemas: Record<AiEntity, z.ZodType> = {
-    task: z.object({ title: shortText, requirements: longText, parentCandidate: z.boolean(), courseId: z.string().max(120).nullable(), area: areaSchema, source: shortText, due: dateSchema.nullable(), done: z.boolean(), today: z.boolean(), mode: z.enum(["single", "multi"]), startDate: dateSchema.nullable(), status: z.enum(["未开始", "进行中", "已暂停", "已完成"]), progress: percentage }).partial().strict(),
+    task: z.object({ title: shortText, requirements: longText, parentCandidate: z.boolean(), courseId: z.string().max(120).nullable(), area: areaSchema, source: shortText, due: dateSchema.nullable(), dueTime: timeSchema.nullable(), plannedDate: dateSchema.nullable(), done: z.boolean(), today: z.boolean(), mode: z.enum(["single", "multi"]), startDate: dateSchema.nullable(), status: z.enum(["未开始", "进行中", "已暂停", "已完成"]), progress: percentage }).partial().strict(),
     milestone: z.object({ title: shortText, date: dateSchema, time: timeSchema, location: shortText, requirements: longText, area: areaSchema, done: z.boolean(), courseId: z.string().max(120).nullable(), mode: z.enum(["single", "multi"]), parentCandidate: z.boolean() }).partial().strict(),
     course: z.object({ title: shortText, term: shortText, teacher: shortText, location: shortText, progress: percentage, requirements: longText, content: longText }).partial().strict(),
     courseSlot: z.object({ weekday: z.number().int().min(1).max(7), start: timeSchema, end: timeSchema, location: shortText, weeks: shortText }).partial().strict(),
@@ -145,6 +145,9 @@ function withContent(target: JsonObject, values: JsonObject, entity: AiEntity) {
     } else next.blocks = contentBlocks(content);
   }
   if (entity === "task" && next.due === null) delete next.due;
+  if (entity === "task" && next.dueTime && !next.due && !(values.due === null && values.dueTime === undefined)) throw new Error("设置任务截止时间前请先选择截止日期");
+  if (entity === "task" && (next.dueTime === null || !next.due)) delete next.dueTime;
+  if (entity === "task" && next.plannedDate === null) delete next.plannedDate;
   if (entity === "task" && next.startDate === null) delete next.startDate;
   if (entity === "task" && next.courseId === null) delete next.courseId;
   if (entity === "task") {
@@ -161,6 +164,9 @@ function withContent(target: JsonObject, values: JsonObject, entity: AiEntity) {
       if (Number(next.progress ?? 0) > 0 && next.status === "未开始") next.status = "进行中";
     }
     if (next.mode !== "multi") delete next.startDate;
+    if (next.mode === "multi") delete next.plannedDate;
+    if (next.plannedDate && next.due && String(next.plannedDate) > String(next.due)) throw new Error("计划推进日不能晚于截止日期");
+    if (["due", "plannedDate", "mode"].some((key) => Object.prototype.hasOwnProperty.call(values, key))) next.today = next.mode === "single" && (next.due === chinaDateKey() || next.plannedDate === chinaDateKey());
   }
   if (entity === "milestone") {
     if (next.courseId === null) delete next.courseId;
