@@ -292,7 +292,9 @@ const navItems: { id: NavId; icon: string; label: string }[] = [
 const areaClass: Record<Area, string> = { 课内: "study", 课外: "outside", 工作: "work", 生活: "life", 思考: "thought" };
 const toneChoices = ["#718c7c", "#657f91", "#80769a", "#8b7658", "#8a6f7d", "#738287"];
 type DesignMode = "classic" | "paper";
-const designModeStorageKey = "xuliu-design-mode";
+const designModeStorageKey = "xuliu-design-mode-v2";
+const paperThemesStorageKey = "xuliu-paper-page-colors";
+const defaultPaperTone = "#80674d";
 const formatMinutes = (value: number) => value >= 60 ? `${Math.floor(value / 60)}h ${value % 60}m` : `${value}m`;
 const formatClock = (seconds: number) => `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
 
@@ -458,15 +460,34 @@ export default function DashboardClient({ account, visibleAccounts, onLogout, de
     setPopupState(next);
   }, []);
   const [mobileNav, setMobileNav] = useState(false);
-  const [designMode, setDesignMode] = useState<DesignMode>("classic");
+  const [designMode, setDesignMode] = useState<DesignMode>("paper");
+  const [paperThemes, setPaperThemes] = useState<Partial<Record<NavId, string>>>({});
   useEffect(() => {
-    try { if (window.localStorage.getItem(designModeStorageKey) === "paper") setDesignMode("paper"); }
+    try {
+      if (window.localStorage.getItem(designModeStorageKey) === "classic") setDesignMode("classic");
+      const saved = JSON.parse(window.localStorage.getItem(paperThemesStorageKey) ?? "{}");
+      if (saved && typeof saved === "object" && !Array.isArray(saved)) {
+        const colors: Partial<Record<NavId, string>> = {};
+        for (const item of navItems) {
+          const color = saved[item.id];
+          if (typeof color === "string" && /^#[0-9a-f]{6}$/i.test(color)) colors[item.id] = color;
+        }
+        setPaperThemes(colors);
+      }
+    }
     catch { /* Appearance remains usable when local storage is unavailable. */ }
   }, []);
   const chooseDesignMode = (mode: DesignMode) => {
     setDesignMode(mode);
     try { window.localStorage.setItem(designModeStorageKey, mode); }
     catch { /* The selection still applies until this page is closed. */ }
+  };
+  const paperColor = paperThemes[active] ?? defaultPaperTone;
+  const choosePaperColor = (color: string) => {
+    const next = { ...paperThemes, [active]: color };
+    setPaperThemes(next);
+    try { window.localStorage.setItem(paperThemesStorageKey, JSON.stringify(next)); }
+    catch { /* The color still applies until this page is closed. */ }
   };
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const [selectedPage, setSelectedPage] = useState("");
@@ -795,9 +816,9 @@ export default function DashboardClient({ account, visibleAccounts, onLogout, de
     }));
   }, [data.courses, setData]);
 
-  return <div className={"shell design-" + designMode} style={{ "--accent": designMode === "paper" ? "#80674d" : theme } as React.CSSProperties}>
+  return <div className={"shell design-" + designMode} style={{ "--accent": designMode === "paper" ? paperColor : theme } as React.CSSProperties}>
     <aside className={`sidebar ${mobileNav ? "open" : ""}`}><button className="brand" onClick={() => navigate("today")}><span className="brandMark">序</span><span>序流</span></button><div className="workspaceSwitcher"><span>当前空间</span><button className={!readOnly ? "active" : ""} onClick={() => { setWorkspaceOwner(account.id); setDetail(null); }}><i>{account.displayName.slice(0, 1)}</i><b>{account.displayName}</b><small>我的</small></button>{visibleAccounts.map((visible) => <button key={visible.id} className={workspaceOwner === visible.id ? "active" : ""} onClick={() => { setWorkspaceOwner(visible.id); setDetail(null); }}><i>{visible.displayName.slice(0, 1)}</i><b>{visible.displayName}</b><small>只读</small></button>)}</div><div className="navGroup">{navItems.slice(0, 5).map((item) => <NavButton key={item.id} {...item} active={active} onClick={navigate} />)}</div><div className="navCaption">我的空间</div><div className="navGroup">{navItems.slice(5).map((item) => <NavButton key={item.id} {...item} active={active} onClick={navigate} />)}</div><button className="exportButton" onClick={exportData}>导出数据备份</button><button className="refreshButton" disabled={sync === "saving"} onClick={() => void reloadForUpdate()}>{sync === "saving" ? "保存后可刷新" : "↻ 刷新应用"}</button><a className="changelogLink" href="/changelog" target="_blank" rel="noreferrer">更新日志 ↗</a>{!preview && <button className="logoutButton" onClick={onLogout}>退出登录</button>}<div className="sidebarFoot"><span className={`syncDot ${sync}`} />{sync === "saving" ? "正在保存" : sync === "readonly" ? "正在查看只读空间" : sync === "error" ? "云端连接异常" : sync === "preview" ? "本地预览 · 不会写入云端" : "已保存到云端"}</div></aside>
-    <main className="main">{preview && <div className="readOnlyBanner">本地试运行 · 可测试任务计时、子任务与事项记录。示例数据仅在本次页面保留，刷新后重置。</div>}<header className="mobileHeader"><button className="iconButton" aria-label="打开导航" onClick={() => setMobileNav(true)}>☰</button><strong>序流</strong><div className="mobileHeaderActions"><button className="iconButton refreshIconButton" disabled={sync === "saving"} aria-label="刷新应用" title="刷新应用" onClick={() => void reloadForUpdate()}>↻</button><span className={`syncDot ${sync}`} /></div></header>{updateAvailable && <div className="updateBanner"><span>网站已有新版本，为避免继续使用旧页面，请先刷新。</span><button disabled={sync === "saving"} onClick={() => void reloadForUpdate()}>{sync === "saving" ? "等待保存" : "立即刷新"}</button></div>}{readOnly && <div className="readOnlyBanner">正在查看 <strong>{visibleAccount.displayName}</strong> 的空间 · 只读</div>}{!loaded ? <div className="workspaceLoading">正在载入空间…</div> : <><ThemePicker color={theme} designMode={designMode} onDesignChange={chooseDesignMode} onChange={(color) => setData((current) => ({ ...current, themes: { ...current.themes, [active]: color } }))} />{workDetail ? <TaskDetail key={`${workspaceOwner}:${workDetail.kind}:${workDetail.id}`} target={workDetail} data={data} setData={setData} access={{ ownerId: workspaceOwner, readOnly, preview }} focus={focus} focusPanel={focusPanel} onManual={setManualTarget} onOpen={setWorkDetail} onClose={() => setWorkDetail(null)} requestDelete={requestWorkDeletion} postponeWork={postponeWork} /> : detail ? <DetailRouter target={detail} data={data} setData={setData} back={() => setDetail(null)} openWork={setWorkDetail} setDialog={setDialog} deleteDialog={deleteDialog} access={{ ownerId: workspaceOwner, readOnly, preview }} /> : <>
+    <main className="main">{preview && <div className="readOnlyBanner">本地试运行 · 可测试任务计时、子任务与事项记录。示例数据仅在本次页面保留，刷新后重置。</div>}<header className="mobileHeader"><button className="iconButton" aria-label="打开导航" onClick={() => setMobileNav(true)}>☰</button><strong>序流</strong><div className="mobileHeaderActions"><button className="iconButton refreshIconButton" disabled={sync === "saving"} aria-label="刷新应用" title="刷新应用" onClick={() => void reloadForUpdate()}>↻</button><span className={`syncDot ${sync}`} /></div></header>{updateAvailable && <div className="updateBanner"><span>网站已有新版本，为避免继续使用旧页面，请先刷新。</span><button disabled={sync === "saving"} onClick={() => void reloadForUpdate()}>{sync === "saving" ? "等待保存" : "立即刷新"}</button></div>}{readOnly && <div className="readOnlyBanner">正在查看 <strong>{visibleAccount.displayName}</strong> 的空间 · 只读</div>}{!loaded ? <div className="workspaceLoading">正在载入空间…</div> : <><ThemePicker color={designMode === "paper" ? paperColor : theme} designMode={designMode} onDesignChange={chooseDesignMode} onChange={(color) => designMode === "paper" ? choosePaperColor(color) : setData((current) => ({ ...current, themes: { ...current.themes, [active]: color } }))} />{workDetail ? <TaskDetail key={`${workspaceOwner}:${workDetail.kind}:${workDetail.id}`} target={workDetail} data={data} setData={setData} access={{ ownerId: workspaceOwner, readOnly, preview }} focus={focus} focusPanel={focusPanel} onManual={setManualTarget} onOpen={setWorkDetail} onClose={() => setWorkDetail(null)} requestDelete={requestWorkDeletion} postponeWork={postponeWork} /> : detail ? <DetailRouter target={detail} data={data} setData={setData} back={() => setDetail(null)} openWork={setWorkDetail} setDialog={setDialog} deleteDialog={deleteDialog} access={{ ownerId: workspaceOwner, readOnly, preview }} /> : <>
       {active === "today" && <TodayView data={data} setData={setData} tasks={todayTasks} milestones={data.milestones.filter((item) => item.date === today || Boolean(item.courseId && item.mode === "multi" && !item.done))} totalMinutes={data.timeEntries.filter((entry) => entry.date === today).reduce((sum, entry) => sum + entry.minutes, 0)} daily={daily} updateDaily={updateDaily} focusPanel={focusPanel} openWork={setWorkDetail} requestDelete={requestWorkDeletion} postponeWork={postponeWork} access={{ ownerId: workspaceOwner, readOnly, preview }} readOnly={readOnly} setPopup={setPopup} setDialog={setDialog} />}
       {active === "timetable" && <TimetableViewV2 data={data} setData={setData} setDialog={setDialog} openCourse={(id) => setDetail({ type: "course", id })} deleteDialog={deleteDialog} dualSchool={workspaceOwner === "owner"} readOnly={readOnly} />}
       {active === "tasks" && <TaskOverviewView data={data} setData={setData} setDialog={setDialog} openWork={setWorkDetail} requestDelete={requestWorkDeletion} postponeWork={postponeWork} access={{ ownerId: workspaceOwner, readOnly, preview }} readOnly={readOnly} />}
@@ -829,7 +850,7 @@ export default function DashboardClient({ account, visibleAccounts, onLogout, de
 }
 
 function NavButton({ id, icon, label, active, onClick }: { id: NavId; icon: string; label: string; active: NavId; onClick: (id: NavId) => void }) { return <button className={`navButton ${active === id ? "active" : ""}`} onClick={() => onClick(id)}><span>{icon}</span>{label}</button>; }
-function ThemePicker({ color, designMode, onChange, onDesignChange }: { color: string; designMode: DesignMode; onChange: (color: string) => void; onDesignChange: (mode: DesignMode) => void }) { return <div className="themePicker" aria-label="界面外观"><div className="designModeTabs" role="group" aria-label="界面风格"><button type="button" className={designMode === "classic" ? "active" : ""} aria-pressed={designMode === "classic"} onClick={() => onDesignChange("classic")}>经典</button><button type="button" className={designMode === "paper" ? "active" : ""} aria-pressed={designMode === "paper"} onClick={() => onDesignChange("paper")}>纸页</button></div>{designMode === "classic" && <><span>页面颜色</span>{toneChoices.map((tone) => <button key={tone} className={color === tone ? "active" : ""} style={{ background: tone }} aria-label={`使用颜色 ${tone}`} onClick={() => onChange(tone)} />)}<label title="自定义颜色"><input type="color" value={color} onChange={(event) => onChange(event.target.value)} />＋</label></>}</div>; }
+function ThemePicker({ color, designMode, onChange, onDesignChange }: { color: string; designMode: DesignMode; onChange: (color: string) => void; onDesignChange: (mode: DesignMode) => void }) { return <div className="themePicker" aria-label="界面外观"><div className="designModeTabs" role="group" aria-label="界面风格"><button type="button" className={designMode === "classic" ? "active" : ""} aria-pressed={designMode === "classic"} onClick={() => onDesignChange("classic")}>经典</button><button type="button" className={designMode === "paper" ? "active" : ""} aria-pressed={designMode === "paper"} onClick={() => onDesignChange("paper")}>纸页</button></div><span>页面颜色</span>{(designMode === "paper" ? [defaultPaperTone, ...toneChoices] : toneChoices).map((tone) => <button key={tone} className={color === tone ? "active" : ""} style={{ background: tone }} aria-label={`使用颜色 ${tone}`} aria-pressed={color === tone} onClick={() => onChange(tone)} />)}<label title="自定义颜色"><input type="color" aria-label="自定义页面颜色" value={color} onChange={(event) => onChange(event.target.value)} />＋</label></div>; }
 function PageHead({ eyebrow, title, subtitle, action }: { eyebrow: string; title: string; subtitle: string; action?: React.ReactNode }) { return <div className="pageHead"><div><div className="eyebrow">{eyebrow}</div><h1>{title}</h1><p>{subtitle}</p></div>{action}</div>; }
 function SyncChip() { return <span className="syncChip"><span />云端自动保存 · 支持导出备份</span>; }
 function PanelTitle({ title, subtitle, meta }: { title: string; subtitle: string; meta?: string }) { return <div className="panelHead"><div><h2>{title}</h2><p>{subtitle}</p></div>{meta && <span className="countChip">{meta}</span>}</div>; }
@@ -1274,6 +1295,10 @@ function TaskOverviewView({ data, setData, setDialog, openWork, requestDelete, p
   </div>;
 }
 
+function isDialogSaveEnter(event: React.KeyboardEvent<HTMLFormElement>) {
+  return event.key === "Enter" && !event.nativeEvent.isComposing && event.target instanceof HTMLInputElement && ["text", "number", "url"].includes(event.target.type);
+}
+
 function TaskSettingsDialog({ task, tasks, milestones, courses, learning, presetParent, access, onClose, onSave, onOpenDetail }: { task?: TaskItem; tasks: TaskItem[]; milestones: Milestone[]; courses: Course[]; learning: LearningArea[]; presetParent?: WorkTarget; access: EditorAccess; onClose: () => void; onSave: (task: TaskItem) => void; onOpenDetail?: () => void }) {
   const presetTask = presetParent?.kind === "task" ? tasks.find((item) => item.id === presetParent.id) : undefined;
   const presetNode = presetParent?.kind === "milestone" ? milestones.find((item) => item.id === presetParent.id) : undefined;
@@ -1308,6 +1333,7 @@ function TaskSettingsDialog({ task, tasks, milestones, courses, learning, preset
   const [progress, setProgress] = useState(taskProgressOf(task ?? {}));
   const [error, setError] = useState("");
   const openDetailAfterSave = useRef(false);
+  const saveButtonRef = useRef<HTMLButtonElement>(null);
   const selectedSubject = subjectOptions.find((subject) => subject.id === courseId);
   const updateOrigin = (next: "course" | "other") => {
     setOrigin(next);
@@ -1376,7 +1402,7 @@ function TaskSettingsDialog({ task, tasks, milestones, courses, learning, preset
     if (openDetailAfterSave.current) onOpenDetail?.();
   };
   const history = [...(task?.progressLogs ?? [])].reverse().slice(0, 5);
-  return <div className="dialogScrim" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target && !attachmentsPending) onClose(); }}><form className="appDialog taskSettingsDialog" role="dialog" aria-modal="true" aria-label={task ? "修改任务" : "新增任务"} onSubmit={submit}>
+  return <div className="dialogScrim" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target && !attachmentsPending) onClose(); }}><form className="appDialog taskSettingsDialog" role="dialog" aria-modal="true" aria-label={task ? "修改任务" : "新增任务"} onSubmit={submit} onKeyDown={(event) => { if (isDialogSaveEnter(event)) { event.preventDefault(); openDetailAfterSave.current = false; event.currentTarget.requestSubmit(saveButtonRef.current ?? undefined); } }}>
     <div className="dialogHead"><div><span>任务设置</span><h2>{task ? "修改任务" : "新增任务"}</h2><p>截止时间和计划推进日分开设置；今天推进不等于今天完成。</p></div><button type="button" aria-label="关闭" disabled={attachmentsPending} onClick={onClose}>×</button></div>
     <div className="taskModePicker" aria-label="任务周期"><button type="button" aria-pressed={mode === "single"} className={mode === "single" ? "active" : ""} onClick={() => { setMode("single"); if (!task) setParentCandidate(false); }}><strong>短期任务</strong><span>可分次做，按截止日完成</span></button><button type="button" aria-pressed={mode === "multi"} className={mode === "multi" ? "active" : ""} onClick={() => { setMode("multi"); if (!task) setParentCandidate(true); }}><strong>长期任务</strong><span>从开始日起持续推进</span></button></div>
     <div className="taskOriginPicker" aria-label="任务类型"><button type="button" aria-pressed={origin === "course"} className={origin === "course" ? "active" : ""} onClick={() => updateOrigin("course")}><strong>学习任务</strong><span>关联课内或课外学习科目</span></button><button type="button" aria-pressed={origin === "other"} className={origin === "other" ? "active" : ""} onClick={() => updateOrigin("other")}><strong>其他任务</strong><span>工作、生活或思考</span></button></div>
@@ -1401,17 +1427,18 @@ function TaskSettingsDialog({ task, tasks, milestones, courses, learning, preset
     </div>
     {history.length > 0 && <div className="taskProgressHistory"><strong>最近进度记录</strong>{history.map((entry) => <div key={entry.id}><time>{entry.date}</time><span>{entry.status} · {entry.progress}%</span><p>{entry.note || "未填写说明"}</p></div>)}</div>}
     {error && <p className="dialogError" role="alert">{error}</p>}
-    <div className="dialogActions">{task && onOpenDetail && <button type="submit" disabled={attachmentsPending} className="softButton dialogDetailAction" onClick={() => { openDetailAfterSave.current = true; }}>保存并进入详细界面</button>}<button type="button" className="softButton" disabled={attachmentsPending} onClick={onClose}>取消</button><button type="submit" className="primaryButton" disabled={attachmentsPending} onClick={() => { openDetailAfterSave.current = false; }}>{task ? "保存设置" : "创建任务"}</button></div>
+    <div className="dialogActions">{task && onOpenDetail && <button type="submit" disabled={attachmentsPending} className="softButton dialogDetailAction" onClick={() => { openDetailAfterSave.current = true; }}>保存并进入详细界面</button>}<button type="button" className="softButton" disabled={attachmentsPending} onClick={onClose}>取消</button><button ref={saveButtonRef} type="submit" className="primaryButton" disabled={attachmentsPending} onClick={() => { openDetailAfterSave.current = false; }}>{task ? "保存设置" : "创建任务"}</button></div>
   </form></div>;
 }
 
 function MilestoneSettingsDialog({ node, onClose, onSave, onOpenDetail }: { node: Milestone; onClose: () => void; onSave: (node: Milestone) => void; onOpenDetail: () => void }) {
   const [draft, setDraft] = useState<Milestone>(() => ({ ...node }));
   const openDetailAfterSave = useRef(false);
+  const saveButtonRef = useRef<HTMLButtonElement>(null);
   const isCourseTask = Boolean(draft.courseId);
   const entityLabel = isCourseTask ? "课程任务" : "事项";
   const patch = (values: Partial<Milestone>) => setDraft((current) => ({ ...current, ...values }));
-  return <div className="dialogScrim" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target) onClose(); }}><form className="appDialog taskSettingsDialog" role="dialog" aria-modal="true" aria-label={`修改${entityLabel}`} onSubmit={(event) => { event.preventDefault(); if (!draft.title.trim()) return; onSave({ ...draft, title: draft.title.trim().slice(0, 500), requirements: draft.requirements.trim().slice(0, 4_000) }); if (openDetailAfterSave.current) onOpenDetail(); }}>
+  return <div className="dialogScrim" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target) onClose(); }}><form className="appDialog taskSettingsDialog" role="dialog" aria-modal="true" aria-label={`修改${entityLabel}`} onSubmit={(event) => { event.preventDefault(); if (!draft.title.trim()) return; onSave({ ...draft, title: draft.title.trim().slice(0, 500), requirements: draft.requirements.trim().slice(0, 4_000) }); if (openDetailAfterSave.current) onOpenDetail(); }} onKeyDown={(event) => { if (isDialogSaveEnter(event)) { event.preventDefault(); openDetailAfterSave.current = false; event.currentTarget.requestSubmit(saveButtonRef.current ?? undefined); } }}>
     <div className="dialogHead"><div><span>{entityLabel}设置</span><h2>修改{entityLabel}</h2><p>这里编辑创建时的基础信息；记录、附件和计时可进入详细界面处理。</p></div><button type="button" aria-label="关闭" onClick={onClose}>×</button></div>
     {isCourseTask && <div className="taskModePicker"><button type="button" className={(draft.mode ?? "single") === "single" ? "active" : ""} onClick={() => patch({ mode: "single" })}><strong>短期任务</strong><span>一次或短期完成</span></button><button type="button" className={draft.mode === "multi" ? "active" : ""} onClick={() => patch({ mode: "multi", parentCandidate: draft.parentCandidate ?? true })}><strong>长期任务</strong><span>持续推进并记录进度</span></button></div>}
     <div className="dialogFields taskDialogFields">
@@ -1423,7 +1450,7 @@ function MilestoneSettingsDialog({ node, onClose, onSave, onOpenDetail }: { node
       <label><span>时间</span><input type="time" required value={draft.time} onChange={(event) => patch({ time: event.target.value })} /></label>
       <label className="wide"><span>地点</span><input maxLength={500} value={draft.location} onChange={(event) => patch({ location: event.target.value })} /></label>
     </div>
-    <div className="dialogActions"><button type="submit" className="softButton dialogDetailAction" onClick={() => { openDetailAfterSave.current = true; }}>保存并进入详细界面</button><button type="button" className="softButton" onClick={onClose}>取消</button><button type="submit" className="primaryButton" onClick={() => { openDetailAfterSave.current = false; }}>保存设置</button></div>
+    <div className="dialogActions"><button type="submit" className="softButton dialogDetailAction" onClick={() => { openDetailAfterSave.current = true; }}>保存并进入详细界面</button><button type="button" className="softButton" onClick={onClose}>取消</button><button ref={saveButtonRef} type="submit" className="primaryButton" onClick={() => { openDetailAfterSave.current = false; }}>保存设置</button></div>
   </form></div>;
 }
 function CalendarView({ data, setData, setDialog, openWork, readOnly }: { data: AppState; setData: React.Dispatch<React.SetStateAction<AppState>>; setDialog: (value: DialogConfig) => void; openWork: (target: WorkTarget) => void; readOnly: boolean }) {

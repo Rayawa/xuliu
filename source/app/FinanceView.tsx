@@ -137,8 +137,8 @@ export default function FinanceView({ finance, readOnly, projectOptions, onChang
   const trendMax = Math.max(1, ...monthSeries.flatMap((item) => [item.incomeCents, item.expenseCents]));
   const reclassifiableCount = useMemo(() => recategorizeWeChatMonth(finance, selectedMonth).changed, [finance, selectedMonth]);
 
-  const openCreate = (type: FinanceEntryType) => {
-    const entry = blankEntry(type);
+  const openCreate = (type: FinanceEntryType, date = localDateKey()) => {
+    const entry = { ...blankEntry(type), date };
     setEditor({ mode: "create", entry });
     setAmountInput("");
     setFormError("");
@@ -195,6 +195,13 @@ export default function FinanceView({ finance, readOnly, projectOptions, onChang
         paymentRules: learnPayment ? { ...current.paymentRules, [paymentAmountKey(nextEntry.type, merchant, amountCents)]: { category, purpose } } : current.paymentRules,
       };
     });
+    if (editor.mode === "create") {
+      setSelectedMonth(nextEntry.date.slice(0, 7));
+      setSelectedDay(nextEntry.date);
+      setTypeFilter("all");
+      setCategoryFilter("all");
+      setQuery("");
+    }
     setEditor(null);
   };
 
@@ -373,6 +380,7 @@ export default function FinanceView({ finance, readOnly, projectOptions, onChang
               <strong>{index + 1}</strong><small className={expense ? "expenseText" : income ? "incomeText" : ""}>{expense ? calendarAmount(expense) : income ? `+${calendarAmount(income)}` : ""}</small>
             </button>;
           })}</div>
+        {activeDay && !readOnly && <div className="financeCalendarActions"><span>为 {dayLabel(activeDay)} 记账</span><button type="button" className="primaryButton" onClick={() => openCreate("expense", activeDay)}>＋ 记一笔</button></div>}
       </div>
       {activeDay && <div className="financeSelectedDay"><div className="financeSelectedDayHead"><div><strong>{dayLabel(activeDay)}</strong><span>{activeDayEntries.length} 笔记录</span></div><div><span>支出 <b className="expenseText">{formatCny(activeDaySummary.expenseCents)}</b></span><span>收入 <b className="incomeText">{formatCny(activeDaySummary.incomeCents)}</b></span><span>结余 <b>{formatSignedCny(activeDaySummary.netCents)}</b></span></div></div>
         {activeDayEntries.length ? <div className="financeSelectedDayEntries">{activeDayEntries.map((entry) => renderEntry(entry))}</div> : <div className="financeEmpty financeSelectedDayEmpty">这一天没有符合条件的收支记录。</div>}
@@ -398,7 +406,7 @@ export default function FinanceView({ finance, readOnly, projectOptions, onChang
       <div className="financeModalActions"><button className="softButton" onClick={() => setPendingImport(null)}>取消</button><button className="primaryButton" disabled={(!pendingImport.added && !(reclassifyDuplicates && pendingImport.recategorized)) || pendingImport.projectedBytes > 1_900_000} onClick={confirmWeChatImport}>确认{pendingImport.added ? `导入 ${pendingImport.added} 笔` : `更新 ${pendingImport.recategorized} 笔`}</button></div>
     </section></div>}
 
-    {editor && <div className="financeModalScrim" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target) setEditor(null); }}><section className="financeModal" role="dialog" aria-modal="true" aria-labelledby="finance-editor-title">
+    {editor && <div className="financeModalScrim" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target) setEditor(null); }}><section className="financeModal" role="dialog" aria-modal="true" aria-labelledby="finance-editor-title" onKeyDown={(event) => { if (event.key === "Enter" && !event.nativeEvent.isComposing && event.target instanceof HTMLInputElement && event.target.type === "text") { event.preventDefault(); saveEntry(); } }}>
       <div className="financeModalHead"><div><span>{editor.entry.type === "income" ? "INCOME" : "EXPENSE"}</span><h2 id="finance-editor-title">{editor.mode === "edit" ? "编辑记录" : editor.entry.type === "income" ? "记录一笔收入" : "记录一笔支出"}</h2></div><button aria-label="关闭" onClick={() => setEditor(null)}>×</button></div>
       <div className="entryTypeSwitch"><button className={editor.entry.type === "expense" ? "active expense" : ""} onClick={() => patchEditor({ type: "expense", category: finance.expenseCategories[0] || "其他" })}>支出</button><button className={editor.entry.type === "income" ? "active income" : ""} onClick={() => patchEditor({ type: "income", category: finance.incomeCategories[0] || "其他收入" })}>收入</button></div>
       <label className="amountField"><span>金额</span><div><b>¥</b><input autoFocus inputMode="decimal" value={amountInput} placeholder="0.00" onChange={(event) => setAmountInput(event.target.value)} /></div></label>

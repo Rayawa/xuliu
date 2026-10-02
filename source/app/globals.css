@@ -184,7 +184,8 @@ a { color: inherit; }
 .pageHead h1 { margin: 8px 0 8px; font-size: clamp(31px, 3vw, 40px); line-height: 1.15; letter-spacing: -.055em; font-weight: 780; }
 .pageHead p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.7; }
 .eyebrow { color: color-mix(in srgb, var(--accent) 78%, #56615a); font-size: 12px; font-weight: 700; letter-spacing: .07em; }
-.themePicker { position: fixed; z-index: 20; top: 20px; right: 24px; display: flex; align-items: center; gap: 7px; padding: 7px 9px; border: 1px solid rgba(210,217,211,.85); border-radius: 999px; background: rgba(255,255,255,.86); box-shadow: 0 8px 24px rgba(45,58,51,.07); backdrop-filter: blur(16px); }
+.themePicker { position: relative; display: flex; align-items: center; gap: 7px; width: fit-content; max-width: calc(100% - 72px); margin: 18px 36px 0 auto; padding: 7px 9px; border: 1px solid rgba(210,217,211,.85); border-radius: 999px; background: rgba(255,255,255,.86); box-shadow: 0 8px 24px rgba(45,58,51,.07); backdrop-filter: blur(16px); }
+.main > .themePicker + .page { padding-top: 24px; }
 .themePicker > span { margin: 0 3px; color: var(--muted); font-size: 11px; }
 .themePicker > button { width: 16px; height: 16px; padding: 0; border: 2px solid white; border-radius: 50%; box-shadow: 0 0 0 1px #ccd3cd; }
 .themePicker > button.active { box-shadow: 0 0 0 2px var(--text); }
@@ -669,7 +670,7 @@ a { color: inherit; }
   .page { width: calc(100% - 30px); padding: 28px 0 50px; }
   .pageHead { display: grid; gap: 14px; margin-bottom: 24px; }
   .pageHead h1 { font-size: 29px; }
-  .themePicker { position: static; width: fit-content; margin: 13px 15px 0 auto; }
+  .themePicker { width: fit-content; margin: 13px 15px 0 auto; }
   .themePicker > span { display: none; }
   .todayGrid, .lifeGrid, .mediaColumns, .recipeGrid, .researchGrid, .reviewForm, .researchCanvas { grid-template-columns: 1fr; }
   .cardGrid, .folderGrid { grid-template-columns: 1fr; }
@@ -1208,6 +1209,9 @@ a { color: inherit; }
 .financeCalendarGrid button.active { border-color: var(--accent); background: color-mix(in srgb,var(--accent) 12%,white); }
 .financeCalendarGrid button strong { font-size: 13px; }
 .financeCalendarGrid button small { min-width: 0; overflow: hidden; color: var(--muted); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.financeCalendarActions { display: flex; justify-content: flex-end; align-items: center; gap: 12px; padding-top: 14px; }
+.financeCalendarActions span { color: var(--muted); font-size: 11px; }
+.financeCalendarActions .primaryButton { padding: 9px 13px; }
 .financeSelectedDay { border-top: 1px solid var(--line); padding: 15px 24px 13px; }
 .financeSelectedDayHead, .financeSelectedDayHead > div:last-child { display: flex; align-items: baseline; gap: 16px; }
 .financeSelectedDayHead { justify-content: space-between; }
@@ -1558,14 +1562,14 @@ a { color: inherit; }
 .designModeTabs button { min-height: 24px; padding: 3px 9px; border: 0; border-radius: 999px; color: var(--muted); background: transparent; font-size: 11px; font-weight: 700; }
 .designModeTabs button.active { color: white; background: var(--accent); }
 .designModeTabs button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.design-paper { --bg: #f5f0e6; --paper: #fffdf8; --paper-soft: #f8f3e9; --line: #e1d8ca; --line-strong: #c9baa7; --text: #302d28; --muted: #706a61; --faint: #998f82; --shadow: 0 5px 0 rgba(105,83,59,.035); min-height: 100vh; color: var(--text); background: var(--bg); }
-.design-paper .main { background: radial-gradient(circle at 82% 0%, rgba(224,206,171,.32), transparent 32%), var(--bg); }
-.design-paper .sidebar { border-color: #d9cbb8; background: #ece3d3; backdrop-filter: none; }
+.design-paper { --bg: color-mix(in srgb, var(--accent) 6%, #f5f2ec); --paper: color-mix(in srgb, var(--accent) 2%, #fffefa); --paper-soft: color-mix(in srgb, var(--accent) 5%, #faf7f0); --line: color-mix(in srgb, var(--accent) 17%, #e6dfd5); --line-strong: color-mix(in srgb, var(--accent) 28%, #d7cbbd); --text: #302d28; --muted: #706a61; --faint: #998f82; --shadow: 0 5px 0 rgba(105,83,59,.035); min-height: 100vh; color: var(--text); background: var(--bg); }
+.design-paper .main { background: radial-gradient(circle at 82% 0%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 32%), var(--bg); }
+.design-paper .sidebar { border-color: var(--line-strong); background: color-mix(in srgb, var(--accent) 15%, #eee7da); backdrop-filter: none; }
 .design-paper .brand { font-family: "Songti SC", "Noto Serif CJK SC", Georgia, serif; letter-spacing: -.02em; }
 .design-paper .brandMark { border-radius: 8px; box-shadow: none; }
 .design-paper .navButton, .design-paper .navButton > span { color: #62594e; background: transparent; }
-.design-paper .navButton:hover { background: #e4d8c7; }
-.design-paper .navButton.active { color: #5f472f; background: #fffaf1; }
+.design-paper .navButton:hover { background: color-mix(in srgb, var(--accent) 13%, #eee7da); }
+.design-paper .navButton.active { color: #4f4032; background: var(--paper); }
 .design-paper .navButton.active > span { color: #fff; background: var(--accent); }
 .design-paper .navCaption { color: #918473; }
 .design-paper .panel { border-color: var(--line); border-radius: 11px; background: var(--paper); box-shadow: var(--shadow); }
@@ -1573,17 +1577,17 @@ a { color: inherit; }
 .design-paper :is(.pageHead h1, .panelHead h2, .sectionHead h2, .overviewGroupHead h2) { font-family: "Songti SC", "Noto Serif CJK SC", Georgia, serif; letter-spacing: -.025em; }
 .design-paper .pageHead h1 { font-weight: 700; }
 .design-paper :is(.primaryButton, .softButton, .textButton, .quickPostponeButton, .scopeTabs button) { border-radius: 7px; box-shadow: none; }
-.design-paper .softButton, .design-paper .quickPostponeButton { color: #6b5139; background: #f1e9dc; }
-.design-paper .softButton:hover:not(:disabled), .design-paper .quickPostponeButton:hover:not(:disabled) { background: #e7d8c5; }
-.design-paper :is(.dialogFields input, .dialogFields textarea, .dialogFields select, .editField input, .editField textarea, .editField select) { border-color: var(--line); border-radius: 7px; background: #fffcf6; }
+.design-paper .softButton, .design-paper .quickPostponeButton { color: color-mix(in srgb, var(--accent) 55%, #382f29); background: color-mix(in srgb, var(--accent) 13%, #f9f5ee); }
+.design-paper .softButton:hover:not(:disabled), .design-paper .quickPostponeButton:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 22%, #f9f5ee); }
+.design-paper :is(.dialogFields input, .dialogFields textarea, .dialogFields select, .editField input, .editField textarea, .editField select) { border-color: var(--line); border-radius: 7px; background: var(--paper); }
 .design-paper .themePicker, .design-paper .appDialog { border-color: var(--line-strong); border-radius: 11px; background: var(--paper); }
 .design-paper .themePicker { border-radius: 999px; box-shadow: 0 5px 15px rgba(105,83,59,.09); }
-.design-paper .designModeTabs { background: #eee5d6; }
-.design-paper .scopeTabs button { background: #eee6d9; }
+.design-paper .designModeTabs { background: var(--paper-soft); }
+.design-paper .scopeTabs button { background: var(--paper-soft); }
 .design-paper .scopeTabs button.active { color: white; background: var(--accent); }
-.design-paper .focusPanel { border-color: #695b4c; color: white; background: #695b4c; }
+.design-paper .focusPanel { border-color: color-mix(in srgb, var(--accent) 55%, #383b3c); color: white; background: color-mix(in srgb, var(--accent) 55%, #383b3c); }
 .design-paper .focusPanel .primaryButton { color: #5f4c38; background: #fff9ed; }
-.design-paper .mobileHeader, .design-paper .mobileTabs { border-color: var(--line-strong); background: rgba(245,239,228,.96); }
+.design-paper .mobileHeader, .design-paper .mobileTabs { border-color: var(--line-strong); background: var(--bg); }
 .design-paper .areaTag { border-radius: 5px; }
 
 /* The task detail stays readable before the user opens deeper tools. */
