@@ -1468,3 +1468,87 @@ a { color: inherit; }
   .overviewGroupHead { align-items: center; }
   .courseNodeMetaFields { grid-template-columns: 1fr; }
 }
+
+/* Quiet, consistent interaction states throughout the workspace. */
+:where(.primaryButton, .softButton, .textButton, .quickPostponeButton, .scopeTabs button, .navButton, .taskModePicker button, .taskOriginPicker button) { transition: background-color .16s ease, border-color .16s ease, box-shadow .16s ease, transform .16s ease; }
+:where(.primaryButton, .softButton, .quickPostponeButton):hover:not(:disabled) { transform: translateY(-1px); }
+.primaryButton:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 88%, #26382e); box-shadow: 0 10px 20px color-mix(in srgb, var(--accent) 23%, transparent); }
+.softButton:hover:not(:disabled), .quickPostponeButton:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 18%, white); }
+:where(button, input, textarea, select, summary):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+:where(button, input, textarea, select):disabled { cursor: not-allowed; }
+.dialogFields :where(input, textarea, select):focus-visible { border-color: color-mix(in srgb, var(--accent) 58%, var(--line)); background: #fff; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 11%, transparent); outline: none; }
+
+/* Task editing: clear sections and distinct action versus deadline dates. */
+.taskSettingsDialog { width: min(720px,100%); max-height: min(840px,calc(100dvh - 36px)); }
+.taskSettingsDialog .dialogHead { padding-bottom: 16px; border-bottom: 1px solid var(--line); }
+.taskSettingsDialog .taskModePicker { margin-top: 17px; }
+.taskSettingsDialog .taskOriginPicker { margin-top: 9px; }
+.taskSettingsDialog :where(.taskModePicker, .taskOriginPicker) button { min-height: 65px; }
+.taskSettingsDialog :where(.taskModePicker, .taskOriginPicker) button:hover:not(.active) { border-color: var(--line-strong); background: #f1f5f1; }
+.taskSettingsDialog .taskDialogFields { margin-top: 11px; column-gap: 15px; row-gap: 13px; }
+.taskFormSectionHead { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 3px 12px; margin-top: 8px; padding-top: 18px; border-top: 1px solid var(--line); }
+.taskFormSectionHead:first-child { margin-top: 0; padding-top: 5px; border-top: 0; }
+.taskFormSectionHead strong { color: var(--text); font-size: 13px; }
+.taskFormSectionHead span { color: var(--muted); font-size: 10px; line-height: 1.5; }
+.taskPlannedField { display: grid; align-content: start; gap: 7px; min-width: 0; }
+.taskDateFieldHead { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.taskDateFieldHead label { color: #59655e; font-size: 11px; font-weight: 700; }
+.taskDateFieldHead button { padding: 2px 7px; border: 0; border-radius: 6px; color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, white); font-size: 10px; font-weight: 700; }
+.taskDateFieldHead button:disabled { color: var(--faint); background: transparent; }
+.taskPlannedField small { color: var(--muted); font-size: 10px; line-height: 1.5; }
+.taskSettingsDialog .dialogFields input:disabled { color: var(--muted); background: #f0f2f0; }
+.taskSettingsDialog .dialogActions { position: sticky; z-index: 2; bottom: -25px; margin: 22px -25px -25px; padding: 14px 25px; border-top: 1px solid var(--line); background: rgba(255,255,255,.97); backdrop-filter: blur(10px); }
+
+/* Task lists: give the title room and keep secondary actions together. */
+.taskOverviewPage .overviewStats > div { min-height: 86px; padding: 16px 18px; box-shadow: 0 8px 24px rgba(42,57,49,.035); }
+.taskOverviewPage .overviewStats strong { font-size: 24px; line-height: 1; }
+.taskOverviewPage .taskScopeTabs { gap: 6px; overflow-x: auto; padding-bottom: 3px; }
+.taskOverviewPage .taskScopeTabs button { flex: none; }
+.taskOverviewPage .overviewPanel { padding: 21px 23px; }
+.taskOverviewPage .emptyState { padding: 32px 18px; }
+.taskOverviewPage .emptyState h2 { font-size: 14px; }
+.taskOverviewPage .emptyState p { color: var(--muted); font-size: 11px; }
+.taskOverviewPage .overviewRow { grid-template-columns: 24px minmax(0,1fr) minmax(220px,255px); align-items: start; gap: 14px; padding: 17px 2px; }
+.taskOverviewPage .overviewRow > .checkButton { margin-top: 3px; }
+.taskOverviewPage .overviewTaskMain { min-width: 0; gap: 8px; }
+.taskOverviewPage .overviewTaskTitle { gap: 6px 8px !important; }
+.taskOverviewPage .overviewTaskTitle .taskTitleButton { min-width: 0; overflow-wrap: anywhere; font-size: 14px; }
+.taskOverviewPage .overviewTaskTitle .areaTag { padding: 4px 7px; }
+.taskOverviewPage .overviewTaskSide { min-width: 0; display: grid; gap: 10px; justify-items: end; }
+.taskOverviewPage .overviewSchedule { display: grid; gap: 2px; text-align: right; }
+.taskOverviewPage .overviewSchedule time { color: var(--text); font-weight: 650; }
+.taskOverviewPage .overviewTaskActions { align-items: center; flex-wrap: wrap; gap: 5px !important; }
+.taskOverviewPage .overviewTaskActions > button, .taskMoreActions > summary { min-height: 29px; padding: 6px 8px; font-size: 10px; }
+.taskMoreActions { position: relative; }
+.taskMoreActions > summary { display: inline-flex; align-items: center; border-radius: 8px; color: var(--muted); background: #f1f3f1; font-weight: 700; cursor: pointer; list-style: none; }
+.taskMoreActions > summary::-webkit-details-marker { display: none; }
+.taskMoreActions > summary::after { content: '⌄'; margin-left: 5px; font-size: 12px; }
+.taskMoreActions[open] > summary { color: var(--accent); background: color-mix(in srgb, var(--accent) 13%, white); }
+.taskMoreActions > div { position: absolute; z-index: 5; top: calc(100% + 5px); right: 0; width: 132px; display: grid; gap: 3px; padding: 5px; border: 1px solid var(--line); border-radius: 10px; background: white; box-shadow: 0 12px 28px rgba(37,51,41,.14); }
+.taskMoreActions > div button { width: 100%; padding: 8px 9px; border: 0; border-radius: 7px; background: transparent; text-align: left; font-size: 11px; }
+.taskMoreActions > div button:hover:not(:disabled) { background: #f3f5f2; }
+.todayCategoryPanel .taskRow { align-items: start; padding-top: 17px; padding-bottom: 17px; }
+.todayCategoryPanel .taskRow > .checkButton { margin-top: 3px; }
+.todayCategoryPanel .taskRowActions { padding-top: 1px; }
+.todayCategoryPanel .taskBody { gap: 6px; }
+.todayCategoryPanel .taskBody > small { line-height: 1.55; overflow-wrap: anywhere; }
+.todayCategoryPanel .taskRecordLink { margin-top: 2px; }
+
+@media (max-width: 1000px) {
+  .taskOverviewPage .overviewRow { grid-template-columns: 24px minmax(0,1fr); }
+  .taskOverviewPage .overviewTaskSide { grid-column: 2; justify-items: start; }
+  .taskOverviewPage .overviewSchedule { text-align: left; }
+  .taskOverviewPage .overviewTaskActions { justify-content: flex-start; }
+}
+@media (max-width: 760px) {
+  .taskSettingsDialog { max-height: calc(100dvh - 24px); padding: 20px; }
+  .taskSettingsDialog .taskModePicker, .taskSettingsDialog .taskOriginPicker { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .taskSettingsDialog :where(.taskModePicker, .taskOriginPicker) button { padding: 10px; }
+  .taskSettingsDialog .taskDialogFields { grid-template-columns: 1fr; }
+  .taskSettingsDialog .taskFormSectionHead, .taskSettingsDialog .taskSettingsAttachments { grid-column: 1; }
+  .taskSettingsDialog .dialogActions { bottom: -20px; margin: 20px -20px -20px; padding: 12px 20px; }
+  .taskOverviewPage .overviewStats { gap: 8px; }
+  .taskOverviewPage .overviewStats > div { min-height: 76px; padding: 13px; }
+  .taskOverviewPage .overviewPanel { padding: 17px; }
+  .taskOverviewPage .overviewRow { gap: 10px; }
+}
