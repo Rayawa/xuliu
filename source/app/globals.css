@@ -1512,7 +1512,7 @@ a { color: inherit; }
 .taskOverviewPage .emptyState { padding: 32px 18px; }
 .taskOverviewPage .emptyState h2 { font-size: 14px; }
 .taskOverviewPage .emptyState p { color: var(--muted); font-size: 11px; }
-.taskOverviewPage .overviewRow { grid-template-columns: 24px minmax(0,1fr) minmax(220px,255px); align-items: start; gap: 14px; padding: 17px 2px; }
+.taskOverviewPage .overviewRow { grid-template-columns: 24px minmax(0,1fr) minmax(270px,290px); align-items: start; gap: 14px; padding: 17px 2px; }
 .taskOverviewPage .overviewRow > .checkButton { margin-top: 3px; }
 .taskOverviewPage .overviewTaskMain { min-width: 0; gap: 8px; }
 .taskOverviewPage .overviewTaskTitle { gap: 6px 8px !important; }
@@ -1523,6 +1523,8 @@ a { color: inherit; }
 .taskOverviewPage .overviewSchedule time { color: var(--text); font-weight: 650; }
 .taskOverviewPage .overviewTaskActions { align-items: center; flex-wrap: wrap; gap: 5px !important; }
 .taskOverviewPage .overviewTaskActions > button, .taskMoreActions > summary { min-height: 29px; padding: 6px 8px; font-size: 10px; }
+.taskOverviewPage .quickTodayButton { border: 1px solid color-mix(in srgb, var(--accent) 32%, transparent); }
+.taskOverviewPage .quickTodayButton[aria-pressed="true"] { color: white; background: var(--accent); opacity: 1; cursor: default; }
 .taskMoreActions { position: relative; }
 .taskMoreActions > summary { display: inline-flex; align-items: center; border-radius: 8px; color: var(--muted); background: #f1f3f1; font-weight: 700; cursor: pointer; list-style: none; }
 .taskMoreActions > summary::-webkit-details-marker { display: none; }

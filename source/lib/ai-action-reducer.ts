@@ -164,8 +164,6 @@ function withContent(target: JsonObject, values: JsonObject, entity: AiEntity) {
       if (Number(next.progress ?? 0) > 0 && next.status === "未开始") next.status = "进行中";
     }
     if (next.mode !== "multi") delete next.startDate;
-    if (next.mode === "multi") delete next.plannedDate;
-    if (next.plannedDate && next.due && String(next.plannedDate) > String(next.due)) throw new Error("计划推进日不能晚于截止日期");
     if (["due", "plannedDate", "mode"].some((key) => Object.prototype.hasOwnProperty.call(values, key))) next.today = next.mode === "single" && (next.due === chinaDateKey() || next.plannedDate === chinaDateKey());
   }
   if (entity === "milestone") {

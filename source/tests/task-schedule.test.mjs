@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { taskDeadlineLabel, taskOverlapsRange, taskScheduledForDate, taskScheduleSummary, taskVisibleToday } from '../lib/task-progress.ts';
+import { courseNodeVisibleToday, planTaskForDate, taskDeadlineLabel, taskOverlapsRange, taskScheduledForDate, taskScheduleSummary, taskVisibleToday } from '../lib/task-progress.ts';
 import { createEmptyWorkspaceState, workspaceStateSchema } from '../lib/workspace-state-schema.ts';
 
 const plannedTask = {
@@ -30,10 +30,64 @@ test('a task without deadline can be planned for today, without reappearing ever
 test('deadline time and planned work date survive saved workspace validation', () => {
   const state = { ...createEmptyWorkspaceState(), tasks: [plannedTask] };
   assert.deepEqual(workspaceStateSchema.parse(JSON.parse(JSON.stringify(state))), state);
-  const invalidPlan = { ...state, tasks: [{ ...plannedTask, plannedDate: '2026-10-11' }] };
   const invalidTime = { ...state, tasks: [{ ...plannedTask, due: undefined }] };
-  assert.equal(workspaceStateSchema.safeParse(invalidPlan).success, false);
   assert.equal(workspaceStateSchema.safeParse(invalidTime).success, false);
+});
+
+test('quick planning preserves the deadline, task content and partial progress', () => {
+  const original = { ...plannedTask, requirements: '保留提纲', parentId: 'parent', today: false };
+  const result = planTaskForDate(original, '2026-10-05');
+  assert.deepEqual(result, { ...original, plannedDate: '2026-10-05' });
+  assert.equal(original.plannedDate, '2026-10-02');
+  assert.equal(taskVisibleToday(result, '2026-10-05'), true);
+  assert.equal(taskVisibleToday(result, '2026-10-06'), false);
+  assert.equal(taskScheduledForDate(result, original.due), true);
+  assert.deepEqual(planTaskForDate(result, '2026-10-05'), result);
+});
+
+test('overdue tasks can be planned for today and saved without postponing their deadlines', () => {
+  const task = planTaskForDate({ ...plannedTask, due: '2026-10-01', progressLogs: [] }, '2026-10-05');
+  const saved = workspaceStateSchema.parse({ ...createEmptyWorkspaceState(), tasks: [task] }).tasks[0];
+  assert.equal(saved.due, '2026-10-01');
+  assert.equal(saved.dueTime, '23:00');
+  assert.equal(saved.done, false);
+  assert.equal(taskVisibleToday(saved, '2026-10-05'), true);
+  assert.equal(taskOverlapsRange(saved, '2026-10-05', '2026-10-12'), true);
+});
+
+test('quick planning a task with no deadline creates only a planned work date', () => {
+  const task = { ...plannedTask, due: undefined, dueTime: undefined, plannedDate: undefined, progressLogs: [] };
+  const result = planTaskForDate(task, '2026-10-05');
+  assert.equal(result.due, undefined);
+  assert.equal(taskVisibleToday(result, '2026-10-05'), true);
+  assert.equal(taskVisibleToday(result, '2026-10-06'), false);
+});
+
+test('explicitly planned long tasks appear today even outside their original date range', () => {
+  const task = planTaskForDate({ ...plannedTask, mode: 'multi', startDate: '2026-10-08', progressLogs: [] }, '2026-10-05');
+  assert.equal(task.startDate, '2026-10-08');
+  assert.equal(taskVisibleToday(task, '2026-10-05'), true);
+  assert.equal(taskScheduledForDate(task, '2026-10-05'), true);
+  assert.equal(taskOverlapsRange(task, '2026-10-05', '2026-10-06'), true);
+  assert.deepEqual(workspaceStateSchema.parse({ ...createEmptyWorkspaceState(), tasks: [task] }).tasks[0], task);
+});
+
+test('legacy course tasks retain their deadlines and attachments when their plan is saved', () => {
+  const node = { id: 'course-paper', courseId: 'course', title: '结课论文', date: '2026-10-18', time: '12:00', location: '', requirements: '提交论文', attachments: [], area: '课内', done: false };
+  const result = planTaskForDate(node, '2026-10-05');
+  const saved = workspaceStateSchema.parse({ ...createEmptyWorkspaceState(), milestones: [result] }).milestones[0];
+  assert.deepEqual(saved, { ...node, plannedDate: '2026-10-05' });
+  assert.equal(courseNodeVisibleToday(saved, '2026-10-05'), true);
+  assert.equal(courseNodeVisibleToday(saved, '2026-10-06'), false);
+  assert.equal(courseNodeVisibleToday(saved, '2026-10-18'), true);
+  assert.equal(courseNodeVisibleToday({ ...saved, done: true }, '2026-10-05'), true);
+});
+
+test('planning does not reopen completed tasks', () => {
+  const done = { ...plannedTask, done: true, progress: 100 };
+  assert.equal(planTaskForDate(done, '2026-10-05'), done);
+  const completed = { ...plannedTask, status: '已完成' };
+  assert.equal(planTaskForDate(completed, '2026-10-05'), completed);
 });
 
 test('task attachments survive save/export/restore alongside subject assignment', () => {

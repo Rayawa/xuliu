@@ -106,9 +106,8 @@ export const workspaceStateSchema = z.object({
   }).strict().superRefine((task, context) => {
     if (task.mode === "multi" && task.startDate && task.due && task.startDate > task.due) context.addIssue({ code: "custom", message: "跨日任务开始日期不能晚于截止日期" });
     if (task.dueTime && !task.due) context.addIssue({ code: "custom", message: "设置截止时间前请先选择截止日期" });
-    if (task.plannedDate && task.due && task.plannedDate > task.due) context.addIssue({ code: "custom", message: "计划推进日不能晚于截止日期" });
   })).max(10_000),
-  milestones: z.array(z.object({ id, courseId: id.optional(), automationKey: shortText.optional(), title: shortText, date, time, location: shortText, requirements: text, attachments: z.array(storedAttachment).max(50).optional(), outcomeText: text.optional(), outcomeAttachments: z.array(storedAttachment).max(50).optional(), blocks: z.array(block).max(2000).optional(), elapsed: z.number().int().min(0).max(10000000).optional(), mode: z.enum(["single", "multi"]).optional(), parentCandidate: z.boolean().optional(), area, done: z.boolean() }).strict()).max(10_000),
+  milestones: z.array(z.object({ id, courseId: id.optional(), automationKey: shortText.optional(), title: shortText, date, time, plannedDate: date.optional(), location: shortText, requirements: text, attachments: z.array(storedAttachment).max(50).optional(), outcomeText: text.optional(), outcomeAttachments: z.array(storedAttachment).max(50).optional(), blocks: z.array(block).max(2000).optional(), elapsed: z.number().int().min(0).max(10000000).optional(), mode: z.enum(["single", "multi"]).optional(), parentCandidate: z.boolean().optional(), area, done: z.boolean() }).strict()).max(10_000),
   courses: z.array(z.object({
     id, title: shortText, term: shortText, teacher: shortText, location: shortText, school: z.enum(["pku", "bit"]).optional(), progress: z.number().int().min(0).max(100), requirements: text,
     schedule: z.array(z.object({ id, weekday: z.number().int().min(1).max(7), start: time, end: time, location: shortText, weeks: shortText.optional(), source: z.enum(["manual", "pku", "bit", "ics"]).optional() }).strict()).max(1_000),

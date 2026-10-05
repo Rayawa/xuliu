@@ -16,6 +16,15 @@ export type TaskScheduleLike = {
 
 export const taskStatusOptions: TaskProgressStatus[] = ["未开始", "进行中", "已暂停", "已完成"];
 
+export function planTaskForDate<T extends TaskScheduleLike>(task: T, targetDate: string): T {
+  if (task.done || task.status === "已完成") return task;
+  return { ...task, plannedDate: targetDate };
+}
+
+export function courseNodeVisibleToday(node: { date: string; courseId?: string; mode?: TaskMode; done: boolean; plannedDate?: string }, targetDate: string) {
+  return node.date === targetDate || Boolean(node.courseId && (node.plannedDate === targetDate || node.mode === "multi" && !node.done));
+}
+
 export function taskModeOf(task: TaskScheduleLike): TaskMode {
   return task.mode === "multi" ? "multi" : "single";
 }
@@ -33,7 +42,8 @@ export function taskStatusOf(task: TaskScheduleLike): TaskProgressStatus {
 }
 
 export function taskScheduledForDate(task: TaskScheduleLike, targetDate: string) {
-  if (taskModeOf(task) === "single") return task.due === targetDate || task.plannedDate === targetDate
+  if (task.plannedDate === targetDate) return true;
+  if (taskModeOf(task) === "single") return task.due === targetDate
     || Boolean(task.progressLogs?.some((entry) => entry.date === targetDate));
   const start = task.startDate || task.due || targetDate;
   const due = task.due || "9999-12-31";
@@ -42,6 +52,7 @@ export function taskScheduledForDate(task: TaskScheduleLike, targetDate: string)
 }
 
 export function taskVisibleToday(task: TaskScheduleLike, targetDate: string) {
+  if (task.plannedDate === targetDate) return true;
   if (taskModeOf(task) === "single") return taskScheduledForDate(task, targetDate) || (!task.due && !task.plannedDate && task.today === true);
   if (task.done || task.status === "已完成") {
     return task.due === targetDate || Boolean(task.progressLogs?.some((entry) => entry.date === targetDate));
@@ -50,6 +61,7 @@ export function taskVisibleToday(task: TaskScheduleLike, targetDate: string) {
 }
 
 export function taskOverlapsRange(task: TaskScheduleLike, rangeStart: string, rangeEnd: string) {
+  if (task.plannedDate && task.plannedDate >= rangeStart && task.plannedDate <= rangeEnd) return true;
   if (taskModeOf(task) === "single") return [task.due, task.plannedDate].some((date) => Boolean(date && date >= rangeStart && date <= rangeEnd));
   const start = task.startDate || task.due || rangeStart;
   const due = task.due || "9999-12-31";
