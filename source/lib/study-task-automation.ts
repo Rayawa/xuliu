@@ -44,7 +44,7 @@ type StudyMethod = Partial<Record<StudyStage, string>> & { skip?: boolean };
 
 const studyMethods: Array<{ matches: string[]; method: StudyMethod }> = [
   {
-    matches: ["线性代数"],
+    matches: ["线性代数", "线代"],
     method: {
       before: "用 GPT 总结课本和 PPT，形成笔记并完成预习。",
       during: "看笔记、跟例题，并在原笔记上补充课堂内容。",
@@ -60,7 +60,7 @@ const studyMethods: Array<{ matches: string[]; method: StudyMethod }> = [
     },
   },
   {
-    matches: ["税收理论", "税法"],
+    matches: ["税收理论", "税法", "税务"],
     method: {
       before: "用 GPT 总结课本，形成笔记并完成预习。",
       during: "在已有笔记上补充老师强调的规则、例外和计算方法。",
@@ -108,6 +108,15 @@ function normalizedTitle(title: string) {
   return title.normalize("NFKC").replace(/\s+/g, "").toLowerCase();
 }
 
+export function courseNeedsPreparation(title: string) {
+  const normalized = normalizedTitle(title);
+  return ["概率论", "线性代数", "线代", "税收理论", "税法", "税务", "会计学基础"].some((course) => normalized.includes(course));
+}
+
+export function isUnneededPreparationTask(automationKey: string | undefined, courseTitle: string) {
+  return Boolean(automationKey?.startsWith("study:") && automationKey.split(":")[2] === "before" && !courseNeedsPreparation(courseTitle));
+}
+
 function methodFor(title: string): StudyMethod | null {
   const normalized = normalizedTitle(title);
   return studyMethods.find((entry) => entry.matches.some((match) => normalized.includes(normalizedTitle(match))))?.method ?? null;
@@ -149,7 +158,7 @@ function afterClassTime(end: string) {
 function stageDraft(currentDate: string, classDate: string, session: ReturnType<typeof sessionsForDate>[number], stage: StudyStage): StudyTaskDraft | null {
   const method = methodFor(session.course.title);
   const instruction = method?.[stage];
-  if (!method || method.skip || !instruction) return null;
+  if (!method || method.skip || !instruction || (stage === "before" && !courseNeedsPreparation(session.course.title))) return null;
   const first = session.slots[0];
   const last = session.slots[session.slots.length - 1];
   const locations = [...new Set(session.slots.map((slot) => slot.location || session.course.location).filter(Boolean))];

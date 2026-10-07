@@ -22,7 +22,7 @@ import { courseNodeVisibleToday, planTaskForDate, taskDeadlineLabel, taskModeOf,
 import { updateAcademicCourses, courseContentPreserved } from "@/lib/academic-course-update";
 import { parseAcademicRows, parseAcademicIcs, groupImportedCourses, parseDelimitedRows, importWeekday } from "@/lib/academic-import";
 import { addDays, courseRunsInTimetableWeek, extractScheduleLocation, extractScheduleWeekRule, extractScheduleWeekday, isCourseTitleCandidate, officialTimetableRows, periodTimeRange, repairImportedTimetableSlot, splitScheduleEntries, timetableRowIndex, timetableWeekInfo } from "@/lib/timetable";
-import { courseUsesAutomatedStudyPlan, createDailyStudyTaskPlan, migratedStudyAutomationProcessedKeys, STUDY_AUTOMATION_RULE_VERSION } from "@/lib/study-task-automation";
+import { courseNeedsPreparation, courseUsesAutomatedStudyPlan, createDailyStudyTaskPlan, isUnneededPreparationTask, migratedStudyAutomationProcessedKeys, STUDY_AUTOMATION_RULE_VERSION } from "@/lib/study-task-automation";
 
 type NavId = "today" | "timetable" | "tasks" | "calendar" | "review" | "finance" | "school" | "learning" | "thoughts" | "work" | "ideas" | "tools" | "life" | "free";
 type Area = "课内" | "课外" | "工作" | "生活" | "思考";
@@ -694,7 +694,7 @@ export default function DashboardClient({ account, visibleAccounts, onLogout, de
     return () => { window.clearInterval(handle); window.removeEventListener("focus", rollHabitsToCurrentDay); };
   }, [preview, readOnly, setData]);
   useEffect(() => {
-    if (preview || !loaded || readOnly || loadedWorkspaceRef.current !== account.id || !data.studyAutomation.enabled) return;
+    if (!loaded || readOnly || loadedWorkspaceRef.current !== account.id || !data.studyAutomation.enabled) return;
     const arrangeStudyTasks = () => {
       const currentDate = dateKey();
       const planned = createDailyStudyTaskPlan(data.courses, currentDate, data.timetableSettings.termStartDate);
@@ -751,6 +751,8 @@ export default function DashboardClient({ account, visibleAccounts, onLogout, de
   const theme = data.themes[active] ?? toneChoices[0];
   const daily = data.daily[today] ?? { note: "", gain: "", problem: "", feeling: "", tomorrow: "" };
   const todayTasks = data.tasks.filter((task) => taskVisibleToday(task, today));
+  const todayCourseNodes = data.milestones.filter((node) => courseNodeVisibleToday(node, today)
+    && !isUnneededPreparationTask(node.automationKey, data.courses.find((course) => course.id === node.courseId)?.title ?? ""));
   const activeCourse = detail?.type === "course" ? data.courses.find((course) => course.id === detail.id) : undefined;
   const updateDaily = (field: keyof typeof daily, value: string) => setData((current) => ({ ...current, daily: { ...current.daily, [today]: { ...(current.daily[today] ?? daily), [field]: value } } }));
   const deleteDialog = (title: string, onDelete: () => void, description = "内容会从当前账号的云端空间中移除。") => setDialog({ title: `移除“${title}”？`, description, submitLabel: "确认移除", danger: true, fields: [], onSubmit: onDelete });
@@ -758,7 +760,7 @@ export default function DashboardClient({ account, visibleAccounts, onLogout, de
     ...data.tasks.map((task) => ({ kind: "task" as const, id: task.id, title: `${task.area} · ${task.title}`, done: task.done, group: taskModeOf(task) === "multi" ? "长期任务" as const : "短期任务" as const, listed: !task.done && (taskModeOf(task) === "multi" || taskVisibleToday(task, today)) })),
     ...data.milestones.map((node) => {
       const courseTitle = data.courses.find((course) => course.id === node.courseId)?.title;
-      return { kind: "milestone" as const, id: node.id, title: `${node.area} · ${courseTitle ? `${courseTitle} / ` : ""}${node.title}`, done: node.done, group: node.courseId ? (node.mode === "multi" ? "长期任务" as const : "短期任务" as const) : "事项" as const, listed: !node.done && courseNodeVisibleToday(node, today) };
+      return { kind: "milestone" as const, id: node.id, title: `${node.area} · ${courseTitle ? `${courseTitle} / ` : ""}${node.title}`, done: node.done, group: node.courseId ? (node.mode === "multi" ? "长期任务" as const : "短期任务" as const) : "事项" as const, listed: !node.done && todayCourseNodes.includes(node) };
     }),
   ];
   const focusSettings = data.focusSettings ?? defaultFocusSettings;
@@ -824,7 +826,7 @@ export default function DashboardClient({ account, visibleAccounts, onLogout, de
   return <div className={"shell design-" + designMode} style={{ "--accent": designMode === "paper" ? paperColor : theme } as React.CSSProperties}>
     <aside className={`sidebar ${mobileNav ? "open" : ""}`}><button className="brand" onClick={() => navigate("today")}><span className="brandMark">序</span><span>序流</span></button><div className="workspaceSwitcher"><span>当前空间</span><button className={!readOnly ? "active" : ""} onClick={() => { setWorkspaceOwner(account.id); setDetail(null); }}><i>{account.displayName.slice(0, 1)}</i><b>{account.displayName}</b><small>我的</small></button>{visibleAccounts.map((visible) => <button key={visible.id} className={workspaceOwner === visible.id ? "active" : ""} onClick={() => { setWorkspaceOwner(visible.id); setDetail(null); }}><i>{visible.displayName.slice(0, 1)}</i><b>{visible.displayName}</b><small>只读</small></button>)}</div><div className="navGroup">{navItems.slice(0, 5).map((item) => <NavButton key={item.id} {...item} active={active} onClick={navigate} />)}</div><div className="navCaption">我的空间</div><div className="navGroup">{navItems.slice(5).map((item) => <NavButton key={item.id} {...item} active={active} onClick={navigate} />)}</div><button className="exportButton" onClick={exportData}>导出数据备份</button><button className="refreshButton" disabled={sync === "saving"} onClick={() => void reloadForUpdate()}>{sync === "saving" ? "保存后可刷新" : "↻ 刷新应用"}</button><a className="changelogLink" href="/changelog" target="_blank" rel="noreferrer">更新日志 ↗</a>{!preview && <button className="logoutButton" onClick={onLogout}>退出登录</button>}<div className="sidebarFoot"><span className={`syncDot ${sync}`} />{sync === "saving" ? "正在保存" : sync === "readonly" ? "正在查看只读空间" : sync === "error" ? "云端连接异常" : sync === "preview" ? "本地预览 · 不会写入云端" : "已保存到云端"}</div></aside>
     <main className="main">{preview && <div className="readOnlyBanner">本地试运行 · 可测试任务计时、子任务与事项记录。示例数据仅在本次页面保留，刷新后重置。</div>}<header className="mobileHeader"><button className="iconButton" aria-label="打开导航" onClick={() => setMobileNav(true)}>☰</button><strong>序流</strong><div className="mobileHeaderActions"><button className="iconButton refreshIconButton" disabled={sync === "saving"} aria-label="刷新应用" title="刷新应用" onClick={() => void reloadForUpdate()}>↻</button><span className={`syncDot ${sync}`} /></div></header>{updateAvailable && <div className="updateBanner"><span>网站已有新版本，为避免继续使用旧页面，请先刷新。</span><button disabled={sync === "saving"} onClick={() => void reloadForUpdate()}>{sync === "saving" ? "等待保存" : "立即刷新"}</button></div>}{readOnly && <div className="readOnlyBanner">正在查看 <strong>{visibleAccount.displayName}</strong> 的空间 · 只读</div>}{!loaded ? <div className="workspaceLoading">正在载入空间…</div> : <><ThemePicker color={designMode === "paper" ? paperColor : theme} designMode={designMode} onDesignChange={chooseDesignMode} onChange={(color) => designMode === "paper" ? choosePaperColor(color) : setData((current) => ({ ...current, themes: { ...current.themes, [active]: color } }))} />{workDetail ? <TaskDetail key={`${workspaceOwner}:${workDetail.kind}:${workDetail.id}`} target={workDetail} data={data} setData={setData} access={{ ownerId: workspaceOwner, readOnly, preview }} focus={focus} focusPanel={focusPanel} onManual={setManualTarget} onOpen={setWorkDetail} onClose={() => setWorkDetail(null)} requestDelete={requestWorkDeletion} postponeWork={postponeWork} /> : detail ? <DetailRouter target={detail} data={data} setData={setData} back={() => setDetail(null)} openWork={setWorkDetail} setDialog={setDialog} deleteDialog={deleteDialog} access={{ ownerId: workspaceOwner, readOnly, preview }} /> : <>
-      {active === "today" && <TodayView data={data} setData={setData} tasks={todayTasks} milestones={data.milestones.filter((item) => courseNodeVisibleToday(item, today))} totalMinutes={data.timeEntries.filter((entry) => entry.date === today).reduce((sum, entry) => sum + entry.minutes, 0)} daily={daily} updateDaily={updateDaily} focusPanel={focusPanel} openWork={setWorkDetail} requestDelete={requestWorkDeletion} postponeWork={postponeWork} access={{ ownerId: workspaceOwner, readOnly, preview }} readOnly={readOnly} setPopup={setPopup} setDialog={setDialog} />}
+      {active === "today" && <TodayView data={data} setData={setData} tasks={todayTasks} milestones={todayCourseNodes} totalMinutes={data.timeEntries.filter((entry) => entry.date === today).reduce((sum, entry) => sum + entry.minutes, 0)} daily={daily} updateDaily={updateDaily} focusPanel={focusPanel} openWork={setWorkDetail} requestDelete={requestWorkDeletion} postponeWork={postponeWork} access={{ ownerId: workspaceOwner, readOnly, preview }} readOnly={readOnly} setPopup={setPopup} setDialog={setDialog} />}
       {active === "timetable" && <TimetableViewV2 data={data} setData={setData} setDialog={setDialog} openCourse={(id) => setDetail({ type: "course", id })} deleteDialog={deleteDialog} dualSchool={workspaceOwner === "owner"} readOnly={readOnly} />}
       {active === "tasks" && <TaskOverviewView data={data} setData={setData} setDialog={setDialog} openWork={setWorkDetail} requestDelete={requestWorkDeletion} postponeWork={postponeWork} access={{ ownerId: workspaceOwner, readOnly, preview }} readOnly={readOnly} />}
       {active === "calendar" && <CalendarView data={data} setData={setData} setDialog={setDialog} openWork={setWorkDetail} readOnly={readOnly} />}
@@ -889,19 +891,32 @@ function TodayView({ data, setData, tasks, milestones, totalMinutes, daily, upda
     ...tasks.filter((task) => taskModeOf(task) !== "multi").map((item) => ({ kind: "task" as const, item })),
     ...courseTasks.filter((node) => node.mode !== "multi").map((item) => ({ kind: "milestone" as const, item })),
   ];
-  const courseAssignments = shortEntries.filter((entry) => entry.kind === "task" ? Boolean(entry.item.courseId) : Boolean(entry.item.courseId && !entry.item.automationKey));
+  const importantCourseIds = new Set(data.courses.filter((course) => courseNeedsPreparation(course.title)).map((course) => course.id));
+  const courseAssignments = shortEntries.filter((entry) => entry.kind === "task" ? Boolean(entry.item.courseId) : Boolean(entry.item.courseId && !entry.item.automationKey)).sort((left, right) => {
+    const deadline = (entry: TodayTaskEntry) => entry.kind === "task" ? entry.item.due || "9999-12-31" : entry.item.date;
+    const urgent = (entry: TodayTaskEntry) => deadline(entry) <= addDays(today, 2);
+    return Number(left.item.done) - Number(right.item.done)
+      || Number(!urgent(left)) - Number(!urgent(right))
+      || Number(!importantCourseIds.has(left.item.courseId ?? "")) - Number(!importantCourseIds.has(right.item.courseId ?? ""))
+      || deadline(left).localeCompare(deadline(right));
+  });
   const automaticStudyTasks = shortEntries.filter((entry) => entry.kind === "milestone" && Boolean(entry.item.automationKey));
+  const automaticCourseGroups = [...new Set(automaticStudyTasks.map((entry) => entry.item.courseId))].map((courseId) => ({
+    courseId,
+    title: data.courses.find((course) => course.id === courseId)?.title ?? "未关联学科",
+    entries: automaticStudyTasks.filter((entry) => entry.item.courseId === courseId),
+  }));
   const otherShortTasks = shortEntries.filter((entry) => !courseAssignments.includes(entry) && !automaticStudyTasks.includes(entry));
   const shortTaskSections = [
     { id: "course", title: "课程作业", note: "根据实际课程要求手动添加", entries: courseAssignments },
-    { id: "automatic", title: "自动学习任务", note: "按课表和学习流程生成", entries: automaticStudyTasks },
+    { id: "automatic", title: "自动学习任务", note: "点击学科展开今天的学习安排", entries: automaticStudyTasks },
     { id: "other", title: "其他短期任务", note: "独立任务和长期任务分支", entries: otherShortTasks },
   ].filter((section) => section.entries.length);
   const taskGroups = [
     {
       id: "single",
       title: "短期任务",
-      subtitle: "课程作业优先显示；自动学习任务在下方轻分隔",
+      subtitle: "课程作业优先显示；自动学习任务按学科展开",
       entries: shortEntries,
     },
     {
@@ -963,7 +978,13 @@ function TodayView({ data, setData, tasks, milestones, totalMinutes, daily, upda
     <div className="todayGrid"><div className="stack">
       {taskGroups.map((group) => <Fragment key={group.id}><section className="panel taskPanel todayCategoryPanel">
         <PanelTitle title={group.title} subtitle={group.subtitle} meta={group.entries.filter((entry) => entry.item.done).length + " / " + group.entries.length} />
-        <div className={"taskList " + (group.id === "single" ? "groupedTaskList" : "")}>{group.id === "single" ? shortTaskSections.map((section) => <div className="todayTaskSubgroup" key={section.id}><div className="todayTaskSubhead"><strong>{section.title}</strong><span>{section.note} · {section.entries.length} 项</span></div>{section.entries.map(renderTaskEntry)}</div>) : group.entries.map(renderTaskEntry)}</div>
+        <div className={"taskList " + (group.id === "single" ? "groupedTaskList" : "")}>{group.id === "single" ? shortTaskSections.map((section) => <div className="todayTaskSubgroup" key={section.id}>
+          <div className="todayTaskSubhead"><strong>{section.title}</strong><span>{section.note} · {section.entries.length} 项</span></div>
+          {section.id === "automatic" ? automaticCourseGroups.map((course) => <details className="todayAutomaticCourse" key={course.courseId}>
+            <summary><strong>{course.title}</strong><span>{course.entries.filter((entry) => entry.item.done).length} / {course.entries.length}</span></summary>
+            {course.entries.map(renderTaskEntry)}
+          </details>) : section.entries.map(renderTaskEntry)}
+        </div>) : group.entries.map(renderTaskEntry)}</div>
         {!group.entries.length && <div className="emptyState compact"><h2>今天没有{group.title}</h2><p>{group.id === "multi" ? "长期任务会在推进期间持续显示。" : "设置为今天的短期任务会显示在这里。"}</p></div>}
       </section>{group.id === "single" && <section className="panel taskPanel todayCategoryPanel"><PanelTitle title="事项" subtitle="会议、预约、行程等日历事项" meta={calendarItems.filter((item) => item.done).length + " / " + calendarItems.length} /><div className="taskList">{calendarItems.map((item) => <div className={"taskRow " + (item.done ? "done" : "")} key={item.id}><button className="checkButton" disabled={readOnly} aria-pressed={item.done} aria-label={(item.done ? "标记未完成：" : "标记完成：") + item.title} onClick={() => setData((current) => ({ ...current, milestones: current.milestones.map((node) => node.id === item.id ? { ...node, done: !node.done } : node) }))}>{item.done ? "✓" : ""}</button><div className="taskBody"><button className="taskTitleButton" onClick={() => readOnly ? openWork({ kind: "milestone", id: item.id }) : setEditingNode(item)}>{item.title}</button>{item.done && <span className="taskStatus 已完成 todayCompletionStatus">已完成</span>}<span>{item.time} · {item.location || "未填写地点"}</span><button className="taskRecordLink" onClick={() => readOnly ? openWork({ kind: "milestone", id: item.id }) : setEditingNode(item)}>{readOnly ? "查看详细信息" : "修改基础信息"} · 已投入 {item.elapsed ?? 0} 分钟</button></div><div className="taskRowActions"><span className={"areaTag " + areaClass[item.area]}>{item.area}</span>{!item.done && <button type="button" className="quickPostponeButton" disabled={readOnly} aria-label={"将事项推迟一天：" + item.title} onClick={() => postponeWork({ kind: "milestone", id: item.id })}>＋1天</button>}<button type="button" className="miniRemove todayQuickDelete" disabled={readOnly} aria-label={"快捷删除事项：" + item.title} onClick={() => requestDelete({ kind: "milestone", id: item.id }, item.title)}>×</button></div></div>)}</div>{!calendarItems.length && <div className="emptyState compact"><h2>今天没有事项</h2><p>今天的会议、预约和行程会显示在这里。</p></div>}</section>}</Fragment>)}
       <section className="panel notePanel"><PanelTitle title="今日随记" subtitle="收获、问题或突然出现的想法" meta="自动保存" /><textarea value={daily.note} onChange={(event) => updateDaily("note", event.target.value)} placeholder="此刻有什么值得记下来？" /></section>

@@ -1632,3 +1632,14 @@ a { color: inherit; }
   .taskDetailPage .pageHeadActions > button { padding: 8px 10px; }
   .taskDetailPage .taskTimeStats { gap: 18px; }
 }
+
+/* Only automatic study tasks use subject disclosures; manual assignments stay visible. */
+.todayAutomaticCourse + .todayAutomaticCourse { border-top: 1px solid var(--line); }
+.todayAutomaticCourse > summary { display: flex; align-items: center; gap: 10px; padding: 14px 2px; cursor: pointer; list-style: none; color: var(--text); }
+.todayAutomaticCourse > summary::-webkit-details-marker { display: none; }
+.todayAutomaticCourse > summary::before { content: "›"; color: var(--accent); font-size: 18px; line-height: 1; transition: transform .15s; }
+.todayAutomaticCourse[open] > summary::before { transform: rotate(90deg); }
+.todayAutomaticCourse > summary strong { min-width: 0; font-size: 14px; font-weight: 650; overflow-wrap: anywhere; }
+.todayAutomaticCourse > summary span { margin-left: auto; color: var(--muted); font-size: 11px; white-space: nowrap; }
+.todayAutomaticCourse > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+.todayAutomaticCourse > .taskRow:first-of-type { border-top: 0; }

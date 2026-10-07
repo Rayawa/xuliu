@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createDailyStudyTaskPlan, migratedStudyAutomationProcessedKeys, STUDY_AUTOMATION_RULE_VERSION } from "../lib/study-task-automation.ts";
+import { courseNeedsPreparation, createDailyStudyTaskPlan, isUnneededPreparationTask, migratedStudyAutomationProcessedKeys, STUDY_AUTOMATION_RULE_VERSION } from "../lib/study-task-automation.ts";
 import { createEmptyWorkspaceState, workspaceStateSchema } from "../lib/workspace-state-schema.ts";
 
 const slot = (id, weekday, start, end, weeks = "1-16周") => ({ id, weekday, start, end, location: "教学楼", weeks });
@@ -36,6 +36,31 @@ test("respects teaching weeks and skips electives or courses without configured 
   const plan = createDailyStudyTaskPlan(courses, "2026-09-24", "2026-08-31");
 
   assert.deepEqual(plan, []);
+});
+
+test("prepares only the four important courses and retains other courses' class routines", () => {
+  const titles = ["概率论与数理统计", "线性代数B", "税收理论与实务", "会计学基础（全英文）", "大数据分析（全英文）", "经济学基础（全英文）", "气候与社会", "体育"];
+  const courses = titles.map((title, index) => ({ id: `course-${index}`, title, location: "", schedule: [slot(`slot-${index}`, 5, "08:00", "09:35")] }));
+  const preparation = createDailyStudyTaskPlan(courses, "2026-09-24", "2026-08-31");
+
+  assert.deepEqual(preparation.map((task) => task.courseId), ["course-0", "course-1", "course-2", "course-3"]);
+  assert.ok(preparation.every((task) => task.automationKey.includes(":before:")));
+  const classDay = createDailyStudyTaskPlan(courses, "2026-09-25", "2026-08-31");
+  for (const id of ["course-4", "course-5"]) {
+    assert.deepEqual(classDay.filter((task) => task.courseId === id).map((task) => task.automationKey.split(":")[2]), ["during", "after"]);
+  }
+  assert.ok(classDay.every((task) => !["course-6", "course-7"].includes(task.courseId)));
+});
+
+test("recognizes important course aliases and excludes only automatic non-priority preparation", () => {
+  for (const title of ["线代", "税务", "税法", "会计学基础", "概 率 论与数理统计"]) assert.equal(courseNeedsPreparation(title), true);
+  const beforeKey = "study:2026-09-24:before:economics:2026-09-25";
+  assert.equal(isUnneededPreparationTask(beforeKey, "经济学基础"), true);
+  assert.equal(isUnneededPreparationTask(beforeKey, "概率论与数理统计"), false);
+  assert.equal(isUnneededPreparationTask(beforeKey.replace(":before:", ":after:"), "经济学基础"), false);
+  assert.equal(isUnneededPreparationTask(undefined, "经济学基础"), false);
+  assert.equal(isUnneededPreparationTask("manual:before:economics", "经济学基础"), false);
+  assert.equal(migratedStudyAutomationProcessedKeys([beforeKey], STUDY_AUTOMATION_RULE_VERSION)[0], beforeKey);
 });
 
 test("automatic task keys survive cloud validation and export", () => {
