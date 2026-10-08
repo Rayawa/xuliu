@@ -22,7 +22,7 @@ import { courseNodeVisibleToday, planTaskForDate, taskDeadlineLabel, taskModeOf,
 import { updateAcademicCourses, courseContentPreserved } from "@/lib/academic-course-update";
 import { parseAcademicRows, parseAcademicIcs, groupImportedCourses, parseDelimitedRows, importWeekday } from "@/lib/academic-import";
 import { addDays, courseRunsInTimetableWeek, extractScheduleLocation, extractScheduleWeekRule, extractScheduleWeekday, isCourseTitleCandidate, officialTimetableRows, periodTimeRange, repairImportedTimetableSlot, splitScheduleEntries, timetableRowIndex, timetableWeekInfo } from "@/lib/timetable";
-import { courseNeedsPreparation, courseUsesAutomatedStudyPlan, createDailyStudyTaskPlan, isUnneededPreparationTask, migratedStudyAutomationProcessedKeys, STUDY_AUTOMATION_RULE_VERSION } from "@/lib/study-task-automation";
+import { courseUsesAutomatedStudyPlan, createDailyStudyTaskPlan, isPriorityStudyCourse, isUnneededPreparationTask, migratedStudyAutomationProcessedKeys, refreshDailyStudyTaskMethods, STUDY_AUTOMATION_RULE_VERSION } from "@/lib/study-task-automation";
 
 type NavId = "today" | "timetable" | "tasks" | "calendar" | "review" | "finance" | "school" | "learning" | "thoughts" | "work" | "ideas" | "tools" | "life" | "free";
 type Area = "课内" | "课外" | "工作" | "生活" | "思考";
@@ -701,16 +701,17 @@ export default function DashboardClient({ account, visibleAccounts, onLogout, de
       const processed = new Set(data.studyAutomation.processedKeys);
       const existing = new Set(data.milestones.map((node) => node.automationKey).filter((key): key is string => Boolean(key)));
       const pending = planned.filter((task) => !processed.has(task.automationKey) && !existing.has(task.automationKey));
-      if (!pending.length) return;
+      if (!pending.length && refreshDailyStudyTaskMethods(data.milestones, planned) === data.milestones) return;
       setData((current) => {
         if (!current.studyAutomation.enabled) return current;
         const currentProcessed = new Set(current.studyAutomation.processedKeys);
         const currentExisting = new Set(current.milestones.map((node) => node.automationKey).filter((key): key is string => Boolean(key)));
         const additions = pending.filter((task) => !currentProcessed.has(task.automationKey) && !currentExisting.has(task.automationKey));
-        if (!additions.length) return current;
+        const refreshed = refreshDailyStudyTaskMethods(current.milestones, planned);
+        if (!additions.length && refreshed === current.milestones) return current;
         return {
           ...current,
-          milestones: [...current.milestones, ...additions.map((task) => ({
+          milestones: [...refreshed, ...additions.map((task) => ({
             ...task, id: uid(), mode: "single" as const, parentCandidate: false, area: "课内" as const, done: false,
           }))],
           studyAutomation: {
@@ -891,7 +892,7 @@ function TodayView({ data, setData, tasks, milestones, totalMinutes, daily, upda
     ...tasks.filter((task) => taskModeOf(task) !== "multi").map((item) => ({ kind: "task" as const, item })),
     ...courseTasks.filter((node) => node.mode !== "multi").map((item) => ({ kind: "milestone" as const, item })),
   ];
-  const importantCourseIds = new Set(data.courses.filter((course) => courseNeedsPreparation(course.title)).map((course) => course.id));
+  const importantCourseIds = new Set(data.courses.filter((course) => isPriorityStudyCourse(course.title)).map((course) => course.id));
   const courseAssignments = shortEntries.filter((entry) => entry.kind === "task" ? Boolean(entry.item.courseId) : Boolean(entry.item.courseId && !entry.item.automationKey)).sort((left, right) => {
     const deadline = (entry: TodayTaskEntry) => entry.kind === "task" ? entry.item.due || "9999-12-31" : entry.item.date;
     const urgent = (entry: TodayTaskEntry) => deadline(entry) <= addDays(today, 2);
