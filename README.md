@@ -1,47 +1,53 @@
-# 序流 — 完整可取回内容恢复备份
+# 序流
 
-本次恢复基于 2026-09-09 仍可访问的 Vercel 部署、数据服务和原始 Git 文件。目标仓库保持私有：Serenitycheng/xuliu-recovery。
+序流是个人学习与生活工作台，把今日安排、任务、课程、笔记和日常记录放在同一个空间。
 
-## 当前线上版本
+正式网址：[xuliu-ai-web-one.vercel.app](https://xuliu-ai-web-one.vercel.app)。本文以 GitHub `main` 的应用代码为准；本地演示与云端服务的状态分别核验。
 
-`source/` 是当前生产部署的原始源码和素材，共 **58 个文件**。部署 ID：`dpl_68zoKjP3ap1Fefa3Z5ef9R7CzwWy`。文件均与 Vercel 文件 ID（原内容 SHA-1）逐个核对，同时记录 SHA-256。`docs/vercel-source-manifest.json` 保存完整清单及空目录信息。历史版本单独存放。
+## 现有能力与边界
 
-## 数据和附件
+- 今日安排、短期与长期任务、事项、计划推进日与截止时间；课程任务和课前、课上、课后学习安排。
+- 课表导入、笔记与私有附件、专注计时、习惯与提醒、个人记账及微信账单导入。
+- 多账号空间、云端版本检查与冲突保护；AI 助手可提出修改，写入前需要预览和确认。
+- `/preview` 使用演示数据，刷新后重置。课表安排由客户端规则生成；不会自动读取本机笔记库，也不是关闭网页后运行的定时任务。
+- 真正的登录、保存、附件和 AI 需要各自服务配置；演示页面不能证明这些服务可用。账单分类仍需人工核对。
 
-Redis 最新导出位于 `data/cloud-2026-09-09/`，保留各键的数据类型、原始值和导出时的剩余有效期。导出为只读操作，逐键读取，并非跨键事务快照。
+## 技术栈与运行
 
-Redis 全部 10 个键，SCAN 最终游标为 0。
+Next.js 16、React 19、TypeScript、Zod、Vercel AI SDK；Upstash Redis 保存空间状态，Vercel 私有 Blob 保存附件，DeepSeek 提供可选 AI。
 
-全部 12 个对象，共 6433685 字节，按原路径保存，逐文件 SHA-256 已验证。
+需要 Node.js 22.13+ 与 npm。应用在 `source/`，从仓库根目录执行：
 
-## 历史版本
+```powershell
+cd source
+npm ci
+npm run dev:local -- --port 3006
+```
 
-- xuliu-ai-web：20 个仍保留的部署。
-- xuliu-flow-web：1 个仍保留的部署。
-- xuliu-flow-web-safe：1 个仍保留的部署。
-- xuliu-flow-web-stable：3 个仍保留的部署。
-- xuliu-flow-web-v2：1 个仍保留的部署。
-- xuliu-flow-web-v3：1 个仍保留的部署。
-- xuliu-flow-web-v4：2 个仍保留的部署。
-- xuliu-flow-web-v5：2 个仍保留的部署。
-- xuliu-flow-web-v6：2 个仍保留的部署。
+演示入口为 `http://localhost:3006/preview`。常用检查与生产运行：
 
-legacy/github-flow/ 保存原 flow 仓库的两个分支、14 个提交及完整 bundle；已核实原仓库未发生更新。
+```powershell
+npm test
+npm run typecheck
+npm run build
+npm start -- --port 3006
+```
 
-## 文件位置与核验
+## 环境变量
 
-- `source/`：当前生产版本的全部已上传项目文件。
-- `data/cloud-2026-09-09/`：最新业务数据快照和数据库结构。
-- `attachments/files/`：附件原路径副本（存在附件时）；`attachments/manifest.json` 记录全量清单和哈希。
-- `history/vercel/`：Vercel 仍保留的历史部署源码、素材及各版本文件清单。
-- `legacy/`：原始 Git/Sites 历史、可验证 bundle 与源码。
-- 原有 ZIP、分卷和 `SHA256SUMS.txt` 原样保留。`recovered/` 是这些早期备份的展开副本，其中源码曾不完整，以 `source/` 为当前版本。
-- `VERIFY.py` 校验本次整个仓库；运行 `python VERIFY.py`。`RESTORE.py`（如存在）仅用于旧的初始压缩包。
+将自己的配置放在 `source/.env.local`，部署时配置在 Vercel。这里只列名称，不保存实际值。
 
-## 恢复边界与运行配置
+- 云端状态：`UPSTASH_REDIS_REST_URL`、`UPSTASH_REDIS_REST_TOKEN`；兼容 `KV_REST_API_URL`、`KV_REST_API_TOKEN`。
+- 登录：`XULIU_SESSION_SECRET`，以及 `XULIU_OWNER_PASSWORD_HASH`、`XULIU_PARTNER_PASSWORD_HASH`、`XULIU_LXS_PASSWORD_HASH`、`XULIU_RAYCHEN_PASSWORD_HASH`。各组还支持对应的 `*_USERNAME` 与 `*_DISPLAY_NAME`；只配置需要的账号，密码使用哈希。
+- 私有附件：`BLOB_READ_WRITE_TOKEN`。
+- 可选 AI：`DEEPSEEK_API_KEY`、`DEEPSEEK_BASE_URL`、`DEEPSEEK_MODEL`、`XULIU_AI_APPROVAL_SECRET`。当前代码要求地址为 `https://api.deepseek.com`、模型为 `deepseek-v4-flash`。
 
-本仓库保存上述来源当前实际保留且可读取的内容。已删除的部署、未上传的本机文件、未同步的浏览器本地状态不在这些来源中，无法据此断言它们已恢复。Vercel 历史清单包含失败构建仍保存的源码。
+## 部署与目录
 
-服务密钥、访问令牌、浏览器 Cookie、登录会话未提交。北京项目中误上传的浏览器凭据目录已排除，并在部署清单中记录。环境变量名称和作用域见 `docs/environment-variable-names.json`；重新运行需通过原服务账号重新配置密钥，Vercel 的 sensitive 值不能读取。
+已有 Vercel 项目名为 `xuliu-ai-web`。使用 Next.js，Root Directory 设为 `source`，生产分支为 `main`；构建与运行使用应用中的 npm 脚本。仓库改名不要求更改项目名或正式域名。推送后应核对对应提交的构建与部署结果。
 
-站点未重新部署，业务数据库及原项目内容未改动。数据库和附件为导出时的快照，不包含导出后新写入的业务数据。
+- `source/`：当前应用。
+- `docs/`：环境变量名称、结构与历史记录。
+- `archive/recovery/`、`data/`、`attachments/`：历史恢复资料、业务快照与附件副本，不能作为今天的云端状态或直接回灌。
+
+恢复数据与附件包含私有内容，公开前需要单独处理公开范围；仅修改 README 不会清除 Git 历史中的数据。
