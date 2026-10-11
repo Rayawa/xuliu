@@ -320,7 +320,7 @@ export default function FinanceView({ finance, readOnly, projectOptions, onChang
       <summary><span>查看统计详情</span><small>{currentBudget.totalCents ? `预算剩余 ${formatSignedCny(budgetRemaining)}` : "趋势与预算"}</small><b aria-hidden="true">⌄</b></summary>
     <div className="financeInsightGrid">
       <section className="panel financeChartPanel">
-        <div className="sectionHead"><div><h2>近六个月趋势</h2><p>收入与支出按月对照</p></div><div className="financeLegend"><span className="incomeDot" />收入<span className="expenseDot" />支出</div></div>
+        <div className="sectionHead"><div><h2>近六个月趋势</h2></div><div className="financeLegend"><span className="incomeDot" />收入<span className="expenseDot" />支出</div></div>
         <div className="trendChart">{monthSeries.map((item) => <div className="trendColumn" key={item.month}>
           <div className="trendBars" title={`${item.month}：收入 ${formatCny(item.incomeCents)}，支出 ${formatCny(item.expenseCents)}`}><i className="incomeBar" style={{ height: `${Math.max(3, item.incomeCents / trendMax * 100)}%` }} /><i className="expenseBar" style={{ height: `${Math.max(3, item.expenseCents / trendMax * 100)}%` }} /></div>
           <span>{Number(item.month.slice(5))}月</span>
@@ -330,7 +330,7 @@ export default function FinanceView({ finance, readOnly, projectOptions, onChang
     </div>
 
     <section className="panel budgetPanel">
-      <div className="sectionHead"><div><h2>月度预算</h2><p>总预算与分类预算互不重复计算，用来观察不同层级的使用进度。</p></div><span className="countChip">{budgetRate}%</span></div>
+      <div className="sectionHead"><div><h2>月度预算</h2></div><span className="countChip">{budgetRate}%</span></div>
       <div className="totalBudgetRow">
         <label><span>本月总预算</span><div><b>¥</b><input key={`total-${selectedMonth}-${currentBudget.totalCents}`} disabled={readOnly} inputMode="decimal" defaultValue={currentBudget.totalCents ? centsToYuanInput(currentBudget.totalCents) : ""} placeholder="例如 3000" onBlur={(event) => commitBudget(event.currentTarget, currentBudget.totalCents, {})} /></div></label>
         <div className="budgetTrack"><i><b style={{ width: `${Math.min(100, budgetRate)}%` }} /></i><span>{currentBudget.totalCents ? `${formatCny(summary.expenseCents)} / ${formatCny(currentBudget.totalCents)}` : "设置预算后显示进度"}</span></div>
@@ -347,7 +347,7 @@ export default function FinanceView({ finance, readOnly, projectOptions, onChang
     </details>
 
     <section className="panel financeCategoryPanel" aria-label="支出分类">
-      <div className="financeSectionTitle"><div><h2>支出分类</h2><span>{categoryTotals.length} 类 · 展开查看细项和每笔支出</span></div></div>
+      <div className="financeSectionTitle"><div><h2>支出分类</h2><span>{categoryTotals.length} 类</span></div></div>
       {categoryTotals.length ? <div className="financeCategoryList">{categoryTotals.map((item) => <details className="financeCategoryItem" key={item.category}>
         <summary><span className="financeCategoryGlyph">{categoryGlyphs[item.category] || "记"}</span><span className="financeCategoryName"><strong>{item.category}</strong><small>{expenseEntriesByCategory[item.category]?.length ?? 0} 笔 · {Math.round(item.amountCents / summary.expenseCents * 100)}%</small></span><b>{formatCny(item.amountCents)}</b><i aria-hidden="true">⌄</i></summary>
         <div className="financeCategoryTransactions">{expenseDetailsByCategory[item.category]?.map((group) => <div className="financeDetailGroup" key={group.detail}>
@@ -359,7 +359,7 @@ export default function FinanceView({ finance, readOnly, projectOptions, onChang
 
     <section className="panel ledgerPanel">
       <div className="ledgerToolbar">
-        <div><h2>每日收支</h2><p>点选日期查看当天的收入、支出与每笔记录</p></div>
+        <div><h2>每日收支</h2></div>
         {!readOnly && reclassifiableCount > 0 && <button className="softButton" onClick={() => setPendingRecategorize({ month: selectedMonth, count: reclassifiableCount })}>更新本月微信识别 · {reclassifiableCount} 笔</button>}
       </div>
       <details className="ledgerTools"><summary>搜索、筛选与导出 <span>⌄</span></summary><div className="ledgerFilters">
@@ -385,7 +385,7 @@ export default function FinanceView({ finance, readOnly, projectOptions, onChang
       {activeDay && <div className="financeSelectedDay"><div className="financeSelectedDayHead"><div><strong>{dayLabel(activeDay)}</strong><span>{activeDayEntries.length} 笔记录</span></div><div><span>支出 <b className="expenseText">{formatCny(activeDaySummary.expenseCents)}</b></span><span>收入 <b className="incomeText">{formatCny(activeDaySummary.incomeCents)}</b></span><span>结余 <b>{formatSignedCny(activeDaySummary.netCents)}</b></span></div></div>
         {activeDayEntries.length ? <div className="financeSelectedDayEntries">{activeDayEntries.map((entry) => renderEntry(entry))}</div> : <div className="financeEmpty financeSelectedDayEmpty">这一天没有符合条件的收支记录。</div>}
       </div>}
-      {!activeDay && <p className="financeCalendarHint">点选日期查看当天明细</p>}
+
     </section>
 
     {pendingRecategorize && <div className="financeModalScrim"><section className="financeModal compact" role="alertdialog" aria-modal="true" aria-labelledby="finance-recategorize-title">
@@ -396,9 +396,9 @@ export default function FinanceView({ finance, readOnly, projectOptions, onChang
 
     {pendingImport && <div className="financeModalScrim" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target) setPendingImport(null); }}><section className="financeModal financeImportModal" role="dialog" aria-modal="true" aria-labelledby="finance-import-title">
       <div className="financeModalHead"><div><span>WECHAT BILL</span><h2 id="finance-import-title">确认导入微信账单</h2></div><button aria-label="关闭" onClick={() => setPendingImport(null)}>×</button></div>
-      <p className="financeImportIntro">{pendingImport.fileName} · 文件仅在本机浏览器解析。确认后，新记录会随当前空间自动保存。</p>
+      <p className="financeImportIntro">{pendingImport.fileName}</p>
       <div className="financeImportStats"><div><strong>{pendingImport.added}</strong><span>待新增</span></div><div><strong>{pendingImport.duplicates + pendingImport.result.skippedDuplicate}</strong><span>重复跳过</span></div><div><strong>{pendingImport.result.skippedNeutral}</strong><span>非收支</span></div><div><strong>{pendingImport.result.skippedUnsuccessful + pendingImport.result.skippedInvalid}</strong><span>失败或无效</span></div></div>
-      <p className="financeImportHint">按交易单号去重；重复导入同一账单不会重复记账。分类可在导入后逐笔编辑。</p>
+
       {pendingImport.recategorized > 0 && <label className="financeImportReclassify"><input type="checkbox" checked={reclassifyDuplicates} onChange={(event) => setReclassifyDuplicates(event.target.checked)} /><span>同时更新已导入记录的分类（{pendingImport.recategorized} 笔）<small>会覆盖这些记录此前手动选择的分类，不修改金额和备注。</small></span></label>}
       {pendingImport.added > 0 && <div className="financeImportPreview"><strong>记录预览</strong>{pendingImport.previewEntries.map((entry) => <div key={entry.id}><span>{entry.date} · {entry.category} · {entry.note}</span><b className={entry.type === "income" ? "incomeText" : "expenseText"}>{entry.type === "income" ? "+" : "−"}{formatCny(entry.amountCents)}</b></div>)}</div>}
       {!pendingImport.added && <p className="financeImportHint">没有需要新增的收支记录。{pendingImport.recategorized ? "可勾选上方选项更新旧分类。" : ""}</p>}
@@ -410,11 +410,11 @@ export default function FinanceView({ finance, readOnly, projectOptions, onChang
       <div className="financeModalHead"><div><span>{editor.entry.type === "income" ? "INCOME" : "EXPENSE"}</span><h2 id="finance-editor-title">{editor.mode === "edit" ? "编辑记录" : editor.entry.type === "income" ? "记录一笔收入" : "记录一笔支出"}</h2></div><button aria-label="关闭" onClick={() => setEditor(null)}>×</button></div>
       <div className="entryTypeSwitch"><button className={editor.entry.type === "expense" ? "active expense" : ""} onClick={() => patchEditor({ type: "expense", category: finance.expenseCategories[0] || "其他" })}>支出</button><button className={editor.entry.type === "income" ? "active income" : ""} onClick={() => patchEditor({ type: "income", category: finance.incomeCategories[0] || "其他收入" })}>收入</button></div>
       <label className="amountField"><span>金额</span><div><b>¥</b><input autoFocus inputMode="decimal" value={amountInput} placeholder="0.00" onChange={(event) => setAmountInput(event.target.value)} /></div></label>
-      <div className="financeCategorySection"><span>分类</span><div className="financeCategoryChoices" role="group" aria-label="选择分类">{categoryChoices.map((category) => <button key={category} type="button" className={editor.entry.category === category ? "active" : ""} aria-pressed={editor.entry.category === category} onClick={() => patchEditor({ category })}><i>{categoryGlyphs[category] || "记"}</i>{category}</button>)}</div><label>自定义分类<input value={editor.entry.category} maxLength={40} onChange={(event) => patchEditor({ category: event.target.value })} placeholder="输入或点选上方分类" /></label>{editor.entry.origin === "wechat" && <small>可记住同商户、同金额的用途与分类；账单明确写出不同用途时会优先按账单识别。</small>}</div>
+      <div className="financeCategorySection"><span>分类</span><div className="financeCategoryChoices" role="group" aria-label="选择分类">{categoryChoices.map((category) => <button key={category} type="button" className={editor.entry.category === category ? "active" : ""} aria-pressed={editor.entry.category === category} onClick={() => patchEditor({ category })}><i>{categoryGlyphs[category] || "记"}</i>{category}</button>)}</div><label>自定义分类<input value={editor.entry.category} maxLength={40} onChange={(event) => patchEditor({ category: event.target.value })} placeholder="输入或点选上方分类" /></label></div>
       <div className="financeFormGrid">
         <label><span>日期</span><input type="date" value={editor.entry.date} onChange={(event) => patchEditor({ date: event.target.value })} /></label>
         <label><span>时间</span><input type="time" value={editor.entry.time} onChange={(event) => patchEditor({ time: event.target.value })} /></label>
-        <label className="wide"><span>备注</span><input value={editor.entry.note} placeholder="这笔钱用在了哪里？" onChange={(event) => patchEditor({ note: event.target.value })} /></label>
+        <label className="wide"><span>备注</span><input value={editor.entry.note} placeholder="备注" onChange={(event) => patchEditor({ note: event.target.value })} /></label>
         {editor.entry.origin === "wechat" && <label className="wide"><span>这笔付款是什么（可选）</span><input value={editor.entry.purpose || ""} maxLength={80} placeholder="例如：微信读书续费" onChange={(event) => patchEditor({ purpose: event.target.value })} /></label>}
         <label className="wide"><span>关联项目（可选）</span><input list="finance-projects" value={editor.entry.relatedProject} placeholder="课程、研究或任务" onChange={(event) => patchEditor({ relatedProject: event.target.value })} /><datalist id="finance-projects">{projectOptions.map((project) => <option key={project} value={project} />)}</datalist></label>
       </div>

@@ -78,8 +78,8 @@ export default function AttachmentPreview({ file, localFile, onClose }: { file: 
       {preview?.url && kind === "image" && <img className="attachmentPreviewImage" src={preview.url} alt={file.fileName} onError={() => setPreview({ error: "图片无法显示，请检查文件是否损坏或下载查看。" })} />}
       {preview?.pdfBytes && <PdfAttachment bytes={preview.pdfBytes} />}
       {preview?.text !== undefined && <pre>{preview.text || "（空文件）"}</pre>}
-      {preview?.pages && <><p className="nodeHelp">正文预览 · 复杂排版、图片和批注请查看原文件。</p>{preview.pages.map((paragraphs, i) => <article className="attachmentDocumentPage" key={i}>{kind === "pptx" && <h4>第 {i + 1} 页</h4>}{paragraphs.map((text, j) => <p key={j}>{text || "\u00a0"}</p>)}</article>)}</>}
-      {preview?.sheets && <><p className="nodeHelp">单个工作表最多预览前 500 行、30 列；显示单元格内容，完整格式请查看原文件。</p><label className="attachmentSheetSelect">工作表<select value={sheet} onChange={(event) => setSheet(Number(event.target.value))}>{preview.sheets.map((item, i) => <option key={i} value={i}>{item.name}</option>)}</select></label><div className="attachmentSheet"><table><tbody>{preview.sheets[sheet]?.rows.map((row, i) => <tr key={i}><th scope="row">{i + 1}</th>{row.map((cell, j) => <td key={j}>{cell}</td>)}</tr>)}</tbody></table></div></>}
+      {preview?.pages && <>{preview.pages.map((paragraphs, i) => <article className="attachmentDocumentPage" key={i}>{kind === "pptx" && <h4>第 {i + 1} 页</h4>}{paragraphs.map((text, j) => <p key={j}>{text || "\u00a0"}</p>)}</article>)}</>}
+      {preview?.sheets && <><p className="nodeHelp">预览前 500 行、30 列</p><label className="attachmentSheetSelect">工作表<select value={sheet} onChange={(event) => setSheet(Number(event.target.value))}>{preview.sheets.map((item, i) => <option key={i} value={i}>{item.name}</option>)}</select></label><div className="attachmentSheet"><table><tbody>{preview.sheets[sheet]?.rows.map((row, i) => <tr key={i}><th scope="row">{i + 1}</th>{row.map((cell, j) => <td key={j}>{cell}</td>)}</tr>)}</tbody></table></div></>}
     </div>
   </dialog>;
 }

@@ -73,7 +73,7 @@ export default function EyeRestCycle({ owner, readOnly, alerts, onPopup }: { own
 
   return <section className="panel eyeRestCycle" aria-label="眼睛休息循环">
     <div className="eyeRestHead">
-      <div><span className="eyeRestIcon">眼</span><div><h3>眼睛休息循环</h3><p>手动开始 · 专注 30 分钟 → 休息 5 分钟 → 自动下一轮</p></div></div>
+      <div><span className="eyeRestIcon">眼</span><div><h3>眼睛休息循环</h3></div></div>
       <span className={`eyeRestPhase ${cycle.phase}`}>{cycle.status === "idle" ? "尚未开始" : cycle.status === "paused" ? `${phaseLabel} · 已暂停` : phaseLabel}</span>
     </div>
     <div className="eyeRestBody">
@@ -87,6 +87,6 @@ export default function EyeRestCycle({ owner, readOnly, alerts, onPopup }: { own
         {cycle.status !== "idle" && <button className="softButton" disabled={readOnly} onClick={stop}>结束循环</button>}
       </div>
     </div>
-    <p className="eyeRestNote">倒计时只在当前页面会话中运行；刷新或关闭页面后结束。到阶段切换时会使用上方选择的页面弹窗、系统通知和提示音。</p>
+
   </section>;
 }

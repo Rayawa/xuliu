@@ -8,7 +8,7 @@ export default function ChangelogPage() {
     <main className="changelogPage">
       <Link href="/">← 返回序流</Link>
       <h1>更新日志</h1>
-      <p>每次改进，都在这里留下记录。</p>
+
       {changelog.map((entry) => (
         <article className="panel changelogEntry" key={`${entry.date}-${entry.title}`}>
           <time dateTime={entry.date}>{entry.date}</time>

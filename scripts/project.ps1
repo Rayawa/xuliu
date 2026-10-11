@@ -6,7 +6,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$projectRoot = $PSScriptRoot
+$projectRoot = Split-Path -Parent $PSScriptRoot
 $sourceRoot = Join-Path $projectRoot 'source'
 $nodeCommand = Get-Command node.exe -ErrorAction SilentlyContinue
 $nodePath = if ($nodeCommand) { $nodeCommand.Source } else {

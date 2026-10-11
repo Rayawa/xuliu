@@ -328,10 +328,10 @@ export default function AiAssistant({ accountName, activeWorkspaceOwner, activeW
   return <>
     <button className={`aiLauncher ${open ? "open" : ""}`} onClick={() => setOpen((value) => !value)} aria-label={open ? "关闭 AI 助手" : "打开 AI 助手"}><span>AI</span><b>{open ? "×" : "问序流"}</b></button>
     {open && <aside className="aiDrawer" aria-label="序流 AI 助手">
-      <header><div><span className="aiAvatar">序</span><div><strong>序流 AI</strong><small>DeepSeek · 读取授权数据 · 写入前确认</small></div></div><button aria-label="关闭" onClick={() => setOpen(false)}>×</button></header>
-      <div className="aiScope"><span>当前界面</span><strong>{activeWorkspaceName}</strong><small>AI 写入始终只进入 {accountName}</small>{activeCourse && <><span>当前课程</span><strong>{activeCourse.title}</strong><small>{activeCourse.canInsert ? "回答可一键追加到这门课程的笔记" : "可以提问；对方课程为只读，不能插入笔记"}</small></>}</div>
+      <header><div><span className="aiAvatar">序</span><div><strong>序流 AI</strong></div></div><button aria-label="关闭" onClick={() => setOpen(false)}>×</button></header>
+      <div className="aiScope"><span>当前界面</span><strong>{activeWorkspaceName}</strong>{activeCourse && <><span>当前课程</span><strong>{activeCourse.title}</strong><small>{activeCourse.canInsert ? "可插入课程笔记" : "课程只读"}</small></>}</div>
       <div className="aiMessages">
-        {!messages.length && <div className="aiWelcome"><span>{activeCourse ? `正在查看《${activeCourse.title}》，可以直接问课堂问题。` : "你好，我可以帮你把自然语言变成清晰行动。"}</span><p>{activeCourse ? "完整回答可以一键插入这门课的笔记；新增或修改其他数据仍会先给你确认卡。" : "查询会直接回答；进入课程详情后，课堂回答还能一键插入课程笔记。新增或修改会先给你确认卡。"}</p><div className="aiQuickPrompts">{activeCourse && <button onClick={() => quickPrompt("请用简单例子解释我接下来提出的这门课概念，并告诉我最容易混淆的地方")}>进入课堂问答模式</button>}<button onClick={() => quickPrompt("总结我今天未完成的任务，并建议优先顺序")}>整理今日任务</button><button onClick={() => quickPrompt("帮我查看本月支出分类和预算进度")}>查看本月收支</button><button onClick={() => quickPrompt("我要规划下周的学习任务，请先问我需要的信息")}>规划下周学习</button></div></div>}
+        {!messages.length && <div className="aiWelcome"><div className="aiQuickPrompts">{activeCourse && <button onClick={() => quickPrompt("请用简单例子解释我接下来提出的这门课概念，并告诉我最容易混淆的地方")}>进入课堂问答模式</button>}<button onClick={() => quickPrompt("总结我今天未完成的任务，并建议优先顺序")}>整理今日任务</button><button onClick={() => quickPrompt("帮我查看本月支出分类和预算进度")}>查看本月收支</button><button onClick={() => quickPrompt("我要规划下周的学习任务，请先问我需要的信息")}>规划下周学习</button></div></div>}
         {messages.map((message, messageIndex) => {
           const providerProof = message.role === "assistant" ? responseProofFrom(message.metadata) : null;
           const answer = message.role === "assistant" ? message.parts.filter((part) => part.type === "text").map((part) => part.text).join("\n").trim() : "";
@@ -356,7 +356,7 @@ export default function AiAssistant({ accountName, activeWorkspaceOwner, activeW
         <div ref={endRef} />
       </div>
       <form className="aiComposer" onSubmit={submit}>
-        <textarea value={input} maxLength={4_000} disabled={Boolean(disabledReason) || hasPendingApproval} placeholder={hasPendingApproval ? "请先确认或取消上方提案" : activeCourse ? `问一个《${activeCourse.title}》里的问题…` : "例如：下周一上午 9 点创建一项课程复习任务…"} onChange={(event) => setInput(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); event.currentTarget.form?.requestSubmit(); } }} />
+        <textarea value={input} maxLength={4_000} disabled={Boolean(disabledReason) || hasPendingApproval} placeholder={hasPendingApproval ? "请先确认或取消上方提案" : "输入消息"} onChange={(event) => setInput(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); event.currentTarget.form?.requestSubmit(); } }} />
         <div><button type="button" className="aiClear" onClick={() => { if (busy) void stop(); clearError(); setInput(""); setMessages([]); }}>清空对话</button><span>{input.length}/4000</span><button className="aiSend" disabled={!input.trim() || busy || hasPendingApproval || Boolean(disabledReason)}>{busy ? "…" : "发送"}</button></div>
       </form>
     </aside>}
