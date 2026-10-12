@@ -19,6 +19,7 @@ import WebsiteCollection, { CollectionForm } from "./ToolCollections";
 import { toolCollectionFields, type ToolCollectionFields } from "@/lib/tool-collections";
 import { createInitialFinanceState, createPreviewFinanceState, normalizeFinanceState, type FinanceState } from "@/lib/finance";
 import { courseNodeVisibleToday, planTaskForDate, taskDeadlineLabel, taskModeOf, taskOverlapsRange, taskProgressOf, taskScheduleSummary, taskScheduledForDate, taskStatusOf, taskStatusOptions, taskVisibleToday, type TaskMode, type TaskProgressStatus } from "@/lib/task-progress";
+import { withPlannedTaskStages } from "@/lib/task-stages";
 import { updateAcademicCourses, courseContentPreserved } from "@/lib/academic-course-update";
 import { parseAcademicRows, parseAcademicIcs, groupImportedCourses, parseDelimitedRows, importWeekday } from "@/lib/academic-import";
 import { addDays, courseRunsInTimetableWeek, extractScheduleLocation, extractScheduleWeekRule, extractScheduleWeekday, isCourseTitleCandidate, officialTimetableRows, periodTimeRange, repairImportedTimetableSlot, splitScheduleEntries, timetableRowIndex, timetableWeekInfo } from "@/lib/timetable";
@@ -376,7 +377,7 @@ function hydrateState(raw: unknown): AppState {
     const course = courses.find((item) => item.id === node.courseId);
     return !resetAutomaticTasks && course && isCourseTitleCandidate(course.title) && courseUsesAutomatedStudyPlan(course.title) ? [] : [node.automationKey];
   }));
-  return {
+  return withPlannedTaskStages<AppState>({
     ...initialState, ...saved, version: 6, courses, learning,
     tasks,
     milestones: milestones.filter((node) => !node.automationKey || !invalidAutomaticKeys.has(node.automationKey)),
@@ -411,7 +412,7 @@ function hydrateState(raw: unknown): AppState {
       ruleVersion: STUDY_AUTOMATION_RULE_VERSION,
     },
     themes: { ...initialState.themes, ...(saved.themes ?? {}) },
-  };
+  }, dateKey(), uid);
 }
 
 function clientNormalizationChanged(raw: unknown, hydrated: AppState) {
@@ -539,10 +540,10 @@ export default function DashboardClient({ account, visibleAccounts, onLogout, de
       const next = typeof action === "function" ? action(current) : action;
       const currentDate = dateKey();
       const previousHabits = new Map(current.habits.map((habit) => [habit.id, habit]));
+      const staged = withPlannedTaskStages({ ...next, tasks: detachRemovedParents(current, next) }, currentDate, uid, current);
       return {
-        ...next,
-        tasks: detachRemovedParents(current, next),
-        habits: next.habits.map((habit) => {
+        ...staged,
+        habits: staged.habits.map((habit) => {
           const previous = previousHabits.get(habit.id);
           if (previous && habit.today !== previous.today && habit.lastCompletedDate === previous.lastCompletedDate) {
             const nextStreak = habit.today
@@ -953,7 +954,7 @@ function TodayView({ data, setData, tasks, milestones, totalMinutes, daily, upda
     };
   });
   const renderTaskEntry = (entry: TodayTaskEntry) => entry.kind === "task" ? <div key={"task-" + entry.item.id} className={"taskRow " + (entry.item.done ? "done" : "")}>
-    <button className="checkButton" disabled={readOnly} aria-pressed={entry.item.done} aria-label={entry.item.done ? "重新打开整个任务" : "标记整个任务完成"} onClick={() => setData((current) => ({ ...current, tasks: current.tasks.map((item) => item.id === entry.item.id ? withTaskCompletion(item, !item.done) : item) }))}>{entry.item.done ? "✓" : ""}</button>
+    <button className="checkButton" disabled={readOnly} aria-pressed={entry.item.done} aria-label={(entry.item.done ? "标记未完成：" : "标记完成：") + entry.item.title} onClick={() => setData((current) => ({ ...current, tasks: current.tasks.map((item) => item.id === entry.item.id ? withTaskCompletion(item, !item.done) : item) }))}>{entry.item.done ? "✓" : ""}</button>
     <div className="taskBody">
       <button className="taskTitleButton" onClick={() => readOnly ? openWork({ kind: "task", id: entry.item.id }) : setEditingTask(entry.item)}>{entry.item.title}</button>
       {entry.item.done && <span className="taskStatus 已完成 todayCompletionStatus">已完成</span>}
