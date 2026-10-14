@@ -23,7 +23,7 @@ import { withPlannedTaskStages } from "@/lib/task-stages";
 import { updateAcademicCourses, courseContentPreserved } from "@/lib/academic-course-update";
 import { parseAcademicRows, parseAcademicIcs, groupImportedCourses, parseDelimitedRows, importWeekday } from "@/lib/academic-import";
 import { addDays, courseRunsInTimetableWeek, extractScheduleLocation, extractScheduleWeekRule, extractScheduleWeekday, isCourseTitleCandidate, officialTimetableRows, periodTimeRange, repairImportedTimetableSlot, splitScheduleEntries, timetableRowIndex, timetableWeekInfo } from "@/lib/timetable";
-import { courseUsesAutomatedStudyPlan, createDailyStudyTaskPlan, isPriorityStudyCourse, isUnneededPreparationTask, migratedStudyAutomationProcessedKeys, refreshDailyStudyTaskMethods, STUDY_AUTOMATION_RULE_VERSION } from "@/lib/study-task-automation";
+import { createDailyStudyTaskPlan, DAILY_STUDY_DURATION, dailyStudyPlanChanges, isPriorityStudyCourse, migrateDailyStudyTasks, migratedStudyAutomationProcessedKeys, STUDY_AUTOMATION_RULE_VERSION, studyTaskVisibleOnDate } from "@/lib/study-task-automation";
 
 type NavId = "today" | "timetable" | "tasks" | "calendar" | "review" | "finance" | "school" | "learning" | "thoughts" | "work" | "ideas" | "tools" | "life" | "free";
 type Area = "课内" | "课外" | "工作" | "生活" | "思考";
@@ -371,16 +371,10 @@ function hydrateState(raw: unknown): AppState {
     };
   }) : [];
   const milestones = Array.isArray(saved.milestones) ? saved.milestones.map((item) => ({ ...item, attachments: item.attachments ?? [], blocks: item.blocks ? cleanStarterBlocks(item.blocks) : undefined, mode: item.courseId ? item.mode ?? "single" : undefined, parentCandidate: item.courseId ? item.parentCandidate ?? tasks.some((task) => task.parentMilestoneId === item.id) : undefined })) : [];
-  const resetAutomaticTasks = saved.studyAutomation?.ruleVersion !== STUDY_AUTOMATION_RULE_VERSION;
-  const invalidAutomaticKeys = new Set(milestones.flatMap((node) => {
-    if (!node.automationKey) return [];
-    const course = courses.find((item) => item.id === node.courseId);
-    return !resetAutomaticTasks && course && isCourseTitleCandidate(course.title) && courseUsesAutomatedStudyPlan(course.title) ? [] : [node.automationKey];
-  }));
-  return withPlannedTaskStages<AppState>({
+  return withPlannedTaskStages<AppState>(migrateDailyStudyTasks<AppState>({
     ...initialState, ...saved, version: 6, courses, learning,
     tasks,
-    milestones: milestones.filter((node) => !node.automationKey || !invalidAutomaticKeys.has(node.automationKey)),
+    milestones,
     research: Array.isArray(saved.research) ? saved.research.map((item) => ({
       id: item.id ?? uid(), title: item.title ?? "", status: item.status ?? "收集箱", summary: item.summary ?? "",
       objective: item.objective ?? item.question ?? "", next: item.next ?? "", progress: item.progress ?? 0,
@@ -408,11 +402,11 @@ function hydrateState(raw: unknown): AppState {
     },
     studyAutomation: {
       enabled: saved.studyAutomation?.enabled !== false,
-      processedKeys: migratedStudyAutomationProcessedKeys(saved.studyAutomation?.processedKeys, saved.studyAutomation?.ruleVersion, invalidAutomaticKeys),
+      processedKeys: migratedStudyAutomationProcessedKeys(saved.studyAutomation?.processedKeys, saved.studyAutomation?.ruleVersion),
       ruleVersion: STUDY_AUTOMATION_RULE_VERSION,
     },
     themes: { ...initialState.themes, ...(saved.themes ?? {}) },
-  }, dateKey(), uid);
+  }, dateKey()), dateKey(), uid);
 }
 
 function clientNormalizationChanged(raw: unknown, hydrated: AppState) {
@@ -699,25 +693,19 @@ export default function DashboardClient({ account, visibleAccounts, onLogout, de
     const arrangeStudyTasks = () => {
       const currentDate = dateKey();
       const planned = createDailyStudyTaskPlan(data.courses, currentDate, data.timetableSettings.termStartDate);
-      const processed = new Set(data.studyAutomation.processedKeys);
-      const existing = new Set(data.milestones.map((node) => node.automationKey).filter((key): key is string => Boolean(key)));
-      const pending = planned.filter((task) => !processed.has(task.automationKey) && !existing.has(task.automationKey));
-      if (!pending.length && refreshDailyStudyTaskMethods(data.milestones, planned) === data.milestones) return;
+      if (!dailyStudyPlanChanges(data.milestones, planned, data.studyAutomation.processedKeys)) return;
       setData((current) => {
         if (!current.studyAutomation.enabled) return current;
-        const currentProcessed = new Set(current.studyAutomation.processedKeys);
-        const currentExisting = new Set(current.milestones.map((node) => node.automationKey).filter((key): key is string => Boolean(key)));
-        const additions = pending.filter((task) => !currentProcessed.has(task.automationKey) && !currentExisting.has(task.automationKey));
-        const refreshed = refreshDailyStudyTaskMethods(current.milestones, planned);
-        if (!additions.length && refreshed === current.milestones) return current;
+        const changes = dailyStudyPlanChanges(current.milestones, planned, current.studyAutomation.processedKeys);
+        if (!changes) return current;
         return {
           ...current,
-          milestones: [...refreshed, ...additions.map((task) => ({
+          milestones: [...current.milestones, ...changes.additions.map((task) => ({
             ...task, id: uid(), mode: "single" as const, parentCandidate: false, area: "课内" as const, done: false,
           }))],
           studyAutomation: {
             ...current.studyAutomation,
-            processedKeys: [...new Set([...current.studyAutomation.processedKeys, ...additions.map((task) => task.automationKey)])].slice(-20_000),
+            processedKeys: changes.processedKeys,
           },
         };
       });
@@ -753,8 +741,7 @@ export default function DashboardClient({ account, visibleAccounts, onLogout, de
   const theme = data.themes[active] ?? toneChoices[0];
   const daily = data.daily[today] ?? { note: "", gain: "", problem: "", feeling: "", tomorrow: "" };
   const todayTasks = data.tasks.filter((task) => taskVisibleToday(task, today));
-  const todayCourseNodes = data.milestones.filter((node) => courseNodeVisibleToday(node, today)
-    && !isUnneededPreparationTask(node.automationKey, data.courses.find((course) => course.id === node.courseId)?.title ?? ""));
+  const todayCourseNodes = data.milestones.filter((node) => studyTaskVisibleOnDate(node, today));
   const activeCourse = detail?.type === "course" ? data.courses.find((course) => course.id === detail.id) : undefined;
   const updateDaily = (field: keyof typeof daily, value: string) => setData((current) => ({ ...current, daily: { ...current.daily, [today]: { ...(current.daily[today] ?? daily), [field]: value } } }));
   const deleteDialog = (title: string, onDelete: () => void, description = "内容会从当前账号的云端空间中移除。") => setDialog({ title: `移除“${title}”？`, description, submitLabel: "确认移除", danger: true, fields: [], onSubmit: onDelete });
@@ -966,7 +953,7 @@ function TodayView({ data, setData, tasks, milestones, totalMinutes, daily, upda
     <div className="taskRowActions"><span className={"areaTag " + areaClass[entry.item.area]}>{entry.item.area}</span>{!entry.item.done && <button type="button" className="quickPostponeButton" disabled={readOnly} aria-label={"将任务推迟一天：" + entry.item.title} onClick={() => postponeWork({ kind: "task", id: entry.item.id })}>＋1天</button>}<button type="button" className="miniRemove todayQuickDelete" disabled={readOnly} aria-label={"快捷删除任务：" + entry.item.title} onClick={() => requestDelete({ kind: "task", id: entry.item.id }, entry.item.title)}>×</button></div>
   </div> : <div key={"milestone-" + entry.item.id} className={"taskRow " + (entry.item.done ? "done" : "")}>
     <button className="checkButton" disabled={readOnly} aria-pressed={entry.item.done} aria-label={(entry.item.done ? "标记未完成：" : "标记完成：") + entry.item.title} onClick={() => setData((current) => ({ ...current, milestones: current.milestones.map((node) => node.id === entry.item.id ? { ...node, done: !node.done } : node) }))}>{entry.item.done ? "✓" : ""}</button>
-    <div className="taskBody"><button className="taskTitleButton" onClick={() => readOnly ? openWork({ kind: "milestone", id: entry.item.id }) : setEditingNode(entry.item)}>{entry.item.title}</button>{entry.item.done && <span className="taskStatus 已完成 todayCompletionStatus">已完成</span>}<small>{entry.item.automationKey ? "课表自动安排 · " : ""}{data.courses.find((course) => course.id === entry.item.courseId)?.title ?? "课程任务"} · {entry.item.plannedDate === today ? "今日推进 · " : ""}{entry.item.mode === "multi" || entry.item.plannedDate ? "截止 " : ""}{entry.item.date}</small><button className="taskRecordLink" onClick={() => readOnly ? openWork({ kind: "milestone", id: entry.item.id }) : setEditingNode(entry.item)}>{readOnly ? "查看详细信息" : "修改基础信息"} · 已投入 {entry.item.elapsed ?? 0} 分钟</button></div>
+    <div className="taskBody"><button className="taskTitleButton" onClick={() => readOnly ? openWork({ kind: "milestone", id: entry.item.id }) : setEditingNode(entry.item)}>{entry.item.title}</button>{entry.item.done && <span className="taskStatus 已完成 todayCompletionStatus">已完成</span>}<small>{entry.item.automationKey ? DAILY_STUDY_DURATION : data.courses.find((course) => course.id === entry.item.courseId)?.title ?? "课程任务"} · {entry.item.plannedDate === today ? "今日推进 · " : ""}{entry.item.mode === "multi" || entry.item.plannedDate ? "截止 " : ""}{entry.item.date}</small><button className="taskRecordLink" onClick={() => readOnly ? openWork({ kind: "milestone", id: entry.item.id }) : setEditingNode(entry.item)}>{readOnly ? "查看详细信息" : "修改基础信息"} · 已投入 {entry.item.elapsed ?? 0} 分钟</button></div>
     <div className="taskRowActions"><span className={"areaTag " + areaClass[entry.item.area]}>{entry.item.area}</span>{!entry.item.done && <button type="button" className="quickPostponeButton" disabled={readOnly} aria-label={"将课程任务推迟一天：" + entry.item.title} onClick={() => postponeWork({ kind: "milestone", id: entry.item.id })}>＋1天</button>}<button type="button" className="miniRemove todayQuickDelete" disabled={readOnly} aria-label={"快捷删除任务：" + entry.item.title} onClick={() => requestDelete({ kind: "milestone", id: entry.item.id }, entry.item.title)}>×</button></div>
   </div>;
   return <div className="page">

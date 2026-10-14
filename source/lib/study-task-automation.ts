@@ -1,4 +1,7 @@
-import { addDays, courseRunsInTimetableWeek, isCourseTitleCandidate, timetableWeekInfo } from "./timetable.ts";
+import { courseRunsInTimetableWeek, isCourseTitleCandidate, timetableWeekInfo } from "./timetable.ts";
+import { courseNodeVisibleToday } from "./task-progress.ts";
+import type { z } from "zod";
+import type { workspaceStateSchema } from "./workspace-state-schema.ts";
 
 export type StudyCourseSlot = {
   id: string;
@@ -26,14 +29,14 @@ export type StudyTaskDraft = {
   requirements: string;
 };
 
-export const STUDY_AUTOMATION_RULE_VERSION = 3;
+export const STUDY_AUTOMATION_RULE_VERSION = 4;
+export const DAILY_STUDY_DURATION = "10–20 分钟";
 
 export function migratedStudyAutomationProcessedKeys(
   processedKeys: unknown,
-  savedRuleVersion: unknown,
+  _savedRuleVersion: unknown,
   invalidKeys: ReadonlySet<string> = new Set<string>(),
 ) {
-  if (savedRuleVersion !== STUDY_AUTOMATION_RULE_VERSION) return [];
   return Array.isArray(processedKeys)
     ? processedKeys.filter((key): key is string => typeof key === "string" && !invalidKeys.has(key)).slice(-20_000)
     : [];
@@ -52,7 +55,7 @@ const dataSeminarMethod: StudyMethod = {
   after: "只补充本次 Seminar 中做错或不会的部分。",
 };
 
-const studyMethods: Array<{ matches: string[]; method: StudyMethod }> = [
+const legacyStudyMethods: Array<{ matches: string[]; method: StudyMethod }> = [
   {
     matches: ["线性代数", "线代"],
     method: {
@@ -122,29 +125,16 @@ export function isPriorityStudyCourse(title: string) {
   return ["概率论", "线性代数", "线代", "税收理论", "税法", "税务", "会计学基础"].some((course) => normalized.includes(course));
 }
 
-export function isUnneededPreparationTask(automationKey: string | undefined, courseTitle: string) {
-  if (!automationKey?.startsWith("study:") || automationKey.split(":")[2] !== "before") return false;
-  const classDate = automationKey.split(":").at(-1) ?? "";
-  return !methodFor(courseTitle, classDate)?.before;
+export function dailyStudyTitle(courseTitle: string) {
+  return `${normalizedTitle(courseTitle).includes("会计学基础") ? "复习" : "自学"} · ${courseTitle}`.slice(0, 500);
 }
 
-function methodFor(title: string, classDate = ""): StudyMethod | null {
-  const normalized = normalizedTitle(title);
-  if (normalized.includes("大数据分析")) {
-    // Confirmed timetable: Wednesday Lecture, Thursday Seminar. Explicit class labels take precedence.
-    if (/seminar|workshop|研讨|实践/.test(normalized)) return dataSeminarMethod;
-    if (/lecture|讲授/.test(normalized)) return dataLectureMethod;
-    if (/^\d{4}-\d{2}-\d{2}$/.test(classDate)) {
-      if (weekdayOf(classDate) === 3) return dataLectureMethod;
-      if (weekdayOf(classDate) === 4) return dataSeminarMethod;
-    }
-  }
-  return studyMethods.find((entry) => entry.matches.some((match) => normalized.includes(normalizedTitle(match))))?.method ?? null;
+function dailyStudyKey(date: string, courseId: string) {
+  return `study:${date}:review:${courseId}:${date}`;
 }
 
 export function courseUsesAutomatedStudyPlan(title: string) {
-  const method = methodFor(title);
-  return Boolean(method && !method.skip);
+  return isCourseTitleCandidate(title);
 }
 
 function weekdayOf(dateKey: string) {
@@ -164,42 +154,10 @@ function sessionsForDate(courses: StudyCourse[], date: string, termStartDate: st
   });
 }
 
-function minutesToTime(total: number) {
-  const clamped = Math.max(0, Math.min(23 * 60 + 59, total));
-  return `${String(Math.floor(clamped / 60)).padStart(2, "0")}:${String(clamped % 60).padStart(2, "0")}`;
-}
-
-function afterClassTime(end: string) {
-  const [hours, minutes] = end.split(":").map(Number);
-  const oneHourLater = (hours * 60) + minutes + 60;
-  return minutesToTime(Math.max(20 * 60, oneHourLater));
-}
-
-function stageDraft(currentDate: string, classDate: string, session: ReturnType<typeof sessionsForDate>[number], stage: StudyStage): StudyTaskDraft | null {
-  const method = methodFor(session.course.title, classDate);
-  const instruction = method?.[stage];
-  if (!method || method.skip || !instruction) return null;
-  const first = session.slots[0];
-  const last = session.slots[session.slots.length - 1];
-  const locations = [...new Set(session.slots.map((slot) => slot.location || session.course.location).filter(Boolean))];
-  const location = locations.join(" / ").slice(0, 500);
-  const stageLabel = stage === "before" ? "课前准备" : stage === "during" ? "课上重点" : "课后闭环";
-  const classLabel = `${classDate} ${first.start}-${last.end}${location ? ` · ${location}` : ""}`;
-  return {
-    automationKey: `study:${currentDate}:${stage}:${session.course.id}:${classDate}`,
-    courseId: session.course.id,
-    title: `${stageLabel} · ${session.course.title}`,
-    date: currentDate,
-    time: stage === "before" ? "20:00" : stage === "during" ? first.start : afterClassTime(last.end),
-    location: stage === "during" ? location : "",
-    requirements: `对应课程：${classLabel}\n学习方法：${instruction}\n${automaticStudySource}`,
-  };
-}
-
 const automaticStudySource = "由“课表学习计划”依据 Obsidian《学习首页》自动创建。";
 // Recognize old generated instructions only; custom requirements must never be overwritten.
 const generatedMethodLines = new Set([
-  ...studyMethods.flatMap(({ method }) => Object.values(method).filter((value): value is string => typeof value === "string")),
+  ...legacyStudyMethods.flatMap(({ method }) => Object.values(method).filter((value): value is string => typeof value === "string")),
   ...Object.values(dataLectureMethod),
   ...Object.values(dataSeminarMethod),
   "用 GPT 分析已有错题、总结本节题型，再复习笔记并完成自测。",
@@ -214,33 +172,100 @@ const generatedMethodLines = new Set([
   "需要时用 GPT 整理课本和课堂内容；专题结束时整理老师强调的原理、关键词和可分析的现实问题。",
 ].filter((value): value is string => typeof value === "string").map((instruction) => `学习方法：${instruction}`));
 
-export function refreshDailyStudyTaskMethods<T extends { automationKey?: string; requirements?: string; done: boolean }>(
-  nodes: T[], planned: StudyTaskDraft[],
-): T[] {
-  const draftsByKey = new Map(planned.map((draft) => [draft.automationKey, draft]));
-  let changed = false;
-  const refreshed = nodes.map((node) => {
-    const draft = node.automationKey ? draftsByKey.get(node.automationKey) : undefined;
-    if (!draft || node.done || !node.requirements) return node;
-    const lines = node.requirements.split("\n");
-    if (!lines.includes(automaticStudySource)) return node;
-    const methodIndex = lines.findIndex((line) => line.startsWith("学习方法："));
-    if (methodIndex < 0 || !generatedMethodLines.has(lines[methodIndex])) return node;
-    const currentMethod = draft.requirements.split("\n").find((line) => line.startsWith("学习方法："));
-    if (!currentMethod || lines[methodIndex] === currentMethod) return node;
-    lines[methodIndex] = currentMethod;
-    changed = true;
-    return { ...node, requirements: lines.join("\n") };
-  });
-  return changed ? refreshed : nodes;
+export function createDailyStudyTaskPlan(courses: StudyCourse[], currentDate: string, termStartDate: string) {
+  return sessionsForDate(courses, currentDate, termStartDate).map(({ course }): StudyTaskDraft => ({
+    automationKey: dailyStudyKey(currentDate, course.id), courseId: course.id,
+    title: dailyStudyTitle(course.title), date: currentDate, time: "20:00", location: "",
+    requirements: DAILY_STUDY_DURATION,
+  }));
 }
 
-export function createDailyStudyTaskPlan(courses: StudyCourse[], currentDate: string, termStartDate: string) {
-  const todaySessions = sessionsForDate(courses, currentDate, termStartDate);
-  const tomorrowDate = addDays(currentDate, 1);
-  const tomorrowSessions = sessionsForDate(courses, tomorrowDate, termStartDate);
-  return [
-    ...todaySessions.flatMap((session) => [stageDraft(currentDate, currentDate, session, "during"), stageDraft(currentDate, currentDate, session, "after")]),
-    ...tomorrowSessions.map((session) => stageDraft(currentDate, tomorrowDate, session, "before")),
-  ].filter((task): task is StudyTaskDraft => Boolean(task));
+export function dailyStudyPlanChanges(
+  nodes: { automationKey?: string; courseId?: string; date: string; plannedDate?: string }[],
+  planned: StudyTaskDraft[], processedKeys: string[],
+) {
+  const processed = new Set(processedKeys);
+  const existing = new Set(nodes.map((node) => node.automationKey));
+  const covered = new Set(nodes.filter((node) => node.courseId && node.automationKey?.startsWith("study:") && node.automationKey.split(":")[2] === "review")
+    .map((node) => dailyStudyKey(node.plannedDate || node.date, node.courseId!)));
+  const additions: StudyTaskDraft[] = [];
+  for (const draft of planned) {
+    if (processed.has(draft.automationKey)) continue;
+    if (!existing.has(draft.automationKey) && !covered.has(draft.automationKey)) additions.push(draft);
+    processed.add(draft.automationKey);
+  }
+  return additions.length || processed.size !== new Set(processedKeys).size ? { additions, processedKeys: [...processed].slice(-20_000) } : null;
+}
+
+type StudyState = Pick<z.infer<typeof workspaceStateSchema>, "courses" | "milestones" | "tasks" | "timeEntries" | "studyAutomation" | "timetableSettings">;
+type StudyNode = StudyState["milestones"][number];
+const legacyStudyKey = /^study:(\d{4}-\d{2}-\d{2}):(before|during|after):(.+):(\d{4}-\d{2}-\d{2})$/;
+
+export function studyTaskVisibleOnDate(node: Pick<StudyNode, "automationKey" | "date" | "plannedDate" | "courseId" | "mode" | "done">, date: string) {
+  return node.automationKey?.split(":")[2] === "review" && node.plannedDate ? node.plannedDate === date : courseNodeVisibleToday(node, date);
+}
+
+function personalRequirements(requirements: string) {
+  return requirements.split("\n").filter((line) => line !== automaticStudySource && line !== DAILY_STUDY_DURATION
+    && !generatedMethodLines.has(line) && !/^对应课程：\d{4}-\d{2}-\d{2} \d{2}:\d{2}-\d{2}:\d{2}/.test(line)).join("\n").trim();
+}
+
+export function migrateDailyStudyTasks<T extends StudyState>(state: T, currentDate: string): T {
+  const todayCourseIds = new Set(createDailyStudyTaskPlan(state.courses, currentDate, state.timetableSettings?.termStartDate ?? "").map((draft) => draft.courseId));
+  const courses = new Map(state.courses.map((course) => [course.id, course]));
+  const referencedIds = new Set([
+    ...state.tasks.map((task) => task.parentMilestoneId).filter(Boolean),
+    ...state.timeEntries.filter((entry) => entry.targetKind === "milestone").map((entry) => entry.taskId),
+  ]);
+  const hasRecords = (node: StudyNode) => Boolean(personalRequirements(node.requirements) || node.attachments?.length || node.outcomeText || node.outcomeAttachments?.length || node.blocks?.length || node.elapsed || referencedIds.has(node.id) || node.mode === "multi");
+  const groups = new Map<string, { date: string; courseId: string; nodes: StudyNode[]; postponed: boolean }>();
+  const removals = new Set<string>();
+  const processed = new Set(state.studyAutomation?.processedKeys ?? []);
+  for (const node of state.milestones) {
+    const match = legacyStudyKey.exec(node.automationKey ?? "");
+    if (!match || node.done || !node.courseId || !courses.has(node.courseId)) continue;
+    const postponed = Boolean(node.plannedDate || node.date !== match[1]);
+    const date = node.plannedDate || (postponed ? node.date : match[4]);
+    const key = dailyStudyKey(date, node.courseId);
+    const group = groups.get(key) ?? { date, courseId: node.courseId, nodes: [], postponed: false };
+    group.nodes.push(node); group.postponed ||= postponed; groups.set(key, group);
+    removals.add(node.id);
+    if (postponed) processed.add(dailyStudyKey(match[4], node.courseId));
+  }
+  if (!groups.size) return state;
+  const replacements = new Map<string, StudyNode>();
+  const idMap = new Map<string, string>();
+  for (const [key, group] of groups) {
+    const existing = state.milestones.find((node) => node.automationKey === key && !removals.has(node.id));
+    const nodes = existing ? [existing, ...group.nodes] : group.nodes;
+    const records = nodes.filter(hasRecords);
+    if (!existing && !records.length && !group.postponed && (group.date !== currentDate || !todayCourseIds.has(group.courseId))) continue;
+    const keeper = existing ?? nodes.find((node) => node.plannedDate) ?? records[0] ?? nodes.find((node) => node.automationKey?.includes(":after:")) ?? nodes[0];
+    const requirements = [DAILY_STUDY_DURATION, ...nodes.map((node) => personalRequirements(node.requirements)).filter(Boolean)].join("\n");
+    const attachments = nodes.flatMap((node) => node.attachments ?? []);
+    const outcomeAttachments = nodes.flatMap((node) => node.outcomeAttachments ?? []);
+    const blocks = nodes.flatMap((node) => node.blocks ?? []);
+    const outcomeText = nodes.map((node) => node.outcomeText).filter(Boolean).join("\n");
+    const elapsed = nodes.reduce((sum, node) => sum + (node.elapsed ?? 0), 0);
+    // Keep separate records if merging would exceed the existing storage limits.
+    if (requirements.length > 4000 || outcomeText.length > 4000 || attachments.length > 50 || outcomeAttachments.length > 50 || blocks.length > 2000 || elapsed > 10_000_000) {
+      for (const node of group.nodes.filter(hasRecords)) replacements.set(node.id, { ...node, automationKey: undefined, title: `学习资料 · ${courses.get(group.courseId)!.title}`.slice(0, 500), requirements: personalRequirements(node.requirements) });
+      continue;
+    }
+    const merged: StudyNode = {
+      ...keeper, automationKey: key, title: existing?.title ?? dailyStudyTitle(courses.get(group.courseId)!.title),
+      date: existing?.date ?? (keeper.plannedDate ? keeper.date : group.date), time: existing?.time ?? (group.postponed ? keeper.time : "20:00"), requirements,
+      ...(attachments.length ? { attachments } : {}), ...(outcomeAttachments.length ? { outcomeAttachments } : {}),
+      ...(blocks.length ? { blocks } : {}), ...(outcomeText ? { outcomeText } : {}), ...(elapsed ? { elapsed } : {}),
+    };
+    replacements.set(keeper.id, merged); processed.add(key);
+    for (const node of nodes) idMap.set(node.id, keeper.id);
+  }
+  const milestones = state.milestones.flatMap((node) => replacements.has(node.id) ? [replacements.get(node.id)!] : removals.has(node.id) ? [] : [node]);
+  return {
+    ...state, milestones,
+    tasks: state.tasks.map((task) => task.parentMilestoneId && idMap.has(task.parentMilestoneId) ? { ...task, parentMilestoneId: idMap.get(task.parentMilestoneId) } : task),
+    timeEntries: state.timeEntries.map((entry) => entry.targetKind === "milestone" && idMap.has(entry.taskId) ? { ...entry, taskId: idMap.get(entry.taskId)! } : entry),
+    studyAutomation: { enabled: state.studyAutomation?.enabled !== false, processedKeys: [...processed].slice(-20_000), ruleVersion: STUDY_AUTOMATION_RULE_VERSION },
+  };
 }

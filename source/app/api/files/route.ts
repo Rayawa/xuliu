@@ -11,7 +11,7 @@ const maxFileBytes = 50 * 1024 * 1024;
 const allowedContentTypes = [
   "image/jpeg", "image/png", "image/webp", "image/gif",
   "application/pdf", "application/zip", "application/x-zip-compressed",
-  "text/plain", "text/markdown", "text/csv",
+  "text/plain", "text/markdown", "text/csv", "text/html",
   "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   "application/vnd.ms-powerpoint", "application/vnd.openxmlformats-officedocument.presentationml.presentation",

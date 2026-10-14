@@ -1,165 +1,175 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createDailyStudyTaskPlan, isPriorityStudyCourse, isUnneededPreparationTask, migratedStudyAutomationProcessedKeys, refreshDailyStudyTaskMethods, STUDY_AUTOMATION_RULE_VERSION } from "../lib/study-task-automation.ts";
+import { createDailyStudyTaskPlan, DAILY_STUDY_DURATION, dailyStudyPlanChanges, isPriorityStudyCourse, migrateDailyStudyTasks, migratedStudyAutomationProcessedKeys, STUDY_AUTOMATION_RULE_VERSION, studyTaskVisibleOnDate } from "../lib/study-task-automation.ts";
 import { createEmptyWorkspaceState, workspaceStateSchema } from "../lib/workspace-state-schema.ts";
 
-const slot = (id, weekday, start, end, weeks = "1-16周") => ({ id, weekday, start, end, location: "教学楼", weeks });
+const today = "2026-10-14";
+const termStartDate = "2026-08-31";
+const slot = (id, weekday = 3, weeks = "1-16周") => ({ id, weekday, start: "08:00", end: "09:35", location: "教学楼", weeks });
+const course = (id = "linear", title = "线性代数B", schedule = [slot("s")]) => ({ id, title, term: "秋季", teacher: "", location: "", progress: 0, requirements: "", blocks: [], schedule });
+const sourceLine = "由“课表学习计划”依据 Obsidian《学习首页》自动创建。";
+const node = (id, stage, generationDate = today, classDate = today) => ({
+  id, courseId: "linear", title: `${stage === "before" ? "课前准备" : stage === "during" ? "课上重点" : "课后闭环"} · 线性代数B`,
+  automationKey: `study:${generationDate}:${stage}:linear:${classDate}`, date: generationDate, time: "20:00", location: "",
+  requirements: `对应课程：${classDate} 08:00-09:35 · 教学楼\n学习方法：用 GPT 总结课本和 PPT，形成笔记并完成预习。\n${sourceLine}`,
+  mode: "single", area: "课内", done: false,
+});
+const stateFor = (milestones = []) => ({ ...createEmptyWorkspaceState(), courses: [course()], milestones, timetableSettings: { termStartDate, activeSchool: "bit" }, studyAutomation: { enabled: true, processedKeys: milestones.map((item) => item.automationKey).filter(Boolean), ruleVersion: 3 } });
 
-test("creates course-specific class and follow-up tasks plus tomorrow preparation", () => {
-  const courses = [
-    { id: "linear", title: "线性代数B", location: "", schedule: [slot("l1", 4, "08:00", "09:35"), slot("l2", 4, "10:00", "11:30")] },
-    { id: "probability", title: "概率论与数理统计", location: "", schedule: [slot("p1", 5, "13:20", "14:55")] },
-    { id: "intro", title: "会计学专业导论", location: "", schedule: [slot("i1", 4, "15:15", "16:50")] },
-    { id: "period-row", title: "第6节-第7节", location: "", schedule: [slot("bad", 4, "13:20", "14:55")] },
-  ];
-  const plan = createDailyStudyTaskPlan(courses, "2026-09-24", "2026-08-31");
-
-  assert.equal(plan.length, 3);
-  assert.deepEqual(plan.map((task) => task.title), [
-    "课上重点 · 线性代数B",
-    "课后闭环 · 线性代数B",
-    "课前准备 · 概率论与数理统计",
-  ]);
-  assert.equal(plan[0].time, "08:00");
-  assert.equal(plan[1].time, "20:00");
-  assert.match(plan[0].requirements, /跟例题/);
-  assert.match(plan[2].requirements, /课本和 PPT/);
-  assert.ok(plan.every((task) => task.date === "2026-09-24"));
+test("each subject on today's timetable gets one short session even when it has multiple classes", () => {
+  const courses = [course("linear", "线性代数B", [slot("l1"), slot("l2")]), course("intro", "会计学专业导论"), course("tomorrow", "概率论", [slot("t", 4)])];
+  const plan = createDailyStudyTaskPlan(courses, today, termStartDate);
+  assert.deepEqual(plan.map((item) => item.title), ["自学 · 线性代数B", "自学 · 会计学专业导论"]);
+  assert.ok(plan.every((item) => item.date === today && item.requirements === DAILY_STUDY_DURATION && item.automationKey.includes(":review:")));
+  assert.equal(new Set(plan.map((item) => item.courseId)).size, plan.length);
 });
 
-test("respects teaching weeks and skips electives or courses without configured methods", () => {
-  const courses = [
-    { id: "inactive", title: "不在本周", location: "", schedule: [slot("x", 4, "08:00", "09:35", "2-16周")] },
-    { id: "elective", title: "气候与社会", location: "教室A", schedule: [slot("e", 4, "18:30", "20:55")] },
-    { id: "other", title: "未配置课程", location: "教室B", schedule: [slot("o", 4, "18:30", "20:55")] },
-  ];
-  const plan = createDailyStudyTaskPlan(courses, "2026-09-24", "2026-08-31");
-
-  assert.deepEqual(plan, []);
+test("accounting gets review while all other subjects get self-study without stage names or instructions", () => {
+  const titles = ["会计学基础（全英文）", "大数据分析 Lecture", "大数据分析 Seminar", "经济学基础", "气候与社会", "文献检索"];
+  const plan = createDailyStudyTaskPlan(titles.map((title, index) => course(`c${index}`, title)), today, termStartDate);
+  assert.equal(plan[0].title, "复习 · 会计学基础（全英文）");
+  assert.ok(plan.slice(1).every((item) => item.title.startsWith("自学 · ")));
+  assert.ok(plan.every((item) => item.requirements === "10–20 分钟" && item.location === ""));
+  assert.doesNotMatch(JSON.stringify(plan), /课前|课上|课后|闭环|学习方法|GPT|Question Bank|Obsidian/);
 });
 
-test("keeps the four priority courses and allows merged economics Tutorial practice without Lecture preparation", () => {
-  const titles = ["概率论与数理统计", "线性代数B", "税收理论与实务", "会计学基础（全英文）", "大数据分析（全英文）", "经济学基础（全英文）", "气候与社会", "体育"];
-  const courses = titles.map((title, index) => ({ id: `course-${index}`, title, location: "", schedule: [slot(`slot-${index}`, 5, "08:00", "09:35")] }));
-  const preparation = createDailyStudyTaskPlan(courses, "2026-09-24", "2026-08-31");
-
-  assert.deepEqual(preparation.map((task) => task.courseId), ["course-0", "course-1", "course-2", "course-3", "course-5"]);
-  assert.ok(preparation.every((task) => task.automationKey.includes(":before:")));
-  assert.match(preparation.find((task) => task.courseId === "course-5").requirements, /Tutorial questions；Lecture 不另外安排预习/);
-  assert.equal(isPriorityStudyCourse(titles[5]), false);
-  const classDay = createDailyStudyTaskPlan(courses, "2026-09-25", "2026-08-31");
-  for (const id of ["course-4", "course-5"]) {
-    assert.deepEqual(classDay.filter((task) => task.courseId === id).map((task) => task.automationKey.split(":")[2]), ["during", "after"]);
-  }
-  assert.ok(classDay.every((task) => !["course-6", "course-7"].includes(task.courseId)));
+test("timetable weekday, teaching weeks, term start and invalid row titles still constrain generation", () => {
+  assert.deepEqual(createDailyStudyTaskPlan([course()], "2026-10-15", termStartDate), []);
+  assert.deepEqual(createDailyStudyTaskPlan([course("off", "线性代数", [slot("s", 3, "1周")])], today, termStartDate), []);
+  assert.deepEqual(createDailyStudyTaskPlan([course()], "2026-08-26", termStartDate), []);
+  assert.deepEqual(createDailyStudyTaskPlan([course("bad", "第6节-第7节")], today, termStartDate), []);
+  for (const title of ["线代", "税法", "概率论", "会计学基础"]) assert.equal(isPriorityStudyCourse(title), true);
+  assert.equal(isPriorityStudyCourse("经济学基础"), false);
 });
 
-test("recognizes important course aliases and filters only outdated automatic preparation", () => {
-  for (const title of ["线代", "税务", "税法", "会计学基础", "概 率 论与数理统计"]) assert.equal(isPriorityStudyCourse(title), true);
-  const beforeKey = "study:2026-09-24:before:economics:2026-09-25";
-  assert.equal(isUnneededPreparationTask(beforeKey, "经济学基础"), false);
-  assert.equal(isUnneededPreparationTask(beforeKey, "概率论与数理统计"), false);
-  assert.equal(isUnneededPreparationTask("study:2026-09-22:before:data:2026-09-23", "大数据分析"), true);
-  assert.equal(isUnneededPreparationTask("study:2026-09-23:before:data:2026-09-24", "大数据分析"), false);
-  assert.equal(isUnneededPreparationTask(beforeKey.replace(":before:", ":after:"), "经济学基础"), false);
-  assert.equal(isUnneededPreparationTask(undefined, "经济学基础"), false);
-  assert.equal(isUnneededPreparationTask("manual:before:economics", "经济学基础"), false);
-  assert.equal(migratedStudyAutomationProcessedKeys([beforeKey], STUDY_AUTOMATION_RULE_VERSION)[0], beforeKey);
+test("legacy stages consolidate while preserving notes, attachments, outcomes, elapsed time and references", () => {
+  const attachment = { id: "f", url: "https://example.blob.vercel-storage.com/attachments/owner/note.pdf", fileName: "笔记.pdf", fileSize: 12, mimeType: "application/pdf", uploadedAt: today };
+  const before = { ...node("before", "before", "2026-10-13"), requirements: node("before", "before").requirements + "\n我的补充：先看第二章。", attachments: [attachment], elapsed: 4 };
+  const during = { ...node("during", "during"), blocks: [{ id: "b", type: "text", text: "保留笔记" }], outcomeText: "个人记录", outcomeAttachments: [{ ...attachment, id: "outcome" }], elapsed: 6 };
+  const original = stateFor([before, during, node("after", "after")]);
+  original.tasks = [{ id: "child", parentMilestoneId: during.id, title: "手动分支", area: "课内", source: "课程", done: false, today: false, elapsed: 0 }];
+  original.timeEntries = [{ id: "time", taskId: during.id, targetKind: "milestone", minutes: 6, date: today, mode: "manual" }];
+  const result = migrateDailyStudyTasks(original, today);
+  assert.equal(result.milestones.length, 1);
+  const merged = result.milestones[0];
+  assert.equal(merged.id, before.id);
+  assert.equal(merged.title, "自学 · 线性代数B");
+  assert.equal(merged.date, today);
+  assert.equal(merged.elapsed, 10);
+  assert.equal(merged.requirements, "10–20 分钟\n我的补充：先看第二章。");
+  assert.deepEqual(merged.attachments, before.attachments);
+  assert.deepEqual(merged.blocks, during.blocks);
+  assert.equal(merged.outcomeText, during.outcomeText);
+  assert.deepEqual(merged.outcomeAttachments, during.outcomeAttachments);
+  assert.equal(result.tasks[0].parentMilestoneId, before.id);
+  assert.deepEqual(result.timeEntries[0], { ...original.timeEntries[0], taskId: before.id });
+  assert.deepEqual(workspaceStateSchema.parse(JSON.parse(JSON.stringify(result))), result);
+  assert.equal(migrateDailyStudyTasks(result, today), result);
+  assert.equal(original.milestones.length, 3);
 });
 
-test("uses the latest core-subject methods without adding homework or daily unit reviews", () => {
-  const courses = ["线性代数B", "概率论与数理统计", "税收理论与实务", "会计学基础（全英文）", "马原"].map((title, index) => ({
-    id: `core-${index}`, title, location: "", schedule: [slot(`core-slot-${index}`, 4, "08:00", "09:35")],
-  }));
-  const plan = createDailyStudyTaskPlan(courses, "2026-09-24", "2026-08-31");
-  const after = (id) => plan.find((task) => task.courseId === id && task.automationKey.includes(":after:")).requirements;
-
-  assert.equal(plan.length, 10);
-  for (const id of ["core-0", "core-1"]) {
-    assert.match(after(id), /复习本节笔记；本单元结束时，用 GPT 总结知识框架和题型/);
-    assert.doesNotMatch(after(id), /分析已有错题|完成自测/);
-  }
-  assert.match(after("core-2"), /练习本节税收题目，并复习笔记/);
-  assert.match(after("core-3"), /独立完成本节 Question Bank/);
-  assert.match(after("core-4"), /需要时再用 GPT.*本专题结束时/);
-  assert.ok(plan.every((task) => !/作业|Quiz|Final|单元总复习|专题总复习/.test(task.title)));
+test("untouched past and future automatic stages are removed while manual tasks and completed history survive", () => {
+  const manual = { ...node("manual", "before"), automationKey: undefined, requirements: "自己的预习任务" };
+  const completed = { ...node("done", "after", "2026-10-13", "2026-10-13"), done: true, elapsed: 30 };
+  const orphan = { ...node("orphan", "during"), courseId: "missing" };
+  const original = stateFor([node("past", "after", "2026-10-13", "2026-10-13"), node("future", "before", today, "2026-10-15"), manual, completed, orphan]);
+  const result = migrateDailyStudyTasks(original, today);
+  assert.deepEqual(result.milestones, [manual, completed, orphan]);
 });
 
-test("separates Wednesday data Lecture from Thursday Seminar using the actual timetable times", () => {
-  const courses = [{ id: "data", title: "大数据分析（全英文）", location: "", schedule: [
-    slot("lecture", 3, "15:15", "16:50"), slot("seminar", 4, "15:15", "16:50"),
-  ] }];
-  assert.deepEqual(createDailyStudyTaskPlan(courses, "2026-09-22", "2026-08-31"), []);
-  const wednesday = createDailyStudyTaskPlan(courses, "2026-09-23", "2026-08-31");
-  assert.equal(wednesday.length, 3);
-  assert.equal(wednesday[0].time, "15:15");
-  assert.match(wednesday[0].requirements, /看笔记并补充课堂笔记/);
-  assert.doesNotMatch(wednesday[0].requirements, /订正/);
-  assert.match(wednesday[1].requirements, /GPT 二次整理.*正式考核不使用 GenAI/);
-  assert.match(wednesday[2].requirements, /先独立完成本次 Seminar/);
-  assert.ok(wednesday[2].automationKey.endsWith(":2026-09-24"));
-  const thursday = createDailyStudyTaskPlan(courses, "2026-09-24", "2026-08-31");
-  assert.equal(thursday.length, 2);
-  assert.match(thursday[0].requirements, /订正课前独立完成/);
-  assert.match(thursday[1].requirements, /只补充本次 Seminar 中做错或不会/);
-  assert.ok(thursday.every((task) => !task.requirements.includes("GPT")));
+test("postponement survives migration and suppresses a replacement on the original course day", () => {
+  const postponed = { ...node("postponed", "after"), date: "2026-10-16", time: "15:30", requirements: "学习方法：只做我标记的第三题。", elapsed: 3 };
+  const result = migrateDailyStudyTasks(stateFor([postponed]), today);
+  assert.equal(result.milestones[0].date, postponed.date);
+  assert.equal(result.milestones[0].time, postponed.time);
+  assert.match(result.milestones[0].requirements, /只做我标记的第三题/);
+  assert.ok(result.studyAutomation.processedKeys.includes(`study:${today}:review:linear:${today}`));
+  assert.ok(result.studyAutomation.processedKeys.includes("study:2026-10-16:review:linear:2026-10-16"));
 });
 
-test("uses explicit data class labels and merges economics without inventing a class-type schedule", () => {
-  const explicitLecture = [{ id: "data", title: "大数据分析 Lecture", location: "", schedule: [slot("dl", 4, "14:10", "15:55")] }];
-  assert.deepEqual(createDailyStudyTaskPlan(explicitLecture, "2026-09-23", "2026-08-31"), []);
-  const explicitSeminar = [{ ...explicitLecture[0], title: "大数据分析 Seminar", schedule: [slot("ds", 3, "14:10", "15:55")] }];
-  assert.match(createDailyStudyTaskPlan(explicitSeminar, "2026-09-22", "2026-08-31")[0].requirements, /独立完成本次 Seminar/);
-  const economics = [{ id: "economics", title: "经济学基础（全英文）", location: "", schedule: [slot("ec", 5, "15:15", "16:50")] }];
-  const plan = createDailyStudyTaskPlan(economics, "2026-09-25", "2026-08-31");
-  assert.equal(plan.length, 2);
-  assert.match(plan[0].requirements, /看总结笔记.*订正 Tutorial questions/);
-  assert.match(plan[1].requirements, /Lecture 笔记；Tutorial 只复习错题和相关知识点/);
+test("future preparation with personal work becomes that day's self-study instead of losing its content", () => {
+  const future = { ...node("future", "before", today, "2026-10-15"), outcomeText: "已经写下的解题思路" };
+  const result = migrateDailyStudyTasks(stateFor([future]), today);
+  assert.equal(result.milestones[0].date, "2026-10-15");
+  assert.equal(result.milestones[0].outcomeText, future.outcomeText);
+  assert.equal(result.milestones[0].title, "自学 · 线性代数B");
 });
 
-test("refreshes today's generated method in place while preserving personal notes, postponement and attachments", () => {
-  const [draft] = createDailyStudyTaskPlan([{ id: "linear", title: "线性代数B", location: "", schedule: [slot("l", 4, "08:00", "09:35")] }], "2026-09-24", "2026-08-31").filter((task) => task.automationKey.includes(":after:"));
-  const oldRequirements = draft.requirements.replace(/学习方法：[^\n]+/, "学习方法：用 GPT 分析已有错题、总结本节题型，再复习笔记并完成自测。");
-  const node = { ...draft, id: "existing", done: false, date: "2026-09-26", elapsed: 25, progress: 30,
-    requirements: `${oldRequirements}\n我的补充：先看第二章例题。`, attachments: [{ id: "file", url: "https://example.com/note.pdf" }],
-    blocks: [{ id: "note", type: "text", text: "保留课堂笔记" }],
-  };
-  const refreshed = refreshDailyStudyTaskMethods([node], [draft]);
-  assert.equal(refreshed.length, 1);
-  assert.match(refreshed[0].requirements, /本单元结束时/);
-  assert.match(refreshed[0].requirements, /我的补充：先看第二章例题。/);
-  assert.deepEqual({ ...refreshed[0], requirements: undefined }, { ...node, requirements: undefined });
-  assert.equal(refreshDailyStudyTaskMethods(refreshed, [draft]), refreshed);
+test("existing daily self-study is reused with its custom title and postponed date", () => {
+  const [draft] = createDailyStudyTaskPlan([course()], today, termStartDate);
+  const existing = { ...draft, id: "review", date: "2026-10-16", title: "复习第二章", mode: "single", area: "课内", done: false, requirements: "自己的复习内容" };
+  const result = migrateDailyStudyTasks(stateFor([node("old", "after"), existing]), today);
+  assert.equal(result.milestones.length, 1);
+  assert.equal(result.milestones[0].id, existing.id);
+  assert.equal(result.milestones[0].date, existing.date);
+  assert.equal(result.milestones[0].title, existing.title);
+  assert.match(result.milestones[0].requirements, /自己的复习内容/);
 });
 
-test("does not refresh manual tasks, completed history, old days or user-rewritten methods", () => {
-  const [draft] = createDailyStudyTaskPlan([{ id: "linear", title: "线性代数B", location: "", schedule: [slot("l", 4, "08:00", "09:35")] }], "2026-09-24", "2026-08-31").filter((task) => task.automationKey.includes(":after:"));
-  const old = { ...draft, done: false, requirements: draft.requirements.replace(/学习方法：[^\n]+/, "学习方法：用 GPT 分析已有错题、总结本节题型，再复习笔记并完成自测。") };
-  const preserved = [
-    { ...old, automationKey: undefined }, { ...old, done: true },
-    { ...old, automationKey: old.automationKey.replace("study:2026-09-24:", "study:2026-09-23:") },
-    { ...old, requirements: old.requirements.replace(/学习方法：[^\n]+/, "学习方法：只复习我标记的第三题。") },
-  ];
-  assert.equal(refreshDailyStudyTaskMethods(preserved, [draft]), preserved);
-  assert.deepEqual(refreshDailyStudyTaskMethods([], [draft]), []);
+test("completed daily self-study prevents a second unfinished daily item during migration", () => {
+  const [draft] = createDailyStudyTaskPlan([course()], today, termStartDate);
+  const existing = { ...draft, id: "review", mode: "single", area: "课内", done: true };
+  const result = migrateDailyStudyTasks(stateFor([node("old", "during"), existing]), today);
+  assert.equal(result.milestones.length, 1);
+  assert.equal(result.milestones[0].done, true);
 });
 
-test("automatic task keys survive cloud validation and export", () => {
-  const [draft] = createDailyStudyTaskPlan([
-    { id: "linear", title: "线性代数", location: "", schedule: [slot("l1", 4, "08:00", "09:35")] },
-  ], "2026-09-24", "2026-08-31");
-  const state = createEmptyWorkspaceState();
-  state.milestones.push({ ...draft, id: "auto-1", mode: "single", parentCandidate: false, area: "课内", done: false });
-  state.studyAutomation.processedKeys.push(draft.automationKey);
+test("migration keeps personal records separate if consolidation would exceed storage limits", () => {
+  const nodes = ["before", "after"].map((stage) => ({ ...node(stage, stage), requirements: "记".repeat(4000) }));
+  const result = migrateDailyStudyTasks(stateFor(nodes), today);
+  assert.equal(result.milestones.length, 2);
+  assert.ok(result.milestones.every((item) => !item.automationKey && item.requirements.length === 4000));
+  assert.deepEqual(workspaceStateSchema.parse(JSON.parse(JSON.stringify(result))), JSON.parse(JSON.stringify(result)));
+});
 
+test("rule changes keep processed deletion and postponement markers instead of resetting them", () => {
+  const reviewKey = `study:${today}:review:linear:${today}`;
+  const legacyKey = `study:${today}:during:linear:${today}`;
+  assert.deepEqual(migratedStudyAutomationProcessedKeys([reviewKey, legacyKey, 7], 3), [reviewKey, legacyKey]);
+  assert.deepEqual(migratedStudyAutomationProcessedKeys([reviewKey, legacyKey], STUDY_AUTOMATION_RULE_VERSION, new Set([legacyKey])), [reviewKey]);
+});
+
+test("new daily keys and duration survive cloud validation and export", () => {
+  const [draft] = createDailyStudyTaskPlan([course()], today, termStartDate);
+  const state = stateFor([{ ...draft, id: "review", mode: "single", area: "课内", done: false }]);
+  state.studyAutomation.ruleVersion = STUDY_AUTOMATION_RULE_VERSION;
   const restored = workspaceStateSchema.parse(JSON.parse(JSON.stringify(state)));
-  assert.equal(restored.milestones[0].automationKey, draft.automationKey);
-  assert.deepEqual(restored.studyAutomation?.processedKeys, [draft.automationKey]);
-  assert.equal(restored.studyAutomation?.ruleVersion, STUDY_AUTOMATION_RULE_VERSION);
+  assert.equal(restored.milestones[0].requirements, DAILY_STUDY_DURATION);
+  assert.equal(restored.studyAutomation.ruleVersion, 4);
+  assert.deepEqual(restored.studyAutomation.processedKeys, [draft.automationKey]);
 });
 
-test("rule upgrades clear orphaned processed keys so today's plan can be rebuilt", () => {
-  const orphanedKey = "study:2026-09-24:during:linear:2026-09-24";
-  assert.deepEqual(migratedStudyAutomationProcessedKeys([orphanedKey], 2), []);
-  assert.deepEqual(migratedStudyAutomationProcessedKeys([orphanedKey], STUDY_AUTOMATION_RULE_VERSION), [orphanedKey]);
+test("a daily item postponed into today covers that subject without another twenty-minute session", () => {
+  const planned = createDailyStudyTaskPlan([course()], today, termStartDate);
+  for (const schedule of [{ date: today }, { date: "2026-10-13", plannedDate: today }]) {
+    const postponed = { ...planned[0], ...schedule, automationKey: "study:2026-10-13:review:linear:2026-10-13" };
+    const changes = dailyStudyPlanChanges([postponed], planned, [postponed.automationKey]);
+    assert.deepEqual(changes.additions, []);
+    assert.ok(changes.processedKeys.includes(planned[0].automationKey));
+    assert.equal(dailyStudyPlanChanges([], planned, changes.processedKeys), null);
+  }
+});
+
+test("completion, postponement and deletion do not regenerate a daily item unless explicitly reset", () => {
+  const planned = createDailyStudyTaskPlan([course()], today, termStartDate);
+  const added = dailyStudyPlanChanges([], planned, []);
+  assert.deepEqual(added.additions, planned);
+  assert.equal(dailyStudyPlanChanges([], planned, added.processedKeys), null);
+  assert.equal(dailyStudyPlanChanges([{ ...planned[0], done: true }], planned, [] ).additions.length, 0);
+  assert.equal(dailyStudyPlanChanges([{ ...planned[0], date: "2026-10-15" }], planned, [] ).additions.length, 0);
+  assert.equal(dailyStudyPlanChanges([], planned, []).additions.length, 1);
+});
+
+test("an explicit study plan date survives migration without overwriting its original deadline", () => {
+  const plannedDate = "2026-10-16";
+  const original = { ...node("planned", "after"), plannedDate, time: "15:30" };
+  const other = node("during", "during");
+  const result = migrateDailyStudyTasks(stateFor([original, other]), today);
+  const moved = result.milestones.find((item) => item.id === original.id);
+  assert.equal(moved.date, original.date);
+  assert.equal(moved.plannedDate, plannedDate);
+  assert.equal(moved.time, original.time);
+  assert.equal(studyTaskVisibleOnDate(moved, today), false);
+  assert.equal(studyTaskVisibleOnDate(moved, plannedDate), true);
+  assert.equal(studyTaskVisibleOnDate({ ...moved, automationKey: undefined }, today), true);
 });

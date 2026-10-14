@@ -6,8 +6,14 @@ export function previewKind(file: Pick<NodeAttachment, "fileName" | "mimeType">)
   if (/^image\/(jpeg|png|webp|gif)$/i.test(file.mimeType) || /^(jpe?g|png|webp|gif)$/.test(ext ?? "")) return "image";
   if (ext === "pdf" || file.mimeType === "application/pdf") return "pdf";
   if (ext === "docx" || ext === "xlsx" || ext === "pptx") return ext;
+  if (ext === "html" || ext === "htm" || /^text\/html(?:;|$)/i.test(file.mimeType)) return "html";
   if (/^(txt|md|csv|json|log)$/.test(ext ?? "") || /^text\/(plain|markdown|csv)/i.test(file.mimeType)) return "text";
   return "unsupported";
+}
+
+export function htmlPreviewDocument(source: string) {
+  const policy = `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; base-uri 'none'; form-action 'none'">`;
+  return "<!doctype html>" + policy + source.replace(/^\s*<!doctype[^>]*>/i, "");
 }
 
 export async function readPreviewBytes(response: Response) {

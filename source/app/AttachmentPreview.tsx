@@ -3,11 +3,11 @@
 import { useEffect, useId, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { attachmentUrl, type NodeAttachment } from "@/lib/course-node-attachments";
-import { MAX_PREVIEW_BYTES, officeXmlFiles, previewKind, readPreviewBytes } from "@/lib/attachment-preview";
+import { htmlPreviewDocument, MAX_PREVIEW_BYTES, officeXmlFiles, previewKind, readPreviewBytes } from "@/lib/attachment-preview";
 import { localPreviewFile } from "@/lib/local-preview-files";
 
 const PdfAttachment = dynamic(() => import("./PdfAttachment"), { ssr: false });
-type Preview = { url?: string; pdfBytes?: Uint8Array; text?: string; pages?: string[][]; sheets?: { name: string; rows: string[][] }[]; error?: string };
+type Preview = { url?: string; pdfBytes?: Uint8Array; html?: string; text?: string; pages?: string[][]; sheets?: { name: string; rows: string[][] }[]; error?: string };
 
 export default function AttachmentPreview({ file, localFile, onClose }: { file: NodeAttachment; localFile?: File; onClose: () => void }) {
   const dialog = useRef<HTMLDialogElement>(null);
@@ -42,6 +42,8 @@ export default function AttachmentPreview({ file, localFile, onClose }: { file: 
         } else if (kind === "image") {
           objectUrl = URL.createObjectURL(new Blob([bytes], { type: /^image\/(jpeg|png|gif|webp)$/i.test(file.mimeType) ? file.mimeType : "application/octet-stream" }));
           next = { url: objectUrl };
+        } else if (kind === "html") {
+          next = { html: htmlPreviewDocument(new TextDecoder().decode(bytes)) };
         } else if (kind === "text") {
           const text = new TextDecoder().decode(bytes);
           next = { text: text.slice(0, 300_000) + (text.length > 300_000 ? "\n\n（预览已截断，请下载查看完整内容）" : "") };
@@ -77,6 +79,7 @@ export default function AttachmentPreview({ file, localFile, onClose }: { file: 
       {preview?.error && <p role="alert">{preview.error}</p>}
       {preview?.url && kind === "image" && <img className="attachmentPreviewImage" src={preview.url} alt={file.fileName} onError={() => setPreview({ error: "图片无法显示，请检查文件是否损坏或下载查看。" })} />}
       {preview?.pdfBytes && <PdfAttachment bytes={preview.pdfBytes} />}
+      {preview?.html !== undefined && <iframe className="attachmentPreviewHtml" title={file.fileName + "预览"} sandbox="" referrerPolicy="no-referrer" srcDoc={preview.html} />}
       {preview?.text !== undefined && <pre>{preview.text || "（空文件）"}</pre>}
       {preview?.pages && <>{preview.pages.map((paragraphs, i) => <article className="attachmentDocumentPage" key={i}>{kind === "pptx" && <h4>第 {i + 1} 页</h4>}{paragraphs.map((text, j) => <p key={j}>{text || "\u00a0"}</p>)}</article>)}</>}
       {preview?.sheets && <><p className="nodeHelp">预览前 500 行、30 列</p><label className="attachmentSheetSelect">工作表<select value={sheet} onChange={(event) => setSheet(Number(event.target.value))}>{preview.sheets.map((item, i) => <option key={i} value={i}>{item.name}</option>)}</select></label><div className="attachmentSheet"><table><tbody>{preview.sheets[sheet]?.rows.map((row, i) => <tr key={i}><th scope="row">{i + 1}</th>{row.map((cell, j) => <td key={j}>{cell}</td>)}</tr>)}</tbody></table></div></>}

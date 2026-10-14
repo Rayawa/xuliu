@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { uploadNodeFileBatch, MAX_FILE_BYTES } from "../lib/course-node-attachments.ts";
 import { createEmptyWorkspaceState, workspaceStateSchema } from "../lib/workspace-state-schema.ts";
-import { officeXmlFiles, readPreviewBytes, previewKind, MAX_PREVIEW_BYTES } from "../lib/attachment-preview.ts";
+import { htmlPreviewDocument, officeXmlFiles, readPreviewBytes, previewKind, MAX_PREVIEW_BYTES } from "../lib/attachment-preview.ts";
 import { zipSync, strToU8 } from "fflate";
 
 test("upload failure keeps successful attachments and retry only uploads the remainder", async () => {
@@ -41,8 +41,29 @@ test("preview reads content without navigation and bounds streamed response size
   await assert.rejects(readPreviewBytes(new Response(stream)), /较大/);
   assert.equal(cancelled, true);
   assert.equal(previewKind({ fileName: "作业.DOCX", mimeType: "application/octet-stream" }), "docx");
-  assert.equal(previewKind({ fileName: "脚本.html", mimeType: "text/html" }), "unsupported");
+  assert.equal(previewKind({ fileName: "笔记.html", mimeType: "text/html" }), "html");
+  assert.equal(previewKind({ fileName: "笔记.HTM", mimeType: "application/octet-stream" }), "html");
   assert.equal(previewKind({ fileName: "图.svg", mimeType: "image/svg+xml" }), "unsupported");
+});
+
+test("HTML attachment content and metadata survive upload and state validation", async () => {
+  const html = "<!doctype html><html><head><style>h1{color:blue}</style></head><body><h1>课程笔记</h1></body></html>";
+  const files = [new File([html], "笔记.html", { type: "text/html" })];
+  const saved = [];
+  await uploadNodeFileBatch(files, 0, async (file) => {
+    assert.equal(await file.text(), html);
+    return { id: "html", url: "https://example.blob.vercel-storage.com/attachments/owner/note.html", fileName: file.name, fileSize: file.size, mimeType: file.type, uploadedAt: "2026-10-14" };
+  }, (file) => saved.push(file));
+  const state = createEmptyWorkspaceState();
+  state.milestones.push({ id: "node", title: "学习", date: "2026-10-14", time: "20:00", location: "", requirements: "", attachments: saved, area: "课内", done: false });
+  assert.deepEqual(workspaceStateSchema.parse(JSON.parse(JSON.stringify(state))).milestones[0].attachments, saved);
+  const document = htmlPreviewDocument(html);
+  assert.match(document, /^<!doctype html><meta http-equiv="Content-Security-Policy"/);
+  assert.match(document, /default-src 'none'/);
+  assert.match(document, /style-src 'unsafe-inline'/);
+  assert.ok(document.includes("<h1>课程笔记</h1>"));
+  assert.ok(document.includes("<style>h1{color:blue}</style>"));
+  assert.match(htmlPreviewDocument("<h1>片段</h1>"), /^<!doctype html><meta.*<h1>片段<\/h1>$/);
 });
 
 test("Office preview reads intended content only and rejects excessive expanded data", async () => {
