@@ -173,3 +173,33 @@ test("an explicit study plan date survives migration without overwriting its ori
   assert.equal(studyTaskVisibleOnDate(moved, plannedDate), true);
   assert.equal(studyTaskVisibleOnDate({ ...moved, automationKey: undefined }, today), true);
 });
+
+test("taekwondo and climate courses do not generate daily self-study, including course-name variants", () => {
+  const courses = [course(), course("accounting", "会计学基础"), course("sport", "体育/跆拳道"), course("sport-alias", "跆 拳 道"), course("climate", "气候与社会"), course("climate-alias", "气候 与 社会")];
+  assert.deepEqual(createDailyStudyTaskPlan(courses, today, termStartDate).map((draft) => draft.courseId), ["linear", "accounting"]);
+});
+
+test("excluded subjects lose pending automatic stages and daily items while manual tasks and history remain", () => {
+  const courses = [course("sport", "体育/跆拳道"), course("climate", "气候与社会")];
+  const automatic = (id, courseId, stage = "review") => ({ ...node(id, stage), courseId, automationKey: `study:${today}:${stage}:${courseId}:${today}`, requirements: DAILY_STUDY_DURATION });
+  const manual = { ...automatic("manual", "sport"), automationKey: undefined, title: "手动作业", requirements: "自己的要求" };
+  const completed = { ...automatic("done", "climate"), done: true };
+  const original = { ...stateFor(), courses, milestones: [automatic("sport", "sport"), { ...automatic("later", "climate"), date: "2026-10-16" }, automatic("old", "climate", "during"), manual, completed] };
+  const result = migrateDailyStudyTasks(original, today);
+  assert.deepEqual(result.milestones, [manual, completed]);
+  assert.equal(migrateDailyStudyTasks(result, today), result);
+});
+
+test("personal records on excluded automatic items remain as materials with their IDs and references", () => {
+  const original = stateFor([{ ...node("record", "after"), courseId: "climate", requirements: DAILY_STUDY_DURATION + "\n个人笔记", blocks: [{ id: "note", type: "text", text: "已有资料" }], elapsed: 5 }]);
+  original.courses = [course("climate", "气候与社会")];
+  original.timeEntries = [{ id: "time", taskId: "record", targetKind: "milestone", minutes: 5, date: today, mode: "manual" }];
+  const result = migrateDailyStudyTasks(original, today);
+  assert.equal(result.milestones[0].id, "record");
+  assert.equal(result.milestones[0].automationKey, undefined);
+  assert.equal(result.milestones[0].title, "学习资料 · 气候与社会");
+  assert.equal(result.milestones[0].requirements, "个人笔记");
+  assert.deepEqual(result.milestones[0].blocks, original.milestones[0].blocks);
+  assert.deepEqual(result.timeEntries, original.timeEntries);
+  assert.deepEqual(workspaceStateSchema.parse(JSON.parse(JSON.stringify(result))), JSON.parse(JSON.stringify(result)));
+});

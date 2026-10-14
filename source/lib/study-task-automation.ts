@@ -133,8 +133,13 @@ function dailyStudyKey(date: string, courseId: string) {
   return `study:${date}:review:${courseId}:${date}`;
 }
 
+function isExcludedStudyCourse(title: string) {
+  const normalized = normalizedTitle(title);
+  return ["跆拳道", "气候与社会"].some((course) => normalized.includes(course));
+}
+
 export function courseUsesAutomatedStudyPlan(title: string) {
-  return isCourseTitleCandidate(title);
+  return isCourseTitleCandidate(title) && !isExcludedStudyCourse(title);
 }
 
 function weekdayOf(dateKey: string) {
@@ -220,8 +225,15 @@ export function migrateDailyStudyTasks<T extends StudyState>(state: T, currentDa
   const hasRecords = (node: StudyNode) => Boolean(personalRequirements(node.requirements) || node.attachments?.length || node.outcomeText || node.outcomeAttachments?.length || node.blocks?.length || node.elapsed || referencedIds.has(node.id) || node.mode === "multi");
   const groups = new Map<string, { date: string; courseId: string; nodes: StudyNode[]; postponed: boolean }>();
   const removals = new Set<string>();
+  const replacements = new Map<string, StudyNode>();
   const processed = new Set(state.studyAutomation?.processedKeys ?? []);
   for (const node of state.milestones) {
+    const course = node.courseId ? courses.get(node.courseId) : undefined;
+    if (!node.done && course && node.automationKey?.startsWith("study:") && isExcludedStudyCourse(course.title)) {
+      if (hasRecords(node)) replacements.set(node.id, { ...node, automationKey: undefined, title: `学习资料 · ${course.title}`.slice(0, 500), requirements: personalRequirements(node.requirements) });
+      else removals.add(node.id);
+      continue;
+    }
     const match = legacyStudyKey.exec(node.automationKey ?? "");
     if (!match || node.done || !node.courseId || !courses.has(node.courseId)) continue;
     const postponed = Boolean(node.plannedDate || node.date !== match[1]);
@@ -232,8 +244,7 @@ export function migrateDailyStudyTasks<T extends StudyState>(state: T, currentDa
     removals.add(node.id);
     if (postponed) processed.add(dailyStudyKey(match[4], node.courseId));
   }
-  if (!groups.size) return state;
-  const replacements = new Map<string, StudyNode>();
+  if (!groups.size && !removals.size && !replacements.size) return state;
   const idMap = new Map<string, string>();
   for (const [key, group] of groups) {
     const existing = state.milestones.find((node) => node.automationKey === key && !removals.has(node.id));
