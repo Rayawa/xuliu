@@ -1451,6 +1451,28 @@ a { color: inherit; }
 .todayGroupHead span { display: block; margin-top: 4px; }
 .todayGroupHead > strong, .overviewGroupHead > strong { min-width: 25px; padding: 4px 7px; border-radius: 999px; color: var(--muted); background: #edf1ed; font-size: 10px; text-align: center; }
 .taskOverviewSections { display: grid; gap: 16px; }
+.overviewTaskSubgroup + .overviewTaskSubgroup { margin-top: 10px; padding-top: 13px; border-top: 1px solid var(--line); }
+.overviewTaskSubhead { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 5px 2px 8px; }
+.overviewTaskSubhead strong { font-size: 13px; }
+.overviewTaskSubhead > span { color: var(--faint); font-size: 10px; }
+.overviewTaskSubhead + .overviewRow { border-top: 0; }
+.overviewAutomaticCourse + .overviewAutomaticCourse { border-top: 1px solid var(--line); }
+.overviewAutomaticCourse > summary { display: flex; align-items: center; gap: 10px; padding: 14px 2px; cursor: pointer; list-style: none; }
+.overviewAutomaticCourse > summary::-webkit-details-marker { display: none; }
+.overviewAutomaticCourse > summary::before { content: "›"; color: var(--accent); font-size: 18px; line-height: 1; transition: transform .15s; }
+.overviewAutomaticCourse[open] > summary::before { transform: rotate(90deg); }
+.overviewAutomaticCourse > summary strong { min-width: 0; font-size: 14px; overflow-wrap: anywhere; }
+.overviewAutomaticCourse > summary span { margin-left: auto; color: var(--muted); font-size: 11px; white-space: nowrap; }
+.overviewAutomaticCourse > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+.overviewAutomaticCourse > .overviewRow:first-of-type { border-top: 0; }
+.upcomingDeadlinePanel { padding: 22px; }
+.upcomingDeadlineList { max-height: 360px; overflow-y: auto; }
+.upcomingDeadlineRow { display: grid; width: 100%; gap: 5px; min-width: 0; padding: 12px 2px; border: 0; border-top: 1px solid var(--line); background: transparent; color: var(--text); text-align: left; cursor: pointer; font: inherit; }
+.upcomingDeadlineRow:first-child { border-top: 0; }
+.upcomingDeadlineRow > strong { font-size: 13px; overflow-wrap: anywhere; }
+.upcomingDeadlineRow:hover > strong { color: var(--accent); }
+.upcomingDeadlineMeta { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 5px 10px; color: var(--muted); font-size: 11px; }
+.upcomingDeadlineEmpty { margin: 16px 0 2px; color: var(--muted); font-size: 12px; }
 .overviewGroupHead { padding-bottom: 10px; }
 .overviewGroupHead > div { display: grid; gap: 4px; }
 .overviewGroupHead p { margin: 0; line-height: 1.5; }
