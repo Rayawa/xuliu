@@ -159,6 +159,25 @@ a { color: inherit; }
 .sidebar { position: fixed; z-index: 30; inset: 0 auto 0 0; width: 264px; padding: 26px 17px 20px; overflow-y: auto; display: flex; flex-direction: column; background: rgba(250,251,248,.94); border-right: 1px solid var(--line); backdrop-filter: blur(20px); }
 .brand { width: 100%; display: flex; align-items: center; gap: 12px; padding: 0 10px 25px; border: 0; background: transparent; font-size: 21px; font-weight: 760; letter-spacing: -.04em; }
 .brandMark { display: grid; place-items: center; width: 39px; height: 39px; border-radius: 13px; color: white; background: var(--accent); box-shadow: 0 9px 22px color-mix(in srgb, var(--accent) 28%, transparent); font-size: 17px; }
+.sidebarQuote { position: relative; isolation: isolate; flex-shrink: 0; margin: 0 1px 18px; padding: 14px 15px 15px; overflow: hidden; border: 1px solid color-mix(in srgb, var(--accent) 19%, var(--paper)); border-radius: 16px; background: linear-gradient(145deg, color-mix(in srgb, var(--accent) 9%, var(--paper)), var(--paper) 82%); box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 9%, transparent); }
+.sidebarQuote::before { content: "“"; position: absolute; z-index: -1; top: 34px; right: 11px; color: color-mix(in srgb, var(--accent) 10%, transparent); font: 104px/1 Georgia, serif; pointer-events: none; }
+.sidebarQuote header { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--faint); font-size: 10px; }
+.sidebarQuote header a { color: var(--accent); font-size: 11px; font-weight: 700; letter-spacing: .08em; text-decoration: none; }
+.sidebarQuote header a:hover { text-decoration: underline; }
+.sidebarQuoteControls { display: flex; align-items: center; gap: 8px; }
+.sidebarQuoteControls time { font-variant-numeric: tabular-nums; }
+.quoteRefreshButton { display: grid; place-items: center; width: 30px; height: 30px; padding: 6px; border: 1px solid color-mix(in srgb, var(--accent) 16%, transparent); border-radius: 50%; color: var(--accent); background: color-mix(in srgb, var(--paper) 72%, transparent); cursor: pointer; transition: background .15s, border-color .15s; }
+.quoteRefreshButton:hover:not(:disabled) { border-color: color-mix(in srgb, var(--accent) 38%, transparent); background: color-mix(in srgb, var(--accent) 12%, var(--paper)); }
+.quoteRefreshButton svg { width: 16px; height: 16px; }
+.quoteRefreshButton:disabled { opacity: .55; cursor: wait; }
+.quoteRefreshButton[aria-busy="true"] svg { animation: quoteRefreshTurn 1s linear infinite; }
+.sidebarQuote blockquote { position: relative; margin: 11px 0 14px; color: var(--text); font-family: "Songti SC", "Noto Serif CJK SC", Georgia, serif; font-size: 14px; font-weight: 500; line-height: 1.85; overflow-wrap: anywhere; }
+.sidebarQuoteSource { display: grid; gap: 3px; padding-top: 10px; border-top: 1px solid color-mix(in srgb, var(--accent) 12%, transparent); text-align: right; overflow-wrap: anywhere; }
+.sidebarQuoteSource cite { color: var(--muted); font-size: 11px; font-style: normal; font-weight: 600; line-height: 1.5; }
+.sidebarQuoteSource > span { color: var(--faint); font-size: 10px; line-height: 1.6; }
+.sidebarQuoteNotice { margin: 9px 0 0; color: var(--muted); font-size: 10px; line-height: 1.5; }
+@keyframes quoteRefreshTurn { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .quoteRefreshButton[aria-busy="true"] svg { animation: none; } }
 .navCaption { padding: 24px 13px 9px; color: var(--faint); font-size: 12px; letter-spacing: .13em; }
 .navGroup { display: grid; gap: 4px; }
 .navButton { width: 100%; display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 0; border-radius: 11px; color: #5f6b64; background: transparent; text-align: left; font-size: 14px; transition: .16s ease; }
@@ -752,13 +771,6 @@ a { color: inherit; }
 .loginError { margin: -4px 0 0; color: #a35454; font-size: 12px; }
 .loginFoot { margin: 22px 0 0; color: var(--faint); font-size: 11px; text-align: center; }
 .authLoading { display: grid; justify-items: center; gap: 14px; color: var(--muted); }
-.workspaceSwitcher { display: grid; gap: 6px; margin: 0 5px 16px; padding: 12px; border: 1px solid var(--line); border-radius: 15px; background: rgba(255,255,255,.72); }
-.workspaceSwitcher > span { padding: 0 3px 3px; color: var(--faint); font-size: 10px; letter-spacing: .09em; }
-.workspaceSwitcher button { display: grid; grid-template-columns: 29px minmax(0,1fr) auto; align-items: center; gap: 8px; padding: 7px; border: 0; border-radius: 10px; color: var(--muted); background: transparent; text-align: left; }
-.workspaceSwitcher button.active { color: var(--text); background: color-mix(in srgb, var(--accent) 13%, white); }
-.workspaceSwitcher i { width: 29px; height: 29px; display: grid; place-items: center; border-radius: 9px; color: white; background: var(--accent); font-style: normal; font-size: 12px; }
-.workspaceSwitcher b { overflow: hidden; text-overflow: ellipsis; font-size: 12px; white-space: nowrap; }
-.workspaceSwitcher small { font-size: 10px; }
 .logoutButton { margin: 7px 8px 0; padding: 9px; border: 0; color: var(--muted); background: transparent; font-size: 12px; }
 .readOnlyBanner { position: sticky; z-index: 18; top: 0; padding: 9px 20px; color: #6e644f; background: #f1eadb; border-bottom: 1px solid #dfd3b8; text-align: center; font-size: 12px; }
 .updateBanner { position: sticky; z-index: 19; top: 0; display: flex; align-items: center; justify-content: center; gap: 12px; padding: 9px 20px; color: #7b4d47; background: #f8ece9; border-bottom: 1px solid #ecd1cc; text-align: center; font-size: 12px; }.updateBanner button { padding: 5px 10px; border: 0; border-radius: 8px; color: #fff; background: #8d5d55; font: inherit; }
