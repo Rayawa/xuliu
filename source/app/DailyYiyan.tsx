@@ -5,6 +5,8 @@ import { defaultYiyanImageClarity, parseYiyanCard, readYiyanCache, readYiyanImag
 import type { YiyanBook } from "@/lib/yiyan-library";
 import { requestYiyan, YiyanConnectionError as ConnectionError } from "@/lib/yiyan-client";
 import YiyanLibrary from "./YiyanLibrary";
+import YiyanBackdrop from "./YiyanBackdrop";
+import { prefetchYiyanImage, type YiyanImageStatus } from "@/lib/yiyan-image";
 function storage() { try { return window.localStorage; } catch { return undefined; } }
 
 export default function DailyYiyan() {
@@ -20,7 +22,9 @@ export default function DailyYiyan() {
   const [codeSent, setCodeSent] = useState(false);
   const [remaining, setRemaining] = useState(0);
   const [expanded, setExpanded] = useState(false);
-  const [failedImage, setFailedImage] = useState("");
+  const [imageStatus, setImageStatus] = useState<YiyanImageStatus>("loading");
+  const [imageRetry, setImageRetry] = useState(0);
+  const [prefetchVersion, setPrefetchVersion] = useState(0);
   const [refreshCooling, setRefreshCooling] = useState(false);
   const [imageClarity, setImageClarity] = useState(defaultYiyanImageClarity);
   const [libraryMode, setLibraryMode] = useState<"browse" | "choose" | null>(null);
@@ -28,7 +32,6 @@ export default function DailyYiyan() {
   const [pendingFavorite, setPendingFavorite] = useState<Record<string, string> | null>(null);
   const favoriteRequests = useRef(new Map<string, string>()), keepQuoteAfterLogin = useRef(false);
   const mounted = useRef(false), working = useRef(false), generation = useRef(0);
-  const unlock = useRef<number | undefined>(undefined);
   const refreshUnlock = useRef<number | undefined>(undefined);
   const initialRequest = useRef<ReturnType<typeof requestYiyan> | null>(null);
   const nextCard = useRef<{ forId: string; promise: Promise<YiyanCard | null> } | null>(null);
@@ -49,7 +52,7 @@ export default function DailyYiyan() {
   const keepCard = (value: unknown) => {
     const card = parseYiyanCard(value);
     if (!card) throw new Error("一言暂未返回有效图文");
-    saveYiyanCache(card, storage()); setQuote(card); setExpanded(false); setFailedImage("");
+    saveYiyanCache(card, storage()); setQuote(card); setExpanded(false); setImageStatus("loading");
     coolRefresh();
     return card;
   };
@@ -75,7 +78,7 @@ export default function DailyYiyan() {
       if (error instanceof ConnectionError && error.needsLogin) { setConnected(false); }
       else setNotice("暂时无法连接一言，请稍后再试");
     }).finally(() => { if (active) setChecking(false); });
-    return () => { active = false; mounted.current = false; window.clearTimeout(unlock.current); window.clearTimeout(refreshUnlock.current); };
+    return () => { active = false; mounted.current = false; window.clearTimeout(refreshUnlock.current); };
   }, []);
   useEffect(() => {
     if (remaining <= 0) return;
@@ -91,24 +94,23 @@ export default function DailyYiyan() {
       if (document.visibilityState === "hidden" || working.current) return;
       const promise = fetchCard(quoteId, controller.signal).then(card => {
         if (!active || !card || card.id === quoteId) return null;
-        if (card.image) { const image = new window.Image(); image.referrerPolicy = "no-referrer"; image.src = card.image; }
+        if (card.image) prefetchYiyanImage(card.image, controller.signal);
         return card;
       }).catch(() => null);
       nextCard.current = { forId: quoteId, promise };
     }, 2200);
     return () => { active = false; window.clearTimeout(timer); controller.abort(); if (prefetchController.current === controller) prefetchController.current = null; if (nextCard.current?.forId === quoteId) nextCard.current = null; };
-  }, [connected, quoteId, loginOpen, libraryMode]);
+  }, [connected, quoteId, loginOpen, libraryMode, prefetchVersion]);
 
   const run = async (action: string, callback: () => Promise<void>) => {
     if (working.current) return;
     if (action !== "refresh") { prefetchController.current?.abort(); nextCard.current = null; }
     working.current = true; generation.current++; setBusy(action); setNotice("");
-    const started = Date.now();
     try { await callback(); }
     catch (error) { if (mounted.current) showError(error); }
     finally {
-      if (mounted.current) unlock.current = window.setTimeout(() => { working.current = false; if (mounted.current) setBusy(""); }, action === "refresh" ? Math.max(0, 2000 - (Date.now() - started)) : 0);
-      else working.current = false;
+      working.current = false;
+      if (mounted.current) { setBusy(""); if (action !== "refresh") setPrefetchVersion(value => value + 1); }
     }
   };
   const changeQuote = () => {
@@ -158,14 +160,14 @@ export default function DailyYiyan() {
       setPendingFavorite(null); favoriteDone(body.cardId, data.book); setNotice(`已收藏到「${data.book.name}」`);
     });
   };
-  const image = quote?.image && failedImage !== quote.image ? quote.image : "";
+  const image = quote?.image && imageStatus !== "error" ? quote.image : "";
   const date = quote?.publishedAt.slice(0, 10);
   const canExpand = quote ? quote.text.length > 160 || quote.text.split("\n").length > 6 : false;
   const softness = (100 - imageClarity) / 100;
   const imageStyle = { "--quote-image-blur": `${softness * 6}px`, "--quote-image-wash-start": `${30 + softness * 64}%`, "--quote-image-wash-end": `${50 + softness * 46}%` } as CSSProperties;
   return <section className={`sidebarQuote${image ? " sidebarQuoteWithImage" : ""}`} aria-label="一言图文" style={imageStyle}>
     {/* The provider returns public images; no account credentials are sent to the image host. */}
-    {image && <img className="sidebarQuoteBackdrop" src={image} alt="" loading="eager" decoding="async" referrerPolicy="no-referrer" onError={() => setFailedImage(image)} />}
+    {quote?.image && <YiyanBackdrop key={`${quote.image}:${imageRetry}`} source={quote.image} onStatus={setImageStatus} />}
     <header><a href="https://app.yiyan.art/" target="_blank" rel="noopener noreferrer">一言</a><div className="sidebarQuoteControls">
       {date && <time dateTime={date}>{date.slice(5).replace("-", "/")}</time>}
       {quote && <button type="button" className="quoteFavoriteButton" aria-label={defaultSaved.has(quote.id) ? "已收藏到默认文集" : "收藏到默认文集"} title={defaultSaved.has(quote.id) ? "已收藏" : "收藏到默认文集"} aria-pressed={defaultSaved.has(quote.id)} disabled={Boolean(busy) || checking || defaultSaved.has(quote.id) || pendingFavorite?.cardId === quote.id} onClick={() => favorite()}><svg viewBox="0 0 24 24" fill={defaultSaved.has(quote.id) ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><path d="M6 4h12v17l-6-4-6 4z" /></svg></button>}
@@ -174,6 +176,7 @@ export default function DailyYiyan() {
     </div></header>
     {quote && <><blockquote className={canExpand && !expanded ? "quoteCollapsed" : ""} aria-live="polite">{quote.text}</blockquote>{canExpand && <button type="button" className="quoteTextButton" aria-expanded={expanded} onClick={() => setExpanded(value => !value)}>{expanded ? "收起" : "展开"}</button>}{quote.source && <footer className="sidebarQuoteSource"><cite>{quote.source}</cite></footer>}</>}
     {settingsOpen && <div className="quoteConnectionActions"><button type="button" className="quoteTextButton" disabled={!quote || Boolean(busy)} onClick={() => openLibrary("choose")}>收藏到其他文集</button><button type="button" className="quoteTextButton" disabled={Boolean(busy)} onClick={() => openLibrary("browse")}>打开文集</button><label className="quoteImageClarity">配图清晰度 <output>{imageClarity}%</output><input type="range" min="0" max="100" step="5" aria-label="配图清晰度" value={imageClarity} onChange={event => { const value = Number(event.target.value); setImageClarity(value); saveYiyanImageClarity(value, storage()); }} /></label><button type="button" className="quoteTextButton" disabled={Boolean(busy)} onClick={() => { setLoginOpen(true); setSettingsOpen(false); }}>{connected ? "切换一言账号" : "连接一言"}</button>{connected && <button type="button" className="quoteTextButton" disabled={Boolean(busy)} onClick={disconnect}>断开一言</button>}</div>}
+    {settingsOpen && quote && (!quote.image || imageStatus !== "ready") && <div className="quoteConnectionActions" role="status"><span>{!quote.image ? "暂未取得原图" : imageStatus === "error" ? "原图加载失败" : "原图加载中…"}</span>{quote.image && imageStatus === "error" && <button type="button" className="quoteTextButton" onClick={() => { setImageStatus("loading"); setImageRetry(value => value + 1); }}>重试原图</button>}</div>}
     {!quote && !connected && !checking && !loginOpen && !settingsOpen && <button type="button" className="quoteConnectButton" onClick={() => setLoginOpen(true)}>连接一言</button>}
     {loginOpen && <form className="quoteLogin" onSubmit={event => { event.preventDefault(); if (codeSent) signIn(); else sendCode(); }}>
       <label>手机号<input type="tel" autoComplete="off" inputMode="tel" maxLength={11} value={phone} onChange={event => setPhone(event.target.value.replace(/\D/g, ""))} required pattern="1[3-9][0-9]{9}" /></label>
