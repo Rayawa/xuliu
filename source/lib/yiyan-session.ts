@@ -1,10 +1,11 @@
 import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes } from "node:crypto";
 import { validYiyanCookies, type YiyanCookies } from "./yiyan-service.ts";
+import { parseYiyanIdentity, type YiyanIdentity } from "./yiyan-library.ts";
 
 export const yiyanCookieName = "xuliu_yiyan_connection";
 export const yiyanPendingCookieName = "xuliu_yiyan_pending";
 export const yiyanSessionSeconds = 7 * 86400;
-export type YiyanSession = { owner: string; kind: "pending" | "connected"; expiresAt: number; cookies: YiyanCookies; phoneHash?: string };
+export type YiyanSession = { owner: string; kind: "pending" | "connected"; expiresAt: number; cookies: YiyanCookies; phoneHash?: string; identity?: YiyanIdentity };
 
 export function hasYiyanSameOrigin(request: Request): boolean {
   const origin = request.headers.get("origin");
@@ -28,7 +29,7 @@ export function yiyanKey(secret: string): Buffer {
 export function yiyanPhoneHash(phone: string, key: Buffer): string { return createHmac("sha256", key).update(phone).digest("hex"); }
 
 export function sealYiyanSession(value: YiyanSession, key: Buffer): string {
-  if (!validYiyanCookies(value.cookies)) throw new Error("Invalid Yiyan session");
+  if (!validYiyanCookies(value.cookies) || (value.identity && !parseYiyanIdentity(value.identity))) throw new Error("Invalid Yiyan session");
   const iv = randomBytes(12), cipher = createCipheriv("aes-256-gcm", key, iv);
   cipher.setAAD(Buffer.from("xuliu-yiyan-v1"));
   const payload = Buffer.concat([cipher.update(JSON.stringify(value), "utf8"), cipher.final()]);
@@ -46,6 +47,7 @@ export function openYiyanSession(token: string | undefined, key: Buffer, owner: 
     decipher.setAAD(Buffer.from("xuliu-yiyan-v1")); decipher.setAuthTag(bytes.subarray(12, 28));
     const value = JSON.parse(Buffer.concat([decipher.update(bytes.subarray(28)), decipher.final()]).toString("utf8")) as YiyanSession;
     if (value.owner !== owner || value.kind !== kind || !Number.isFinite(value.expiresAt) || value.expiresAt <= now || !validYiyanCookies(value.cookies)) return null;
+    if (value.identity && !parseYiyanIdentity(value.identity)) return null;
     if (kind === "pending" && (typeof value.phoneHash !== "string" || !/^[a-f0-9]{64}$/.test(value.phoneHash))) return null;
     return value;
   } catch { return null; }

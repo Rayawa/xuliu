@@ -1,16 +1,18 @@
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { findAccountById } from "@/lib/accounts";
 import { getSession } from "@/lib/session";
 import { getRedis } from "@/lib/redis";
-import { isYiyanPhone, YiyanClient, YiyanError } from "@/lib/yiyan-service";
+import { isYiyanPhone, YiyanClient, YiyanError, YiyanReconnectRequired, YiyanUnconfirmedError } from "@/lib/yiyan-service";
+import { isYiyanId } from "@/lib/yiyan-library";
+import { runYiyanOperation, type YiyanReceipt, type YiyanReceiptStore } from "@/lib/yiyan-operation";
 import { hasYiyanSameOrigin, isYiyanLocalPreview, openYiyanSession, sealYiyanSession, yiyanCookieName, yiyanKey, yiyanPendingCookieName, yiyanPhoneHash, yiyanSessionSeconds, type YiyanSession } from "@/lib/yiyan-session";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 const cookieOptions = { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "strict" as const, path: "/api/yiyan" };
-const localState = globalThis as typeof globalThis & { xuliuYiyanDevSecret?: string; xuliuYiyanDevLimits?: Map<string, { count: number; expires: number }> };
+const localState = globalThis as typeof globalThis & { xuliuYiyanDevSecret?: string; xuliuYiyanDevLimits?: Map<string, { count: number; expires: number }>; xuliuYiyanReceipts?: Map<string, { value: YiyanReceipt; expires: number }> };
 
 function json(body: unknown, status = 200) {
   return NextResponse.json(body, { status, headers: { "Cache-Control": "private, no-store", "Referrer-Policy": "no-referrer" } });
@@ -58,7 +60,20 @@ async function limit(key: string, max: number, seconds: number, local: boolean) 
 }
 
 function failure(error: unknown) {
-  return error instanceof YiyanError ? json({ error: error.message, needsLogin: error.status === 401 }, error.status) : json({ error: "暂时无法连接一言，请稍后再试" }, 503);
+  return error instanceof YiyanError ? json({ error: error.message, needsLogin: error.status === 401, needsReconnect: error instanceof YiyanReconnectRequired, needsCheck: error instanceof YiyanUnconfirmedError }, error.status) : json({ error: "暂时无法连接一言，请稍后再试" }, 503);
+}
+
+function receiptStore(local: boolean): YiyanReceiptStore {
+  if (!local) {
+    const redis = getRedis();
+    return { get: key => redis.get<YiyanReceipt>(key), claim: async (key, value) => Boolean(await redis.set(key, value, { nx: true, ex: 900 })),
+      save: async (key, value) => { await redis.set(key, value, { ex: 900 }); }, remove: async key => { await redis.del(key); } };
+  }
+  const records = localState.xuliuYiyanReceipts ??= new Map();
+  for (const [key, entry] of records) if (entry.expires <= Date.now()) records.delete(key);
+  return { get: async key => records.get(key)?.value ?? null,
+    claim: async (key, value) => { if (records.has(key)) return false; if (records.size >= 2000) throw new YiyanError("请求过多，请稍后重试", 429); records.set(key, { value, expires: Date.now() + 900_000 }); return true; },
+    save: async (key, value) => { records.set(key, { value, expires: Date.now() + 900_000 }); }, remove: async key => { records.delete(key); } };
 }
 
 export async function GET(request: Request) {
@@ -67,8 +82,24 @@ export async function GET(request: Request) {
     const session = openYiyanSession(store.get(yiyanCookieName)?.value, key, owner, "connected");
     const pending = openYiyanSession(store.get(yiyanPendingCookieName)?.value, key, owner, "pending");
     const url = new URL(request.url);
-    if (url.searchParams.get("status") === "1") return json({ connected: Boolean(session), pending: Boolean(pending), retryAfter: pending ? Math.max(0, Math.ceil((pending.expiresAt - 9 * 60_000 - Date.now()) / 1000)) : 0 });
+    if (url.searchParams.get("status") === "1") return json({ connected: Boolean(session), libraryReady: Boolean(session?.identity), pending: Boolean(pending), retryAfter: pending ? Math.max(0, Math.ceil((pending.expiresAt - 9 * 60_000 - Date.now()) / 1000)) : 0 });
     if (!session) return json({ connected: false, needsLogin: true }, 401);
+    if (url.searchParams.has("library")) {
+      await limit(`${owner}:library:read`, 60, 60, local);
+      const client = new YiyanClient(session.cookies), view = url.searchParams.get("library");
+      try {
+        let response: NextResponse;
+        if (view === "books") {
+          const library = await client.library(session.identity);
+          response = json({ books: library.books, defaultBookId: library.defaultBook?.id ?? null });
+          setCookie(response, yiyanCookieName, { ...session, identity: library.identity, cookies: client.getCookies() }, key);
+        } else if (view === "cards") {
+          response = json(await client.bookCards(session.identity, url.searchParams.get("book") ?? "", url.searchParams.get("cursor") ?? ""));
+          setCookie(response, yiyanCookieName, { ...session, cookies: client.getCookies() }, key);
+        } else return json({ error: "无效的文集请求" }, 400);
+        return response;
+      } catch (error) { const response = failure(error); if (error instanceof YiyanError && error.status === 401) clearCookie(response, yiyanCookieName); return response; }
+    }
     await limit(`${owner}:quote:second`, 1, 2, local);
     await limit(`${owner}:quote:hour`, 120, 3600, local);
     const exclude = url.searchParams.get("exclude") ?? "";
@@ -111,6 +142,29 @@ export async function POST(request: Request) {
       clearCookie(response, yiyanCookieName); clearCookie(response, yiyanPendingCookieName);
       return response;
     }
+    if (body.action === "favorite" || body.action === "create-book") {
+      const session = openYiyanSession(store.get(yiyanCookieName)?.value, key, owner, "connected");
+      if (!session) throw new YiyanError("请先连接一言", 401);
+      if (!session.identity) throw new YiyanReconnectRequired();
+      if (typeof body.requestId !== "string" || !/^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/i.test(body.requestId)) return json({ error: "无效的操作编号" }, 400);
+      const favorite = body.action === "favorite", fields = favorite ? ["action", "requestId", "cardId", "bookId", "checkOnly"] : ["action", "requestId", "name", "visibility", "checkOnly"];
+      if ((body.checkOnly !== undefined && body.checkOnly !== "1") || Object.keys(body).some(name => !fields.includes(name)) || (favorite && (!isYiyanId(body.cardId) || (body.bookId !== "" && !isYiyanId(body.bookId)))) || (!favorite && (typeof body.name !== "string" || !["private", "public"].includes(String(body.visibility))))) return json({ error: "收藏或文集参数不正确" }, 400);
+      await limit(`${owner}:library:write`, 30, 60, local);
+      const client = new YiyanClient(session.cookies);
+      const library = await client.library(session.identity);
+      const target = favorite ? (body.bookId ? library.books.find(book => book.id === body.bookId) : library.defaultBook) : null;
+      if (favorite && !target) throw new YiyanError("未找到目标文集，请在菜单中选择文集", 404);
+      const fingerprint = createHash("sha256").update(JSON.stringify([session.identity.uid, body.action, body.cardId, target?.id, body.name, body.visibility])).digest("hex");
+      const operationKey = "xuliu:yiyan:operation:" + createHash("sha256").update(owner + ":" + session.identity.uid + ":" + (favorite ? fingerprint : body.requestId)).digest("hex");
+      const reconcile = () => favorite ? client.checkCollection(session.identity!, body.cardId as string, target!.id) : client.checkCreatedBook(session.identity!, body.name as string, body.visibility as "private" | "public");
+      const result = await runYiyanOperation(receiptStore(local), operationKey, fingerprint, async () => {
+        if (!favorite) return client.createBook(session.identity, body.name as string, body.visibility as "private" | "public");
+        return client.collectConfirmed(session.identity!, body.cardId as string, target!.id);
+      }, reconcile, body.checkOnly === "1");
+      const response = json(result);
+      setCookie(response, yiyanCookieName, { ...session, cookies: client.getCookies() }, key);
+      return response;
+    }
     if (!["send-code", "sign-in"].includes(String(body.action)) || !isYiyanPhone(body.phone)) return json({ error: "请输入有效的手机号" }, 400);
     const phone = body.phone, phoneHash = yiyanPhoneHash(phone, key);
     if (body.action === "send-code") {
@@ -128,9 +182,9 @@ export async function POST(request: Request) {
     if (typeof body.code !== "string" || !/^\d{4,8}$/.test(body.code)) return json({ error: "请输入短信验证码" }, 400);
     await limit(`${owner}:verify:${phoneHash}`, 5, 10 * 60, local);
     const client = new YiyanClient(pending.cookies);
-    await client.signIn(phone, body.code);
+    const identity = await client.signIn(phone, body.code);
     const response = json({ connected: true });
-    setCookie(response, yiyanCookieName, { owner, kind: "connected", expiresAt: Date.now() + yiyanSessionSeconds * 1000, cookies: client.getCookies() }, key);
+    setCookie(response, yiyanCookieName, { owner, kind: "connected", expiresAt: Date.now() + yiyanSessionSeconds * 1000, cookies: client.getCookies(), identity }, key);
     clearCookie(response, yiyanPendingCookieName);
     return response;
   } catch (error) { return failure(error); }

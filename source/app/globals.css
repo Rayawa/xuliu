@@ -194,6 +194,40 @@ a { color: inherit; }
 .quoteLogin label { display: grid; gap: 4px; color: var(--muted); font-size: 11px; }
 .quoteLogin input { min-width: 0; width: 100%; padding: 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--paper); color: var(--text); font: inherit; font-size: 13px; }
 .quoteLogin .quoteConnectButton { margin-top: 1px; }
+.quoteFavoriteButton { display: grid; place-items: center; width: 23px; height: 26px; padding: 2px; color: var(--accent); border: 0; border-radius: 5px; background: transparent; }
+.quoteFavoriteButton svg { width: 18px; height: 18px; }
+.quoteFavoriteButton:hover { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.quoteFavoriteButton:disabled { opacity: .55; cursor: default; }
+.sidebarQuoteControls { gap: 5px; }
+.yiyanLibrary { position: fixed; inset: 0; width: min(740px, calc(100vw - 32px)); max-width: none; max-height: min(820px, calc(100dvh - 40px)); margin: auto; padding: 0; overflow: auto; border: 1px solid var(--line); border-radius: 18px; color: var(--text); background: var(--paper); box-shadow: 0 24px 80px #0003; }
+.yiyanLibrary::backdrop { background: #17202766; backdrop-filter: blur(3px); }
+.yiyanLibraryHead { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 24px 26px 16px; border-bottom: 1px solid var(--line); background: var(--paper); }
+.yiyanLibraryHead span { color: var(--accent); font-size: 11px; letter-spacing: .12em; }
+.yiyanLibraryHead h2 { margin: 5px 0 0; font-size: 23px; }
+.yiyanLibraryToolbar { display: flex; flex-wrap: wrap; gap: 10px; padding: 16px 26px; }
+.yiyanNewBook { display: grid; grid-template-columns: minmax(120px, 1fr) 100px auto; gap: 12px; align-items: end; padding: 0 26px 20px; }
+.yiyanNewBook label { display: grid; gap: 6px; color: var(--muted); font-size: 12px; }
+.yiyanNewBook input, .yiyanNewBook select { width: 100%; min-width: 0; border: 1px solid var(--line); border-radius: 8px; padding: 10px; color: var(--text); background: var(--paper); font: inherit; }
+.yiyanLibraryBody { min-height: 150px; padding: 0 26px 24px; }
+.yiyanBookList { display: grid; gap: 8px; }
+.yiyanBookRow { display: flex; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--line); padding: 11px 0; }
+.yiyanOpenBook { display: flex; align-items: center; gap: 14px; min-width: 0; flex: 1; padding: 0; border: 0; color: var(--text); background: transparent; text-align: left; }
+.yiyanOpenBook > img, .yiyanBookCover { flex-shrink: 0; width: 48px; height: 60px; border-radius: 6px; object-fit: cover; }
+.yiyanBookCover { display: grid; place-items: center; color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--paper)); font-family: Georgia, serif; font-size: 22px; }
+.yiyanOpenBook strong { display: block; overflow-wrap: anywhere; font-size: 15px; }
+.yiyanOpenBook small { display: block; margin-top: 5px; color: var(--muted); font-size: 12px; }
+.yiyanChoosingQuote { margin: 18px 26px 0; padding: 14px 16px; border-left: 2px solid var(--accent); background: color-mix(in srgb, var(--accent) 5%, var(--paper)); }
+.yiyanChoosingQuote p { margin: 0; font-family: Georgia, "Noto Serif CJK SC", serif; white-space: pre-wrap; line-height: 1.8; }
+.yiyanChoosingQuote cite { display: block; margin-top: 8px; color: var(--muted); font-size: 12px; font-style: normal; }
+.yiyanLibraryCards { display: grid; gap: 20px; }
+.yiyanLibraryCard { overflow: hidden; padding: 20px; border: 1px solid var(--line); border-radius: 12px; }
+.yiyanLibraryCard > img { display: block; width: 100%; max-height: 360px; margin-bottom: 18px; object-fit: contain; border-radius: 7px; }
+.yiyanLibraryCard p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font: 16px/1.95 Georgia, "Noto Serif CJK SC", serif; }
+.yiyanLibraryCard cite, .yiyanLibraryCard time { display: block; margin-top: 12px; color: var(--muted); font-size: 12px; font-style: normal; text-align: right; }
+.yiyanLibraryEmpty { margin: 28px 0; color: var(--muted); font-size: 14px; text-align: center; }
+.yiyanLibraryMessage { margin: 0 26px 16px; color: var(--muted); font-size: 13px; line-height: 1.7; }
+.yiyanLibraryMessage p { margin: 0 0 10px; }
+@media (max-width: 600px) { .yiyanLibrary { width: calc(100vw - 20px); max-height: calc(100dvh - 24px); border-radius: 13px; } .yiyanLibraryHead { padding: 20px 18px 14px; } .yiyanLibraryToolbar { padding: 14px 18px; } .yiyanLibraryBody { padding: 0 18px 20px; } .yiyanNewBook { grid-template-columns: 1fr 96px; padding: 0 18px 18px; } .yiyanNewBook button { grid-column: 1 / -1; } .yiyanChoosingQuote, .yiyanLibraryMessage { margin-left: 18px; margin-right: 18px; } .yiyanLibraryCard { padding: 14px; } }
 @keyframes quoteRefreshTurn { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .quoteRefreshButton[aria-busy="true"] svg { animation: none; } }
 .navCaption { padding: 24px 13px 9px; color: var(--faint); font-size: 12px; letter-spacing: .13em; }

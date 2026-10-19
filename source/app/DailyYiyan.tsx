@@ -2,19 +2,9 @@
 
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { defaultYiyanImageClarity, parseYiyanCard, readYiyanCache, readYiyanImageClarity, saveYiyanCache, saveYiyanImageClarity, type YiyanCard } from "@/lib/yiyan-card";
-
-class ConnectionError extends Error {
-  needsLogin: boolean;
-  constructor(message: string, needsLogin: boolean) { super(message); this.needsLogin = needsLogin; }
-}
-async function requestYiyan(path = "", body?: Record<string, string>, signal?: AbortSignal) {
-  const timeout = AbortSignal.timeout(30_000);
-  const response = await fetch(`/api/yiyan${path}`, { method: body ? "POST" : "GET", credentials: "same-origin", cache: "no-store", signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
-    ...(body ? { headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) } : {}) });
-  const data = await response.json() as { connected?: boolean; pending?: boolean; card?: unknown; error?: string; needsLogin?: boolean; retryAfter?: number };
-  if (!response.ok) throw new ConnectionError(data.error || "暂时无法连接一言，请稍后再试", Boolean(data.needsLogin));
-  return data;
-}
+import type { YiyanBook } from "@/lib/yiyan-library";
+import { requestYiyan, YiyanConnectionError as ConnectionError } from "@/lib/yiyan-client";
+import YiyanLibrary from "./YiyanLibrary";
 function storage() { try { return window.localStorage; } catch { return undefined; } }
 
 export default function DailyYiyan() {
@@ -33,6 +23,10 @@ export default function DailyYiyan() {
   const [failedImage, setFailedImage] = useState("");
   const [refreshCooling, setRefreshCooling] = useState(false);
   const [imageClarity, setImageClarity] = useState(defaultYiyanImageClarity);
+  const [libraryMode, setLibraryMode] = useState<"browse" | "choose" | null>(null);
+  const [defaultSaved, setDefaultSaved] = useState<Set<string>>(new Set());
+  const [pendingFavorite, setPendingFavorite] = useState<Record<string, string> | null>(null);
+  const favoriteRequests = useRef(new Map<string, string>()), keepQuoteAfterLogin = useRef(false);
   const mounted = useRef(false), working = useRef(false), generation = useRef(0);
   const unlock = useRef<number | undefined>(undefined);
   const refreshUnlock = useRef<number | undefined>(undefined);
@@ -61,6 +55,7 @@ export default function DailyYiyan() {
   };
   const showError = (error: unknown) => {
     if (error instanceof ConnectionError && error.needsLogin) { setConnected(false); setLoginOpen(true); }
+    if (error instanceof ConnectionError && error.needsReconnect) { keepQuoteAfterLogin.current = true; setLoginOpen(true); }
     setNotice(error instanceof ConnectionError ? error.message : "暂时无法连接一言，请稍后再试");
   };
   useEffect(() => {
@@ -89,7 +84,7 @@ export default function DailyYiyan() {
   }, [remaining]);
   const quoteId = quote?.id ?? "";
   useEffect(() => {
-    if (!connected || !quoteId || loginOpen) return;
+    if (!connected || !quoteId || loginOpen || libraryMode) return;
     const controller = new AbortController(); let active = true;
     prefetchController.current = controller;
     const timer = window.setTimeout(() => {
@@ -102,7 +97,7 @@ export default function DailyYiyan() {
       nextCard.current = { forId: quoteId, promise };
     }, 2200);
     return () => { active = false; window.clearTimeout(timer); controller.abort(); if (prefetchController.current === controller) prefetchController.current = null; if (nextCard.current?.forId === quoteId) nextCard.current = null; };
-  }, [connected, quoteId, loginOpen]);
+  }, [connected, quoteId, loginOpen, libraryMode]);
 
   const run = async (action: string, callback: () => Promise<void>) => {
     if (working.current) return;
@@ -137,14 +132,32 @@ export default function DailyYiyan() {
       await requestYiyan("", { action: "sign-in", phone: phone.trim(), code: currentCode });
       if (!mounted.current) return;
       setConnected(true); setPhone(""); setCodeSent(false); setLoginOpen(false); setSettingsOpen(false);
+      setDefaultSaved(new Set()); setPendingFavorite(null); setLibraryMode(null); favoriteRequests.current.clear();
+      if (keepQuoteAfterLogin.current) { keepQuoteAfterLogin.current = false; setNotice("已连接，可继续收藏或打开文集"); return; }
       const card = await fetchCard(quoteId);
       if (mounted.current) keepCard(card);
     });
   };
   const disconnect = () => void run("disconnect", async () => {
     await requestYiyan("", { action: "disconnect" });
-    if (mounted.current) { setConnected(false); setLoginOpen(false); setSettingsOpen(false); setPhone(""); setCode(""); setCodeSent(false); setNotice("已断开一言"); }
+    if (mounted.current) { setConnected(false); setLoginOpen(false); setSettingsOpen(false); setLibraryMode(null); setDefaultSaved(new Set()); setPendingFavorite(null); favoriteRequests.current.clear(); setPhone(""); setCode(""); setCodeSent(false); setNotice("已断开一言"); }
   });
+  const favoriteDone = (cardId: string, book: YiyanBook) => { if (book.name === "默认文集") setDefaultSaved(previous => new Set(previous).add(cardId)); };
+  const openLibrary = (mode: "browse" | "choose") => { if (!connected) { keepQuoteAfterLogin.current = true; setLoginOpen(true); return; } setSettingsOpen(false); setLibraryMode(mode); };
+  const favorite = (checkOnly = false) => {
+    if (checkOnly ? !pendingFavorite : !quote || defaultSaved.has(quote.id)) return;
+    if (!connected) { keepQuoteAfterLogin.current = true; setLoginOpen(true); return; }
+    void run("favorite", async () => {
+      const requestId = favoriteRequests.current.get(quoteId) ?? crypto.randomUUID(); favoriteRequests.current.set(quoteId, requestId);
+      const body = checkOnly ? pendingFavorite! : { action: "favorite", cardId: quoteId, bookId: "", requestId };
+      let data;
+      try { data = await requestYiyan("", { ...body, ...(checkOnly ? { checkOnly: "1" } : {}) }); }
+      catch (error) { if (!(error instanceof ConnectionError) || error.needsCheck) setPendingFavorite(body); throw error; }
+      if (!mounted.current) return;
+      if (!data.saved || data.cardId !== body.cardId || !data.book) throw new Error("Invalid favorite result");
+      setPendingFavorite(null); favoriteDone(body.cardId, data.book); setNotice(`已收藏到「${data.book.name}」`);
+    });
+  };
   const image = quote?.image && failedImage !== quote.image ? quote.image : "";
   const date = quote?.publishedAt.slice(0, 10);
   const canExpand = quote ? quote.text.length > 160 || quote.text.split("\n").length > 6 : false;
@@ -155,11 +168,12 @@ export default function DailyYiyan() {
     {image && <img className="sidebarQuoteBackdrop" src={image} alt="" loading="eager" decoding="async" referrerPolicy="no-referrer" onError={() => setFailedImage(image)} />}
     <header><a href="https://app.yiyan.art/" target="_blank" rel="noopener noreferrer">一言</a><div className="sidebarQuoteControls">
       {date && <time dateTime={date}>{date.slice(5).replace("-", "/")}</time>}
+      {quote && <button type="button" className="quoteFavoriteButton" aria-label={defaultSaved.has(quote.id) ? "已收藏到默认文集" : "收藏到默认文集"} title={defaultSaved.has(quote.id) ? "已收藏" : "收藏到默认文集"} aria-pressed={defaultSaved.has(quote.id)} disabled={Boolean(busy) || checking || defaultSaved.has(quote.id) || pendingFavorite?.cardId === quote.id} onClick={() => favorite()}><svg viewBox="0 0 24 24" fill={defaultSaved.has(quote.id) ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><path d="M6 4h12v17l-6-4-6 4z" /></svg></button>}
       {(quote || connected) && <button type="button" className="quoteRefreshButton" aria-label="换一句一言" title="换一句" aria-busy={busy === "refresh"} disabled={Boolean(busy) || checking || refreshCooling} onClick={changeQuote}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 10a8 8 0 1 0-2.4 7.6M20 4v6h-6" /></svg></button>}
       <button type="button" className="quoteSettingsButton" aria-label="一言连接设置" aria-expanded={settingsOpen} onClick={() => setSettingsOpen(value => !value)}>⋯</button>
     </div></header>
     {quote && <><blockquote className={canExpand && !expanded ? "quoteCollapsed" : ""} aria-live="polite">{quote.text}</blockquote>{canExpand && <button type="button" className="quoteTextButton" aria-expanded={expanded} onClick={() => setExpanded(value => !value)}>{expanded ? "收起" : "展开"}</button>}{quote.source && <footer className="sidebarQuoteSource"><cite>{quote.source}</cite></footer>}</>}
-    {settingsOpen && <div className="quoteConnectionActions"><label className="quoteImageClarity">配图清晰度 <output>{imageClarity}%</output><input type="range" min="0" max="100" step="5" aria-label="配图清晰度" value={imageClarity} onChange={event => { const value = Number(event.target.value); setImageClarity(value); saveYiyanImageClarity(value, storage()); }} /></label><button type="button" className="quoteTextButton" onClick={() => { setLoginOpen(true); setSettingsOpen(false); }}>{connected ? "切换一言账号" : "连接一言"}</button>{connected && <button type="button" className="quoteTextButton" disabled={Boolean(busy)} onClick={disconnect}>断开一言</button>}</div>}
+    {settingsOpen && <div className="quoteConnectionActions"><button type="button" className="quoteTextButton" disabled={!quote || Boolean(busy)} onClick={() => openLibrary("choose")}>收藏到其他文集</button><button type="button" className="quoteTextButton" disabled={Boolean(busy)} onClick={() => openLibrary("browse")}>打开文集</button><label className="quoteImageClarity">配图清晰度 <output>{imageClarity}%</output><input type="range" min="0" max="100" step="5" aria-label="配图清晰度" value={imageClarity} onChange={event => { const value = Number(event.target.value); setImageClarity(value); saveYiyanImageClarity(value, storage()); }} /></label><button type="button" className="quoteTextButton" disabled={Boolean(busy)} onClick={() => { setLoginOpen(true); setSettingsOpen(false); }}>{connected ? "切换一言账号" : "连接一言"}</button>{connected && <button type="button" className="quoteTextButton" disabled={Boolean(busy)} onClick={disconnect}>断开一言</button>}</div>}
     {!quote && !connected && !checking && !loginOpen && !settingsOpen && <button type="button" className="quoteConnectButton" onClick={() => setLoginOpen(true)}>连接一言</button>}
     {loginOpen && <form className="quoteLogin" onSubmit={event => { event.preventDefault(); if (codeSent) signIn(); else sendCode(); }}>
       <label>手机号<input type="tel" autoComplete="off" inputMode="tel" maxLength={11} value={phone} onChange={event => setPhone(event.target.value.replace(/\D/g, ""))} required pattern="1[3-9][0-9]{9}" /></label>
@@ -169,5 +183,7 @@ export default function DailyYiyan() {
       <button type="button" className="quoteTextButton" disabled={Boolean(busy)} onClick={() => { setLoginOpen(false); setPhone(""); setCode(""); }}>取消</button>
     </form>}
     {notice && <p className="sidebarQuoteNotice" role="status">{notice}</p>}
+    {pendingFavorite && <button type="button" className="quoteTextButton" disabled={Boolean(busy)} onClick={() => favorite(true)}>检查收藏结果</button>}
+    {libraryMode && <YiyanLibrary mode={libraryMode} quote={quote} defaultCollected={Boolean(quote && defaultSaved.has(quote.id))} onClose={() => setLibraryMode(null)} onFavorite={favoriteDone} onReconnect={() => { setLibraryMode(null); keepQuoteAfterLogin.current = true; setLoginOpen(true); }} />}
   </section>;
 }
