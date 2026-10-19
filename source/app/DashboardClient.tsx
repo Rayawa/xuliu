@@ -296,6 +296,7 @@ const toneChoices = ["#718c7c", "#657f91", "#80769a", "#8b7658", "#8a6f7d", "#73
 type DesignMode = "classic" | "paper";
 const designModeStorageKey = "xuliu-design-mode-v2";
 const paperThemesStorageKey = "xuliu-paper-page-colors";
+const interfaceColorStorageKey = "xuliu-interface-color";
 const defaultPaperTone = "#80674d";
 const formatMinutes = (value: number) => value >= 60 ? `${Math.floor(value / 60)}h ${value % 60}m` : `${value}m`;
 const formatClock = (seconds: number) => `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
@@ -457,32 +458,37 @@ export default function DashboardClient({ account, visibleAccounts, onLogout, de
   }, []);
   const [mobileNav, setMobileNav] = useState(false);
   const [designMode, setDesignMode] = useState<DesignMode>("paper");
-  const [paperThemes, setPaperThemes] = useState<Partial<Record<NavId, string>>>({});
+  const [interfaceColor, setInterfaceColor] = useState(defaultPaperTone);
   useEffect(() => {
+    if (!loaded) return;
     try {
-      if (window.localStorage.getItem(designModeStorageKey) === "classic") setDesignMode("classic");
-      const saved = JSON.parse(window.localStorage.getItem(paperThemesStorageKey) ?? "{}");
-      if (saved && typeof saved === "object" && !Array.isArray(saved)) {
-        const colors: Partial<Record<NavId, string>> = {};
-        for (const item of navItems) {
-          const color = saved[item.id];
-          if (typeof color === "string" && /^#[0-9a-f]{6}$/i.test(color)) colors[item.id] = color;
-        }
-        setPaperThemes(colors);
+      const mode = window.localStorage.getItem(designModeStorageKey);
+      if (mode === "classic") setDesignMode("classic");
+      const savedColor = window.localStorage.getItem(interfaceColorStorageKey);
+      if (savedColor && /^#[0-9a-f]{6}$/i.test(savedColor)) {
+        setInterfaceColor(savedColor);
+        return;
       }
+      let legacyColor: unknown;
+      try {
+        const saved = JSON.parse(window.localStorage.getItem(paperThemesStorageKey) ?? "{}");
+        if (saved && typeof saved === "object" && !Array.isArray(saved)) legacyColor = saved.today;
+      } catch { /* A damaged legacy preference must not prevent choosing a new color. */ }
+      const color = typeof legacyColor === "string" && /^#[0-9a-f]{6}$/i.test(legacyColor)
+        ? legacyColor : mode === "classic" ? data.themes.today ?? toneChoices[0] : defaultPaperTone;
+      setInterfaceColor(color);
+      window.localStorage.setItem(interfaceColorStorageKey, color);
     }
     catch { /* Appearance remains usable when local storage is unavailable. */ }
-  }, []);
+  }, [loaded, data.themes.today]);
   const chooseDesignMode = (mode: DesignMode) => {
     setDesignMode(mode);
     try { window.localStorage.setItem(designModeStorageKey, mode); }
     catch { /* The selection still applies until this page is closed. */ }
   };
-  const paperColor = paperThemes[active] ?? defaultPaperTone;
-  const choosePaperColor = (color: string) => {
-    const next = { ...paperThemes, [active]: color };
-    setPaperThemes(next);
-    try { window.localStorage.setItem(paperThemesStorageKey, JSON.stringify(next)); }
+  const chooseInterfaceColor = (color: string) => {
+    setInterfaceColor(color);
+    try { window.localStorage.setItem(interfaceColorStorageKey, color); }
     catch { /* The color still applies until this page is closed. */ }
   };
   const [updateAvailable, setUpdateAvailable] = useState(false);
@@ -739,7 +745,6 @@ export default function DashboardClient({ account, visibleAccounts, onLogout, de
   }, [account.id, onLogout, preview]);
 
   const navigate = (id: NavId) => { setActive(id); setDetail(null); setWorkDetail(null); setMobileNav(false); };
-  const theme = data.themes[active] ?? toneChoices[0];
   const daily = data.daily[today] ?? { note: "", gain: "", problem: "", feeling: "", tomorrow: "" };
   const todayTasks = data.tasks.filter((task) => taskVisibleToday(task, today));
   const todayCourseNodes = data.milestones.filter((node) => studyTaskVisibleOnDate(node, today));
@@ -813,9 +818,9 @@ export default function DashboardClient({ account, visibleAccounts, onLogout, de
     }));
   }, [data.courses, setData]);
 
-  return <div className={"shell design-" + designMode} style={{ "--accent": designMode === "paper" ? paperColor : theme } as React.CSSProperties}>
+  return <div className={"shell design-" + designMode} style={{ "--accent": interfaceColor } as React.CSSProperties}>
     <aside className={`sidebar ${mobileNav ? "open" : ""}`}><button className="brand" onClick={() => navigate("today")}><span className="brandMark">序</span><span>序流</span></button><div className="workspaceSwitcher"><span>当前空间</span><button className={!readOnly ? "active" : ""} onClick={() => { setWorkspaceOwner(account.id); setDetail(null); }}><i>{account.displayName.slice(0, 1)}</i><b>{account.displayName}</b><small>我的</small></button>{visibleAccounts.map((visible) => <button key={visible.id} className={workspaceOwner === visible.id ? "active" : ""} onClick={() => { setWorkspaceOwner(visible.id); setDetail(null); }}><i>{visible.displayName.slice(0, 1)}</i><b>{visible.displayName}</b><small>只读</small></button>)}</div><div className="navGroup">{navItems.slice(0, 5).map((item) => <NavButton key={item.id} {...item} active={active} onClick={navigate} />)}</div><div className="navCaption">我的空间</div><div className="navGroup">{navItems.slice(5).map((item) => <NavButton key={item.id} {...item} active={active} onClick={navigate} />)}</div><button className="exportButton" onClick={exportData}>导出数据备份</button><button className="refreshButton" disabled={sync === "saving"} onClick={() => void reloadForUpdate()}>{sync === "saving" ? "保存后可刷新" : "↻ 刷新应用"}</button><a className="changelogLink" href="/changelog" target="_blank" rel="noreferrer">更新日志 ↗</a>{!preview && <button className="logoutButton" onClick={onLogout}>退出登录</button>}<div className="sidebarFoot"><span className={`syncDot ${sync}`} />{sync === "saving" ? "正在保存" : sync === "readonly" ? "正在查看只读空间" : sync === "error" ? "云端连接异常" : sync === "preview" ? "本地预览 · 不会写入云端" : "已保存到云端"}</div></aside>
-    <main className="main">{preview && <div className="readOnlyBanner">本地预览 · 刷新后重置</div>}<header className="mobileHeader"><button className="iconButton" aria-label="打开导航" onClick={() => setMobileNav(true)}>☰</button><strong>序流</strong><div className="mobileHeaderActions"><button className="iconButton refreshIconButton" disabled={sync === "saving"} aria-label="刷新应用" title="刷新应用" onClick={() => void reloadForUpdate()}>↻</button><span className={`syncDot ${sync}`} /></div></header>{updateAvailable && <div className="updateBanner"><span>网站已有新版本，为避免继续使用旧页面，请先刷新。</span><button disabled={sync === "saving"} onClick={() => void reloadForUpdate()}>{sync === "saving" ? "等待保存" : "立即刷新"}</button></div>}{readOnly && <div className="readOnlyBanner">正在查看 <strong>{visibleAccount.displayName}</strong> 的空间 · 只读</div>}{!loaded ? <div className="workspaceLoading">正在载入空间…</div> : <><ThemePicker color={designMode === "paper" ? paperColor : theme} designMode={designMode} onDesignChange={chooseDesignMode} onChange={(color) => designMode === "paper" ? choosePaperColor(color) : setData((current) => ({ ...current, themes: { ...current.themes, [active]: color } }))} />{workDetail ? <TaskDetail key={`${workspaceOwner}:${workDetail.kind}:${workDetail.id}`} target={workDetail} data={data} setData={setData} access={{ ownerId: workspaceOwner, readOnly, preview }} focus={focus} focusPanel={focusPanel} onManual={setManualTarget} onOpen={setWorkDetail} onClose={() => setWorkDetail(null)} requestDelete={requestWorkDeletion} postponeWork={postponeWork} /> : detail ? <DetailRouter target={detail} data={data} setData={setData} back={() => setDetail(null)} openWork={setWorkDetail} setDialog={setDialog} deleteDialog={deleteDialog} access={{ ownerId: workspaceOwner, readOnly, preview }} /> : <>
+    <main className="main">{preview && <div className="readOnlyBanner">本地预览 · 刷新后重置</div>}<header className="mobileHeader"><button className="iconButton" aria-label="打开导航" onClick={() => setMobileNav(true)}>☰</button><strong>序流</strong><div className="mobileHeaderActions"><button className="iconButton refreshIconButton" disabled={sync === "saving"} aria-label="刷新应用" title="刷新应用" onClick={() => void reloadForUpdate()}>↻</button><span className={`syncDot ${sync}`} /></div></header>{updateAvailable && <div className="updateBanner"><span>网站已有新版本，为避免继续使用旧页面，请先刷新。</span><button disabled={sync === "saving"} onClick={() => void reloadForUpdate()}>{sync === "saving" ? "等待保存" : "立即刷新"}</button></div>}{readOnly && <div className="readOnlyBanner">正在查看 <strong>{visibleAccount.displayName}</strong> 的空间 · 只读</div>}{!loaded ? <div className="workspaceLoading">正在载入空间…</div> : <><ThemePicker color={interfaceColor} designMode={designMode} onDesignChange={chooseDesignMode} onChange={chooseInterfaceColor} />{workDetail ? <TaskDetail key={`${workspaceOwner}:${workDetail.kind}:${workDetail.id}`} target={workDetail} data={data} setData={setData} access={{ ownerId: workspaceOwner, readOnly, preview }} focus={focus} focusPanel={focusPanel} onManual={setManualTarget} onOpen={setWorkDetail} onClose={() => setWorkDetail(null)} requestDelete={requestWorkDeletion} postponeWork={postponeWork} /> : detail ? <DetailRouter target={detail} data={data} setData={setData} back={() => setDetail(null)} openWork={setWorkDetail} setDialog={setDialog} deleteDialog={deleteDialog} access={{ ownerId: workspaceOwner, readOnly, preview }} /> : <>
       {active === "today" && <TodayView data={data} setData={setData} tasks={todayTasks} milestones={todayCourseNodes} totalMinutes={data.timeEntries.filter((entry) => entry.date === today).reduce((sum, entry) => sum + entry.minutes, 0)} daily={daily} updateDaily={updateDaily} focusPanel={focusPanel} openWork={setWorkDetail} requestDelete={requestWorkDeletion} postponeWork={postponeWork} access={{ ownerId: workspaceOwner, readOnly, preview }} readOnly={readOnly} setPopup={setPopup} setDialog={setDialog} />}
       {active === "timetable" && <TimetableViewV2 data={data} setData={setData} setDialog={setDialog} openCourse={(id) => setDetail({ type: "course", id })} deleteDialog={deleteDialog} dualSchool={workspaceOwner === "owner"} readOnly={readOnly} />}
       {active === "tasks" && <TaskOverviewView data={data} setData={setData} setDialog={setDialog} openWork={setWorkDetail} requestDelete={requestWorkDeletion} postponeWork={postponeWork} access={{ ownerId: workspaceOwner, readOnly, preview }} readOnly={readOnly} />}
@@ -847,7 +852,7 @@ export default function DashboardClient({ account, visibleAccounts, onLogout, de
 }
 
 function NavButton({ id, icon, label, active, onClick }: { id: NavId; icon: string; label: string; active: NavId; onClick: (id: NavId) => void }) { return <button className={`navButton ${active === id ? "active" : ""}`} onClick={() => onClick(id)}><span>{icon}</span>{label}</button>; }
-function ThemePicker({ color, designMode, onChange, onDesignChange }: { color: string; designMode: DesignMode; onChange: (color: string) => void; onDesignChange: (mode: DesignMode) => void }) { return <div className="themePicker" aria-label="界面外观"><div className="designModeTabs" role="group" aria-label="界面风格"><button type="button" className={designMode === "classic" ? "active" : ""} aria-pressed={designMode === "classic"} onClick={() => onDesignChange("classic")}>经典</button><button type="button" className={designMode === "paper" ? "active" : ""} aria-pressed={designMode === "paper"} onClick={() => onDesignChange("paper")}>纸页</button></div><span>页面颜色</span>{(designMode === "paper" ? [defaultPaperTone, ...toneChoices] : toneChoices).map((tone) => <button key={tone} className={color === tone ? "active" : ""} style={{ background: tone }} aria-label={`使用颜色 ${tone}`} aria-pressed={color === tone} onClick={() => onChange(tone)} />)}<label title="自定义颜色"><input type="color" aria-label="自定义页面颜色" value={color} onChange={(event) => onChange(event.target.value)} />＋</label></div>; }
+function ThemePicker({ color, designMode, onChange, onDesignChange }: { color: string; designMode: DesignMode; onChange: (color: string) => void; onDesignChange: (mode: DesignMode) => void }) { return <div className="themePicker" aria-label="界面外观"><div className="designModeTabs" role="group" aria-label="界面风格"><button type="button" className={designMode === "classic" ? "active" : ""} aria-pressed={designMode === "classic"} onClick={() => onDesignChange("classic")}>经典</button><button type="button" className={designMode === "paper" ? "active" : ""} aria-pressed={designMode === "paper"} onClick={() => onDesignChange("paper")}>纸页</button></div><span>主题色</span>{[defaultPaperTone, ...toneChoices].map((tone) => <button key={tone} className={color === tone ? "active" : ""} style={{ background: tone }} aria-label={`使用颜色 ${tone}`} aria-pressed={color === tone} onClick={() => onChange(tone)} />)}<label title="自定义颜色"><input type="color" aria-label="自定义主题色" value={color} onChange={(event) => onChange(event.target.value)} />＋</label></div>; }
 function PageHead({ eyebrow, title, subtitle, action }: { eyebrow: string; title: string; subtitle?: string; action?: React.ReactNode }) { return <div className="pageHead"><div><div className="eyebrow">{eyebrow}</div><h1>{title}</h1>{subtitle && <p>{subtitle}</p>}</div>{action}</div>; }
 function SyncChip() { return <span className="syncChip"><span />云端自动保存</span>; }
 function PanelTitle({ title, subtitle, meta }: { title: string; subtitle?: string; meta?: string }) { return <div className="panelHead"><div><h2>{title}</h2>{subtitle && <p>{subtitle}</p>}</div>{meta && <span className="countChip">{meta}</span>}</div>; }
