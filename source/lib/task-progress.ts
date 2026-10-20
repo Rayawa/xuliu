@@ -7,6 +7,7 @@ export type TaskScheduleLike = {
   plannedDate?: string;
   today?: boolean;
   done?: boolean;
+  completedDate?: string;
   mode?: TaskMode;
   startDate?: string;
   status?: TaskProgressStatus;
@@ -21,8 +22,31 @@ export function planTaskForDate<T extends TaskScheduleLike>(task: T, targetDate:
   return { ...task, plannedDate: targetDate };
 }
 
-export function courseNodeVisibleToday(node: { date: string; courseId?: string; mode?: TaskMode; done: boolean; plannedDate?: string }, targetDate: string) {
+export function courseNodeVisibleToday(node: { date: string; courseId?: string; mode?: TaskMode; done: boolean; plannedDate?: string; completedDate?: string }, targetDate: string) {
+  if (node.courseId && node.done) return node.completedDate === targetDate;
   return node.date === targetDate || Boolean(node.courseId && (node.plannedDate === targetDate || node.mode === "multi" && !node.done));
+}
+
+export function taskCompletionDate(task: TaskScheduleLike) {
+  if (task.completedDate) return task.completedDate;
+  return task.progressLogs?.findLast((entry) => entry.progress === 100)?.date;
+}
+
+export function withWorkCompletionDates<T extends TaskScheduleLike & { id: string }, M extends TaskScheduleLike & { id: string }, S extends { tasks: T[]; milestones: M[] }>(previous: S, next: S, date: string): S {
+  const update = <I extends TaskScheduleLike & { id: string }>(before: I[], after: I[]) => {
+    const originals = new Map(before.map((item) => [item.id, item]));
+    return after.map((item) => {
+      if (taskStatusOf(item) !== "已完成") {
+        if (!item.completedDate) return item;
+        const { completedDate: _completedDate, ...rest } = item;
+        return rest as I;
+      }
+      const original = originals.get(item.id);
+      if (!original || taskStatusOf(original) === "已完成") return item;
+      return { ...item, completedDate: date };
+    });
+  };
+  return { ...next, tasks: update(previous.tasks, next.tasks), milestones: update(previous.milestones, next.milestones) };
 }
 
 export function taskModeOf(task: TaskScheduleLike): TaskMode {
@@ -52,11 +76,9 @@ export function taskScheduledForDate(task: TaskScheduleLike, targetDate: string)
 }
 
 export function taskVisibleToday(task: TaskScheduleLike, targetDate: string) {
+  if (taskStatusOf(task) === "已完成") return taskCompletionDate(task) === targetDate;
   if (task.plannedDate === targetDate) return true;
   if (taskModeOf(task) === "single") return taskScheduledForDate(task, targetDate) || (!task.due && !task.plannedDate && task.today === true);
-  if (task.done || task.status === "已完成") {
-    return task.due === targetDate || Boolean(task.progressLogs?.some((entry) => entry.date === targetDate));
-  }
   return (task.startDate || task.due || targetDate) <= targetDate;
 }
 

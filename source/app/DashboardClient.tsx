@@ -19,7 +19,7 @@ import type { NodeAttachment } from "@/lib/course-node-attachments";
 import WebsiteCollection, { CollectionForm } from "./ToolCollections";
 import { toolCollectionFields, type ToolCollectionFields } from "@/lib/tool-collections";
 import { createInitialFinanceState, createPreviewFinanceState, normalizeFinanceState, type FinanceState } from "@/lib/finance";
-import { courseNodeVisibleToday, planTaskForDate, taskDeadlineLabel, taskModeOf, taskOverlapsRange, taskProgressOf, taskScheduleSummary, taskScheduledForDate, taskStatusOf, taskStatusOptions, taskVisibleToday, type TaskMode, type TaskProgressStatus } from "@/lib/task-progress";
+import { courseNodeVisibleToday, planTaskForDate, taskDeadlineLabel, taskModeOf, taskOverlapsRange, taskProgressOf, taskScheduleSummary, taskScheduledForDate, taskStatusOf, taskStatusOptions, taskVisibleToday, withWorkCompletionDates, type TaskMode, type TaskProgressStatus } from "@/lib/task-progress";
 import { withPlannedTaskStages } from "@/lib/task-stages";
 import { upcomingDeadlines } from "@/lib/upcoming-deadlines";
 import { updateAcademicCourses, courseContentPreserved } from "@/lib/academic-course-update";
@@ -73,7 +73,7 @@ export type Block = {
 };
 type Milestone = CourseNode;
 type TaskProgressLog = { id: string; date: string; progress: number; status: TaskProgressStatus; note: string };
-type TaskItem = { parentId?: string; parentMilestoneId?: string; courseId?: string; requirements?: string; attachments?: NodeAttachment[]; parentCandidate?: boolean; blocks?: Block[]; id: string; title: string; area: Area; source: string; due?: string; dueTime?: string; plannedDate?: string; done: boolean; today: boolean; elapsed: number; mode?: TaskMode; startDate?: string; status?: TaskProgressStatus; progress?: number; progressLogs?: TaskProgressLog[] };
+type TaskItem = { parentId?: string; parentMilestoneId?: string; courseId?: string; requirements?: string; attachments?: NodeAttachment[]; parentCandidate?: boolean; blocks?: Block[]; id: string; title: string; area: Area; source: string; due?: string; dueTime?: string; plannedDate?: string; completedDate?: string; done: boolean; today: boolean; elapsed: number; mode?: TaskMode; startDate?: string; status?: TaskProgressStatus; progress?: number; progressLogs?: TaskProgressLog[] };
 type PageNode = { id: string; space: "thoughts" | "free"; parentId: string | null; title: string; kind: "folder" | "page"; blocks: Block[] };
 type CourseSlot = { id: string; weekday: number; start: string; end: string; location: string; weeks?: string; source?: "manual" | "pku" | "bit" | "ics" };
 type AcademicImportPreset = "pku" | "bit";
@@ -542,7 +542,8 @@ export default function DashboardClient({ account, visibleAccounts, onLogout, de
       const next = typeof action === "function" ? action(current) : action;
       const currentDate = dateKey();
       const previousHabits = new Map(current.habits.map((habit) => [habit.id, habit]));
-      const staged = withPlannedTaskStages({ ...next, tasks: detachRemovedParents(current, next) }, currentDate, uid, current);
+      const completed = withWorkCompletionDates(current, next, currentDate);
+      const staged = withPlannedTaskStages({ ...completed, tasks: detachRemovedParents(current, completed) }, currentDate, uid, current);
       return {
         ...staged,
         habits: staged.habits.map((habit) => {
@@ -853,7 +854,87 @@ export default function DashboardClient({ account, visibleAccounts, onLogout, de
 }
 
 function NavButton({ id, icon, label, active, onClick }: { id: NavId; icon: string; label: string; active: NavId; onClick: (id: NavId) => void }) { return <button className={`navButton ${active === id ? "active" : ""}`} onClick={() => onClick(id)}><span>{icon}</span>{label}</button>; }
-function ThemePicker({ color, designMode, onChange, onDesignChange }: { color: string; designMode: DesignMode; onChange: (color: string) => void; onDesignChange: (mode: DesignMode) => void }) { return <div className="themePicker" aria-label="界面外观"><div className="designModeTabs" role="group" aria-label="界面风格"><button type="button" className={designMode === "classic" ? "active" : ""} aria-pressed={designMode === "classic"} onClick={() => onDesignChange("classic")}>经典</button><button type="button" className={designMode === "paper" ? "active" : ""} aria-pressed={designMode === "paper"} onClick={() => onDesignChange("paper")}>纸页</button></div><span>主题色</span>{[defaultPaperTone, ...toneChoices].map((tone) => <button key={tone} className={color === tone ? "active" : ""} style={{ background: tone }} aria-label={`使用颜色 ${tone}`} aria-pressed={color === tone} onClick={() => onChange(tone)} />)}<label title="自定义颜色"><input type="color" aria-label="自定义主题色" value={color} onChange={(event) => onChange(event.target.value)} />＋</label></div>; }
+const savedThemeColorsKey = "xuliu-saved-interface-colors-v1";
+const recentThemeColorsKey = "xuliu-recent-interface-colors-v1";
+const themePresets = [defaultPaperTone, ...toneChoices];
+const normalizeThemeColor = (value: unknown) => typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value.trim()) ? value.trim().toLowerCase() : "";
+
+function readThemeColors(key: string): string[] {
+  try {
+    const value: unknown = JSON.parse(window.localStorage.getItem(key) ?? "[]");
+    return Array.isArray(value) ? [...new Set(value.map(normalizeThemeColor).filter(Boolean))] : [];
+  } catch { return []; }
+}
+
+function ThemePicker({ color, designMode, onChange, onDesignChange }: { color: string; designMode: DesignMode; onChange: (color: string) => void; onDesignChange: (mode: DesignMode) => void }) {
+  const [open, setOpen] = useState(false);
+  const [savedColors, setSavedColors] = useState<string[]>([]);
+  const [recentColors, setRecentColors] = useState<string[]>([]);
+  const [draft, setDraft] = useState(color);
+  const [message, setMessage] = useState("");
+  const pickerRef = useRef<HTMLDivElement>(null);
+  const moreRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    setSavedColors(readThemeColors(savedThemeColorsKey).filter((tone) => !themePresets.includes(tone)));
+    setRecentColors(readThemeColors(recentThemeColorsKey).slice(0, 4));
+  }, []);
+  useEffect(() => {
+    if (!open) return;
+    const dismiss = (event: MouseEvent) => {
+      if (event.target instanceof Node && !pickerRef.current?.contains(event.target)) setOpen(false);
+    };
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") { setOpen(false); moreRef.current?.focus(); }
+    };
+    document.addEventListener("click", dismiss);
+    document.addEventListener("keydown", escape);
+    return () => { document.removeEventListener("click", dismiss); document.removeEventListener("keydown", escape); };
+  }, [open]);
+  const store = (key: string, colors: string[]) => {
+    try { window.localStorage.setItem(key, JSON.stringify(colors)); return true; }
+    catch { return false; }
+  };
+  const choose = (tone: string) => {
+    const recent = [tone, ...recentColors.filter((value) => value !== tone)].slice(0, 4);
+    setRecentColors(recent);
+    store(recentThemeColorsKey, recent);
+    setDraft(tone);
+    setMessage("");
+    onChange(tone);
+  };
+  const save = () => {
+    const tone = normalizeThemeColor(draft);
+    if (!tone) { setMessage("请输入六位颜色值，例如 #80674d"); return; }
+    choose(tone);
+    if (themePresets.includes(tone) || savedColors.includes(tone)) { setMessage("这个颜色已在颜色栏中"); return; }
+    const next = [...savedColors, tone];
+    setSavedColors(next);
+    setMessage(store(savedThemeColorsKey, next) ? "已保存颜色" : "颜色已添加，浏览器暂时无法保存，刷新后可能丢失");
+  };
+  const remove = (tone: string) => {
+    const next = savedColors.filter((value) => value !== tone);
+    const recent = recentColors.filter((value) => value !== tone);
+    setSavedColors(next);
+    setRecentColors(recent);
+    store(recentThemeColorsKey, recent);
+    setMessage(store(savedThemeColorsKey, next) ? "已移除保存的颜色" : "浏览器暂时无法保存这次修改");
+  };
+  const swatch = (tone: string) => <button key={tone} type="button" className={`themeSwatch ${color.toLowerCase() === tone ? "active" : ""}`} style={{ background: tone }} title={tone} aria-label={`使用颜色 ${tone}`} aria-pressed={color.toLowerCase() === tone} onClick={() => choose(tone)} />;
+  const commonColors = [...new Set([color.toLowerCase(), ...recentColors, ...themePresets])].slice(0, 4);
+  return <div ref={pickerRef} className="themePicker" aria-label="界面外观">
+    <div className="designModeTabs" role="group" aria-label="界面风格"><button type="button" className={designMode === "classic" ? "active" : ""} aria-pressed={designMode === "classic"} onClick={() => onDesignChange("classic")}>经典</button><button type="button" className={designMode === "paper" ? "active" : ""} aria-pressed={designMode === "paper"} onClick={() => onDesignChange("paper")}>纸页</button></div>
+    <span>主题色</span><div className="themeCommonColors" role="group" aria-label="常用颜色">{commonColors.map(swatch)}</div>
+    <button ref={moreRef} type="button" className="themeMoreButton" aria-expanded={open} aria-controls="theme-color-options" onClick={() => { setOpen(!open); setDraft(color); setMessage(""); }}>{open ? "收起" : "更多"}<span aria-hidden="true">{open ? "⌃" : "⌄"}</span></button>
+    {open && <div id="theme-color-options" className="themeColorPanel" role="dialog" aria-label="更多主题颜色">
+      <div className="themeColorSection"><h2>预设颜色</h2><div className="themeColorGrid" role="group" aria-label="预设颜色">{themePresets.map(swatch)}</div></div>
+      {savedColors.length > 0 && <div className="themeColorSection"><h2>我的颜色</h2><div className="themeColorGrid" role="group" aria-label="保存的颜色">{savedColors.map((tone) => <div className="themeSavedColor" key={tone}>{swatch(tone)}<button className="themeRemoveColor" type="button" title={`移除 ${tone}`} aria-label={`移除保存的颜色 ${tone}`} onClick={() => remove(tone)}>×</button></div>)}</div></div>}
+      <form className="themeCustomForm" onSubmit={(event) => { event.preventDefault(); save(); }}>
+        <h2>自定义颜色</h2><div className="themeCustomFields"><input className="themeColorInput" type="color" aria-label="自定义主题色" value={normalizeThemeColor(draft) || color} onChange={(event) => { setDraft(event.target.value); setMessage(""); }} /><input className="themeHexInput" type="text" aria-label="自定义颜色值" placeholder="#80674d" value={draft} maxLength={7} spellCheck={false} autoComplete="off" onChange={(event) => { setDraft(event.target.value); setMessage(""); }} /><button className="themeSaveButton" type="submit">保存颜色</button></div>
+      </form>
+      {message && <p className="themeColorMessage" role="status">{message}</p>}
+    </div>}
+  </div>;
+}
 function PageHead({ eyebrow, title, subtitle, action }: { eyebrow: string; title: string; subtitle?: string; action?: React.ReactNode }) { return <div className="pageHead"><div><div className="eyebrow">{eyebrow}</div><h1>{title}</h1>{subtitle && <p>{subtitle}</p>}</div>{action}</div>; }
 function SyncChip() { return <span className="syncChip"><span />云端自动保存</span>; }
 function PanelTitle({ title, subtitle, meta }: { title: string; subtitle?: string; meta?: string }) { return <div className="panelHead"><div><h2>{title}</h2>{subtitle && <p>{subtitle}</p>}</div>{meta && <span className="countChip">{meta}</span>}</div>; }
@@ -1444,6 +1525,7 @@ function TaskSettingsDialog({ task, tasks, milestones, courses, learning, preset
       dueTime: due ? dueTime || undefined : undefined,
       plannedDate: plannedDate || undefined,
       done: nextStatus === "已完成",
+      completedDate: nextStatus === "已完成" ? taskStatusOf(task ?? {}) === "已完成" ? task?.completedDate : dateKey() : undefined,
       today: mode === "single" && (due === today || plannedDate === today),
       elapsed: task?.elapsed ?? 0,
       mode,

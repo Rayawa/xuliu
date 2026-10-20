@@ -12,7 +12,7 @@ import type { Block } from "./DashboardClient";
 
 export type CourseNode = {
   blocks?: Block[]; elapsed?: number; mode?: "single" | "multi"; parentCandidate?: boolean; automationKey?: string;
-  id: string; courseId?: string; title: string; date: string; time: string; location: string; plannedDate?: string;
+  id: string; courseId?: string; title: string; date: string; time: string; location: string; plannedDate?: string; completedDate?: string;
   requirements: string; attachments?: NodeAttachment[];
   outcomeText?: string; outcomeAttachments?: NodeAttachment[];
   area: "课内" | "课外" | "工作" | "生活" | "思考"; done: boolean;

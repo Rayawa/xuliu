@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { courseNodeVisibleToday, planTaskForDate, taskDeadlineLabel, taskOverlapsRange, taskScheduledForDate, taskScheduleSummary, taskVisibleToday } from '../lib/task-progress.ts';
+import { courseNodeVisibleToday, planTaskForDate, taskDeadlineLabel, taskOverlapsRange, taskScheduledForDate, taskScheduleSummary, taskVisibleToday, withWorkCompletionDates } from '../lib/task-progress.ts';
+import { studyTaskVisibleOnDate } from '../lib/study-task-automation.ts';
 import { createEmptyWorkspaceState, workspaceStateSchema } from '../lib/workspace-state-schema.ts';
 
 const plannedTask = {
@@ -80,7 +81,7 @@ test('legacy course tasks retain their deadlines and attachments when their plan
   assert.equal(courseNodeVisibleToday(saved, '2026-10-05'), true);
   assert.equal(courseNodeVisibleToday(saved, '2026-10-06'), false);
   assert.equal(courseNodeVisibleToday(saved, '2026-10-18'), true);
-  assert.equal(courseNodeVisibleToday({ ...saved, done: true }, '2026-10-05'), true);
+  assert.equal(courseNodeVisibleToday({ ...saved, done: true, completedDate: '2026-10-05' }, '2026-10-05'), true);
 });
 
 test('planning does not reopen completed tasks', () => {
@@ -98,4 +99,71 @@ test('task attachments survive save/export/restore alongside subject assignment'
   const task = { ...plannedTask, courseId: 'tax-course', attachments: [attachment] };
   const state = { ...createEmptyWorkspaceState(), tasks: [task] };
   assert.deepEqual(workspaceStateSchema.parse(JSON.parse(JSON.stringify(state))).tasks[0], task);
+});
+
+test('early completion stays on its completion day and does not reappear on the deadline', () => {
+  for (const mode of ['single', 'multi']) {
+    const task = { ...plannedTask, mode, done: true, status: '已完成', progress: 100, completedDate: '2026-10-02' };
+    assert.equal(taskVisibleToday(task, '2026-10-02'), true);
+    assert.equal(taskVisibleToday(task, '2026-10-10'), false);
+    assert.equal(taskVisibleToday({ ...task, plannedDate: task.due }, task.due), false);
+    assert.equal(taskVisibleToday({ ...task, completedDate: task.due }, task.due), true);
+    assert.equal(taskVisibleToday({ ...task, done: false, status: '进行中' }, task.due), true);
+  }
+});
+
+test('legacy completion logs are used without treating a deadline or old plan as completion', () => {
+  const task = { ...plannedTask, done: true, status: '已完成', progress: 100, progressLogs: [
+    { date: '2026-10-02', progress: 100 },
+    { date: '2026-10-03', progress: 30 },
+    { date: '2026-10-04', progress: 100 },
+  ] };
+  assert.equal(taskVisibleToday(task, '2026-10-04'), true);
+  assert.equal(taskVisibleToday(task, '2026-10-02'), false);
+  assert.equal(taskVisibleToday(task, task.due), false);
+  assert.equal(taskVisibleToday({ ...task, progressLogs: [] }, task.due), false);
+  assert.equal(taskVisibleToday({ ...task, progressLogs: [] }, task.plannedDate), false);
+});
+
+test('manual and automatic course tasks use completion day while calendar items keep their schedule', () => {
+  const node = { id: 'course-paper', courseId: 'course', title: '结课论文', date: '2026-10-10', time: '00:00', location: '', requirements: '保留要求', plannedDate: '2026-10-10', area: '课内', done: true, completedDate: '2026-10-02' };
+  for (const mode of ['single', 'multi']) {
+    assert.equal(courseNodeVisibleToday({ ...node, mode }, '2026-10-02'), true);
+    assert.equal(courseNodeVisibleToday({ ...node, mode }, node.date), false);
+    assert.equal(courseNodeVisibleToday({ ...node, mode, completedDate: node.date }, node.date), true);
+    assert.equal(courseNodeVisibleToday({ ...node, mode, done: false }, node.date), true);
+  }
+  const automatic = { ...node, automationKey: 'study:2026-10-02:review:course:2026-10-02' };
+  assert.equal(studyTaskVisibleOnDate(automatic, '2026-10-02'), true);
+  assert.equal(studyTaskVisibleOnDate(automatic, node.date), false);
+  assert.equal(courseNodeVisibleToday({ ...node, completedDate: undefined }, node.date), false);
+  assert.equal(courseNodeVisibleToday({ ...node, courseId: undefined }, node.date), true);
+});
+
+test('completion tracking covers state changes, reopening and recompletion without changing task content', () => {
+  const node = { id: 'course-paper', courseId: 'course', title: '论文', date: '2026-10-10', time: '00:00', location: '', requirements: '保留要求', area: '课内', done: false, attachments: [], outcomeText: '保留成果' };
+  const before = { ...createEmptyWorkspaceState(), tasks: [plannedTask], milestones: [node] };
+  const completed = withWorkCompletionDates(before, { ...before, tasks: [{ ...plannedTask, done: true, status: '已完成', progress: 100 }], milestones: [{ ...node, done: true }] }, '2026-10-02');
+  assert.deepEqual(completed.tasks[0], { ...plannedTask, done: true, status: '已完成', progress: 100, completedDate: '2026-10-02' });
+  assert.deepEqual(completed.milestones[0], { ...node, done: true, completedDate: '2026-10-02' });
+  assert.equal(before.tasks[0].completedDate, undefined);
+  assert.deepEqual(workspaceStateSchema.parse(JSON.parse(JSON.stringify(completed))), completed);
+  assert.deepEqual(withWorkCompletionDates(completed, completed, '2026-10-03'), completed);
+
+  const reopened = withWorkCompletionDates(completed, { ...completed, tasks: [{ ...completed.tasks[0], done: false, status: '进行中', progress: 30 }], milestones: [{ ...completed.milestones[0], done: false }] }, '2026-10-03');
+  assert.equal(Object.hasOwn(reopened.tasks[0], 'completedDate'), false);
+  assert.equal(Object.hasOwn(reopened.milestones[0], 'completedDate'), false);
+  assert.equal(taskVisibleToday(reopened.tasks[0], plannedTask.due), true);
+  const recompleted = withWorkCompletionDates(reopened, { ...reopened, tasks: [{ ...reopened.tasks[0], status: '已完成' }], milestones: [{ ...reopened.milestones[0], done: true }] }, '2026-10-04');
+  assert.equal(recompleted.tasks[0].completedDate, '2026-10-04');
+  assert.equal(recompleted.milestones[0].completedDate, '2026-10-04');
+});
+
+test('importing completed history does not invent a new completion date', () => {
+  const previous = createEmptyWorkspaceState();
+  const next = { ...previous, tasks: [{ ...plannedTask, done: true, status: '已完成' }] };
+  assert.deepEqual(withWorkCompletionDates(previous, next, '2026-10-10'), next);
+  for (const completedDate of ['2026-02-30', 'not-a-date']) {
+    assert.equal(workspaceStateSchema.safeParse({ ...next, tasks: [{ ...next.tasks[0], completedDate }] }).success, false);
+  }
 });

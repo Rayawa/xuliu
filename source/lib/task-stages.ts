@@ -1,6 +1,6 @@
 import type { z } from "zod";
 import type { workspaceStateSchema } from "./workspace-state-schema.ts";
-import { taskModeOf, taskStatusOf, taskVisibleToday } from "./task-progress.ts";
+import { taskModeOf, taskScheduledForDate, taskStatusOf, taskVisibleToday } from "./task-progress.ts";
 
 type StageState = Pick<z.infer<typeof workspaceStateSchema>, "tasks" | "milestones">;
 const stagePrefix = "stage:";
@@ -37,7 +37,7 @@ export function withPlannedTaskStages<T extends StageState>(next: T, date: strin
   ];
   for (const { kind, item } of parents) {
     if (item.plannedDate !== date || taskStatusOf(item) === "已完成") continue;
-    if (tasks.some((task) => linkedTo(task, kind, item.id) && taskModeOf(task) === "single" && taskVisibleToday(task, date))) continue;
+    if (tasks.some((task) => linkedTo(task, kind, item.id) && taskModeOf(task) === "single" && (taskScheduledForDate(task, date) || taskVisibleToday(task, date)))) continue;
     const unscheduledStage = tasks.find((task) => task.id.startsWith(stagePrefix) && linkedTo(task, kind, item.id) && taskModeOf(task) === "single" && !task.done && !task.plannedDate && !task.due);
     if (unscheduledStage) {
       tasks = tasks.map((task) => task.id === unscheduledStage.id ? { ...task, plannedDate: date, today: true } : task);
