@@ -12,6 +12,7 @@ import {
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { aiWorkspaceProposalInputSchema, type AiWorkspaceProposalInput } from "@/lib/ai-action-schema";
 import { cancelToolApprovalLocally, hasUnresolvedToolApproval, shouldAutoRejectProposalPreview } from "@/lib/ai-chat-state";
+import "./life-refinement.css";
 
 type AiAssistantProps = {
   accountName: string;
@@ -326,7 +327,7 @@ export default function AiAssistant({ accountName, activeWorkspaceOwner, activeW
   };
 
   return <>
-    <button className={`aiLauncher ${open ? "open" : ""}`} onClick={() => setOpen((value) => !value)} aria-label={open ? "关闭 AI 助手" : "打开 AI 助手"}><span>AI</span><b>{open ? "×" : "问序流"}</b></button>
+    <button type="button" className={`aiLauncher aiLauncherCompact ${open ? "open" : ""}`} onClick={() => setOpen((value) => !value)} aria-expanded={open} aria-label={open ? "关闭 AI 助手" : "打开 AI 助手"}><span>AI</span><b>{open ? "×" : "问序流"}</b></button>
     {open && <aside className="aiDrawer" aria-label="序流 AI 助手">
       <header><div><span className="aiAvatar">序</span><div><strong>序流 AI</strong></div></div><button aria-label="关闭" onClick={() => setOpen(false)}>×</button></header>
       <div className="aiScope"><span>当前界面</span><strong>{activeWorkspaceName}</strong>{activeCourse && <><span>当前课程</span><strong>{activeCourse.title}</strong><small>{activeCourse.canInsert ? "可插入课程笔记" : "课程只读"}</small></>}</div>

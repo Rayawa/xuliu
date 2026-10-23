@@ -1,0 +1,102 @@
+.documentNotes .pageHead { align-items: center; padding-bottom: 14px; margin-bottom: 18px; }
+.documentNotes .pageHead h1 { font-size: clamp(23px, 2.4vw, 31px); font-weight: 650; line-height: 1.3; font-family: inherit; }
+.documentPageActions { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; }
+.documentNotes .notesShell { min-height: 560px; grid-template-columns: 205px minmax(0, 1fr); border-radius: 10px; border-color: var(--line); background: var(--paper); box-shadow: none; }
+.documentNotes .notesShell.documentNavClosed { grid-template-columns: minmax(0, 1fr); }
+.documentNotes .treePanel { padding: 14px 10px; background: transparent; border-color: var(--line); }
+.documentNotes .treePanel[hidden] { display: none; }
+.documentNotes .treeActions { margin-bottom: 12px; gap: 5px; }
+.documentNotes .treeActions button { padding: 7px 5px; border: 0; border-radius: 5px; color: var(--muted); background: var(--paper-soft); font-size: 11px; }
+.documentNotes .treeList { border: 0; padding-top: 0; }
+.documentNotes .treeNode { color: var(--muted); font-weight: 400; min-height: 34px; padding: 7px; border-radius: 5px; }
+.documentNotes .treeNode.active { color: var(--text); font-weight: 600; background: color-mix(in srgb, var(--accent) 9%, var(--paper)); }
+.documentNotes .treeNode > span:last-child { min-width: 0; overflow-wrap: anywhere; }
+.documentNotes .treeChildren { margin-left: 8px; padding-left: 5px; border-color: var(--line); }
+.documentNotes .editorArea { min-width: 0; padding: 25px clamp(18px, 4vw, 48px); }
+.documentNotes .editorTop { gap: 12px; align-items: center; margin-bottom: 12px; }
+.documentNotes .pageTitleInput { min-width: 0; width: 100%; margin: 0; padding: 5px 0; color: var(--text); font-family: inherit; font-size: clamp(21px, 2.4vw, 29px); font-weight: 600; line-height: 1.45; }
+.documentPageMenu, .documentInsert, .documentInfo { position: relative; }
+.documentPageMenu { flex: 0 0 auto; }
+.documentPageMenu > summary, .documentInsert > summary, .documentInfo > summary { display: flex; align-items: center; justify-content: center; min-height: 32px; padding: 5px 9px; border-radius: 6px; color: var(--muted); font-size: 12px; white-space: nowrap; list-style: none; cursor: pointer; }
+.documentPageMenu > summary, .documentInfo > summary { font-size: 21px; line-height: 1; }
+:is(.documentPageMenu, .documentInsert, .documentInfo) > summary::-webkit-details-marker { display: none; }
+:is(.documentPageMenu, .documentInsert, .documentInfo)[open] > summary, :is(.documentPageMenu, .documentInsert, .documentInfo) > summary:hover { background: var(--paper-soft); }
+.documentPageMenu > div, .documentInfo > div { position: absolute; right: 0; top: calc(100% + 4px); z-index: 12; min-width: 140px; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); box-shadow: 0 8px 24px #28312c12; }
+.documentPageMenu button { display: block; width: 100%; padding: 8px; border: 0; border-radius: 5px; background: transparent; font-size: 12px; white-space: nowrap; text-align: left; }
+.documentFolder .folderActions { justify-content: flex-start; margin: 10px 0 16px; }
+.documentFolderItems { display: grid; gap: 4px; }
+.documentFolderItems button { padding: 10px 3px; border: 0; border-bottom: 1px solid var(--line); color: var(--text); background: transparent; text-align: left; font-size: 13px; }
+.documentNoPages { padding: 10px 0; }
+.documentEditor { max-width: 850px; margin-inline: auto; }
+.documentToolbar { position: relative; display: flex; align-items: center; flex-wrap: wrap; gap: 5px; min-height: 36px; margin-bottom: 7px; border-bottom: 1px solid var(--line); }
+.documentToolbar > button { min-height: 32px; padding: 5px 9px; border: 0; border-radius: 6px; color: var(--muted); background: transparent; font-size: 12px; }
+.documentToolbar > button:hover, .documentToolbar > button[aria-expanded="true"] { background: var(--paper-soft); }
+.documentInfo { margin-left: auto; }
+.documentInfo > div { display: grid; gap: 7px; width: max-content; max-width: min(300px, calc(100vw - 60px)); color: var(--muted); font-size: 11px; font-weight: 400; line-height: 1.6; }
+.documentInsert > .blockToolbar { position: absolute; top: calc(100% + 4px); left: 0; z-index: 12; display: grid; grid-template-columns: 1fr 1fr; width: 210px; max-width: calc(100vw - 64px); padding: 6px; border: 1px solid var(--line); border-radius: 8px; gap: 3px; background: var(--paper); box-shadow: 0 8px 24px #28312c12; }
+.documentInsert > .blockToolbar button { padding: 10px; color: var(--text); background: transparent; font-size: 12px; text-align: left; }
+.documentInsert > .blockToolbar button:hover { background: var(--paper-soft); }
+.documentEditor .documentFormat { margin: 8px 0; padding: 10px; border-color: var(--line); border-radius: 7px; background: var(--paper-soft); }
+.documentEditor .documentFormat > span { min-width: auto; }
+.documentEditor .blocks { margin-top: 2px; }
+.documentEditor .editorBlock { padding-block: 3px; border-radius: 5px; }
+.documentEditor .editorBlock.selected, .documentEditor .editorBlock:hover { border-color: transparent; background: transparent; }
+.documentEditor .richTextBlock { padding: 0; border-radius: 5px; }
+.documentEditor .richTextField { color: inherit; font-family: inherit; font-size: 15px; line-height: 1.85; }
+.documentEditor .editorBlock.text .richTextField { min-height: 2.5em; }
+.documentEditor .editorBlock.text .richTextField:empty { min-height: 100px; }
+.documentEditor .editorBlock.heading .richTextField { font-weight: 600; line-height: 1.5; }
+.documentEditor .editorBlock.heading { margin-top: 10px; }
+.documentEditor .embeddedImageTools { margin-top: 2px; }
+.documentEditor .embeddedImageTools label { border: 0; border-radius: 4px; background: transparent; font-size: 10px; padding: 3px 4px; }
+.documentEditor .embeddedImageTools { opacity: 0; pointer-events: none; }
+.documentEditor .editorBlock:is(:hover, :focus-within) .embeddedImageTools { opacity: 1; pointer-events: auto; }
+.documentEditor .blockRemove { opacity: 0; }
+.documentEditor .editorBlock:is(:hover, :focus-within) .blockRemove { opacity: 1; }
+.documentToc.blockToc { padding: 0; border: 0; border-radius: 0; background: transparent; }
+.documentToc.blockToc.compact { margin: 9px 0 6px; padding: 0; background: transparent; }
+.documentToc > summary { width: fit-content; padding: 6px 0; color: var(--muted); cursor: pointer; font-size: 12px; }
+.documentToc > summary > span { margin-left: 7px; color: var(--faint); font-size: 11px; }
+.documentToc nav { max-height: 310px; overflow-y: auto; margin: 4px 0 10px; padding-left: 6px; border-left: 1px solid var(--line); }
+.documentToc.blockToc ol { margin: 0; }
+.documentToc.blockToc button { white-space: normal; overflow-wrap: anywhere; }
+.documentToast { position: fixed; z-index: 110; left: 50%; bottom: 30px; transform: translateX(-50%); display: flex; align-items: center; gap: 12px; width: max-content; max-width: calc(100vw - 32px); padding: 10px 13px; border: 1px solid var(--line); border-radius: 9px; color: var(--text); background: var(--paper); box-shadow: 0 6px 24px #28312c20; font-size: 12px; }
+.documentToast > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.documentToast > button { flex: 0 0 auto; padding: 4px 6px; border: 0; border-radius: 4px; color: var(--accent); background: transparent; font-size: 12px; }
+:is(.documentNotes, .documentEditor, .documentToc) :is(button, summary):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.editorSection:has(> .documentEditor) { padding: 22px clamp(18px, 3vw, 34px); }
+.editorSection:has(> .documentEditor) > .sectionHead { margin-bottom: 12px; }
+.detailPage:has(.courseDocumentPage) .pageHead { margin-bottom: 18px; padding-bottom: 18px; }
+.detailPage:has(.courseDocumentPage) .pageHead h1 { font-family: inherit; font-size: clamp(24px, 3vw, 34px); font-weight: 650; line-height: 1.4; }
+.courseDocumentPage .editorSection { border: 0; box-shadow: none; background: var(--paper); }
+.courseDocumentInfo > summary { color: var(--muted); font-size: 13px; cursor: pointer; }
+.courseDocumentInfo .fieldGrid { margin-top: 18px; }
+.courseDocumentPage .detailAside .progressCard { padding: 15px; }
+.courseDocumentPage .detailAside .progressCard strong { font-size: 25px; }
+@media (hover: none) {
+  .documentEditor .embeddedImageTools, .documentEditor .blockRemove { opacity: 1; pointer-events: auto; }
+}
+@media (max-width: 760px) {
+  .documentNotes .notesShell { grid-template-columns: 170px minmax(0, 1fr); }
+  .documentNotes .editorArea { padding: 20px 16px; }
+  .documentNotes .notesShell.documentNavClosed { grid-template-columns: minmax(0, 1fr); }
+  .documentEditor .editorBlock { padding-right: 31px; gap: 4px; }
+  .documentEditor .dragMark { flex-basis: 20px; width: 20px; }
+  .documentEditor .blockOrderActions { position: static; flex-direction: column; gap: 0; }
+  .documentEditor .editorBlock.link { grid-template-columns: 20px minmax(0, 1fr); }
+  .documentEditor .editorBlock.link > input { grid-column: 2; }
+  .documentToast { bottom: 78px; }
+}
+@media (max-width: 520px) {
+  .documentNotes.notesPage { width: calc(100% - 24px); }
+  .documentNotes .notesShell { display: flex; flex-direction: column; }
+  .documentNotes .treePanel { max-height: 220px; overflow: auto; border-right: 0; border-bottom: 1px solid var(--line); padding: 10px; }
+  .documentNotes .treeActions { display: flex; margin-bottom: 7px; }
+  .documentNotes .treeActions button { padding-inline: 10px; }
+  .documentNotes .editorArea { padding: 18px 12px; }
+  .documentNotes .pageHead { display: flex; flex-wrap: wrap; gap: 10px; }
+  .documentNotes .pageHead h1 { font-size: 23px; }
+  .documentNotes .pageTitleInput { font-size: 22px; }
+  .documentEditor .richTextField { font-size: 14px; }
+  .documentEditor .formatToolbar > span { width: 100%; }
+}

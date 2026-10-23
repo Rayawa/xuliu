@@ -5,6 +5,10 @@ export type TaskScheduleLike = {
   due?: string;
   dueTime?: string;
   plannedDate?: string;
+  dismissedTodayDate?: string;
+  date?: string;
+  courseId?: string;
+  automationKey?: string;
   today?: boolean;
   done?: boolean;
   completedDate?: string;
@@ -17,14 +21,34 @@ export type TaskScheduleLike = {
 
 export const taskStatusOptions: TaskProgressStatus[] = ["未开始", "进行中", "已暂停", "已完成"];
 
-export function planTaskForDate<T extends TaskScheduleLike>(task: T, targetDate: string): T {
-  if (task.done || task.status === "已完成") return task;
-  return { ...task, plannedDate: targetDate };
+export function defaultTaskPlannedDate(task: TaskScheduleLike) {
+  if (task.plannedDate) return task.plannedDate;
+  if (taskModeOf(task) === "multi" || task.automationKey) return undefined;
+  const deadline = task.due || (task.courseId ? task.date : undefined);
+  if (!deadline || !/^\d{4}-\d{2}-\d{2}$/.test(deadline)) return undefined;
+  const [year, month, day] = deadline.split("-").map(Number);
+  const date = new Date(0);
+  date.setUTCFullYear(year, month - 1, day);
+  if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return undefined;
+  date.setUTCDate(date.getUTCDate() - 2);
+  if (date.getUTCFullYear() < 1) return undefined;
+  return `${String(date.getUTCFullYear()).padStart(4, "0")}-${String(date.getUTCMonth() + 1).padStart(2, "0")}-${String(date.getUTCDate()).padStart(2, "0")}`;
 }
 
-export function courseNodeVisibleToday(node: { date: string; courseId?: string; mode?: TaskMode; done: boolean; plannedDate?: string; completedDate?: string }, targetDate: string) {
+export function planTaskForDate<T extends TaskScheduleLike>(task: T, targetDate: string): T {
+  if (task.done || task.status === "已完成") return task;
+  const { dismissedTodayDate: _dismissedTodayDate, ...rest } = task;
+  return { ...rest, plannedDate: targetDate } as T;
+}
+
+export function cancelWorkForDate<T extends TaskScheduleLike>(task: T, targetDate: string): T {
+  return task.dismissedTodayDate === targetDate ? task : { ...task, dismissedTodayDate: targetDate };
+}
+
+export function courseNodeVisibleToday(node: TaskScheduleLike & { date: string; done: boolean }, targetDate: string) {
+  if (node.courseId && node.dismissedTodayDate === targetDate) return false;
   if (node.courseId && node.done) return node.completedDate === targetDate;
-  return node.date === targetDate || Boolean(node.courseId && (node.plannedDate === targetDate || node.mode === "multi" && !node.done));
+  return node.date === targetDate || Boolean(node.courseId && (defaultTaskPlannedDate(node) === targetDate || node.mode === "multi" && !node.done));
 }
 
 export function taskCompletionDate(task: TaskScheduleLike) {
@@ -66,7 +90,7 @@ export function taskStatusOf(task: TaskScheduleLike): TaskProgressStatus {
 }
 
 export function taskScheduledForDate(task: TaskScheduleLike, targetDate: string) {
-  if (task.plannedDate === targetDate) return true;
+  if (defaultTaskPlannedDate(task) === targetDate) return true;
   if (taskModeOf(task) === "single") return task.due === targetDate
     || Boolean(task.progressLogs?.some((entry) => entry.date === targetDate));
   const start = task.startDate || task.due || targetDate;
@@ -76,6 +100,7 @@ export function taskScheduledForDate(task: TaskScheduleLike, targetDate: string)
 }
 
 export function taskVisibleToday(task: TaskScheduleLike, targetDate: string) {
+  if (task.dismissedTodayDate === targetDate) return false;
   if (taskStatusOf(task) === "已完成") return taskCompletionDate(task) === targetDate;
   if (task.plannedDate === targetDate) return true;
   if (taskModeOf(task) === "single") return taskScheduledForDate(task, targetDate) || (!task.due && !task.plannedDate && task.today === true);
@@ -83,7 +108,8 @@ export function taskVisibleToday(task: TaskScheduleLike, targetDate: string) {
 }
 
 export function taskOverlapsRange(task: TaskScheduleLike, rangeStart: string, rangeEnd: string) {
-  if (task.plannedDate && task.plannedDate >= rangeStart && task.plannedDate <= rangeEnd) return true;
+  const plannedDate = defaultTaskPlannedDate(task);
+  if (plannedDate && plannedDate >= rangeStart && plannedDate <= rangeEnd) return true;
   if (taskModeOf(task) === "single") return [task.due, task.plannedDate].some((date) => Boolean(date && date >= rangeStart && date <= rangeEnd));
   const start = task.startDate || task.due || rangeStart;
   const due = task.due || "9999-12-31";
@@ -100,7 +126,8 @@ function dayDifference(from: string, to: string) {
 }
 
 export function taskScheduleSummary(task: TaskScheduleLike, targetDate: string) {
-  if (taskModeOf(task) === "single") return `${task.plannedDate ? `${task.plannedDate} 计划推进 · ` : ""}${task.due ? `截止 ${taskDeadlineLabel(task)}` : "未设截止"}`;
+  const plannedDate = defaultTaskPlannedDate(task);
+  if (taskModeOf(task) === "single") return `${plannedDate ? `${plannedDate} 计划推进 · ` : ""}${task.due ? `截止 ${taskDeadlineLabel(task)}` : "未设截止"}`;
   const start = task.startDate || task.due || targetDate;
   const due = task.due || "";
   if (start > targetDate) return `${dayDifference(targetDate, start)} 天后开始`;

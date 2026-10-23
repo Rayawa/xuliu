@@ -1,12 +1,25 @@
 "use client";
 
 import { reminderTones, type ReminderTone } from "@/lib/reminder-alerts";
+import { useEffect, useId, useRef, useState } from "react";
 import type { useReminderAlerts } from "./useReminderAlerts";
+import "./life-refinement.css";
 
-export default function ReminderAlertsSettings({ alerts, readOnly }: { alerts: ReturnType<typeof useReminderAlerts>; readOnly: boolean }) {
+type ReminderAlertsSettingsProps = { alerts: ReturnType<typeof useReminderAlerts>; readOnly: boolean };
+
+function ReminderSettingsDialog({ alerts, readOnly, onClose }: ReminderAlertsSettingsProps & { onClose: () => void }) {
   const { settings, permission, busy } = alerts;
-  return <section className="panel alertPreferences" aria-label="通知与提示音设置">
-    <div className="alertPreferenceHead"><h3>通知与提示音</h3><span>仅当前账号 · 当前设备</span></div>
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
+  useEffect(() => {
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const dialog = dialogRef.current;
+    if (dialog && !dialog.open) dialog.showModal();
+    return () => { dialog?.close(); if (previousFocus?.isConnected) previousFocus.focus(); };
+  }, []);
+  return <dialog ref={dialogRef} className="alertPreferences lifeReminderDialog" aria-labelledby={titleId}
+    onCancel={(event) => { event.preventDefault(); onClose(); }}>
+    <div className="lifeReminderDialogHead"><div><h2 id={titleId}>提醒设置</h2><span>仅当前账号 · 当前设备</span></div><button type="button" className="lifeReminderClose" aria-label="关闭提醒设置" onClick={onClose}>×</button></div>
     <div className="alertPreferenceGrid">
       <div className="alertPreferenceItem">
         <strong>系统通知</strong>
@@ -28,5 +41,16 @@ export default function ReminderAlertsSettings({ alerts, readOnly }: { alerts: R
     {alerts.message && <p className="alertFeedback" role="status">{alerts.message}</p>}
 
     {readOnly && <p className="alertFeedback">只读空间</p>}
-  </section>;
+  </dialog>;
+}
+
+export default function ReminderAlertsSettings({ alerts, readOnly }: ReminderAlertsSettingsProps) {
+  const [open, setOpen] = useState(false);
+  const notificationStatus = alerts.permission === "checking" ? "通知检查中" : alerts.permission === "unsupported" ? "通知不可用" : alerts.settings.notifications && alerts.permission === "granted" ? "通知已开" : "通知已关";
+  const soundStatus = alerts.settings.sound && alerts.settings.volume > 0 ? "提示音已开" : "提示音已静音";
+  return <div className="lifeReminderSettings">
+    <span className="lifeReminderStatus">{notificationStatus} · {soundStatus}</span>
+    <button type="button" className="softButton lifeReminderEntry" aria-haspopup="dialog" onClick={() => setOpen(true)}>提醒设置</button>
+    {open && <ReminderSettingsDialog alerts={alerts} readOnly={readOnly} onClose={() => setOpen(false)} />}
+  </div>;
 }

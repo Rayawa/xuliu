@@ -2,6 +2,10 @@
 
 import Image from "next/image";
 import DailyYiyan from "./DailyYiyan";
+import { CourseEventDialog } from "./CourseEventDialog";
+import { assessmentTypeLabel, assessmentTypeOptions, eventCourseLabel, eventDateLabel, migrateCourseEvents } from "@/lib/course-events";
+import { CourseReviewPoolDialog, ReviewPoolEntry, ReviewPoolToday } from "./CourseReviewPool";
+import { initializeCourseReviewPool, reviewPoolItemVisibleOnDate, updateReviewPoolItem, withoutReviewPoolSources, type CourseReviewPool, type ReviewPoolItem } from "@/lib/course-review-pool";
 import FocusTimer, { useFocusTimer, type FocusController, type FocusChoice } from "./FocusTimer";
 import { appendTimeEntry, defaultFocusSettings, descendantTasks, detachRemovedParents, entryMatches, parentError, type FocusSettings, type TimeEntry, type WorkTarget } from "@/lib/task-time";
 import { upload as uploadBlob } from "@vercel/blob/client";
@@ -19,7 +23,9 @@ import type { NodeAttachment } from "@/lib/course-node-attachments";
 import WebsiteCollection, { CollectionForm } from "./ToolCollections";
 import { toolCollectionFields, type ToolCollectionFields } from "@/lib/tool-collections";
 import { createInitialFinanceState, createPreviewFinanceState, normalizeFinanceState, type FinanceState } from "@/lib/finance";
-import { courseNodeVisibleToday, planTaskForDate, taskDeadlineLabel, taskModeOf, taskOverlapsRange, taskProgressOf, taskScheduleSummary, taskScheduledForDate, taskStatusOf, taskStatusOptions, taskVisibleToday, withWorkCompletionDates, type TaskMode, type TaskProgressStatus } from "@/lib/task-progress";
+import { cancelWorkForDate, courseNodeVisibleToday, defaultTaskPlannedDate, planTaskForDate, taskDeadlineLabel, taskModeOf, taskOverlapsRange, taskProgressOf, taskScheduleSummary, taskScheduledForDate, taskStatusOf, taskStatusOptions, taskVisibleToday, withWorkCompletionDates, type TaskMode, type TaskProgressStatus } from "@/lib/task-progress";
+import "./task-scheduling.css";
+import "./document-refinement.css";
 import { withPlannedTaskStages } from "@/lib/task-stages";
 import { upcomingDeadlines } from "@/lib/upcoming-deadlines";
 import { updateAcademicCourses, courseContentPreserved } from "@/lib/academic-course-update";
@@ -73,7 +79,7 @@ export type Block = {
 };
 type Milestone = CourseNode;
 type TaskProgressLog = { id: string; date: string; progress: number; status: TaskProgressStatus; note: string };
-type TaskItem = { parentId?: string; parentMilestoneId?: string; courseId?: string; requirements?: string; attachments?: NodeAttachment[]; parentCandidate?: boolean; blocks?: Block[]; id: string; title: string; area: Area; source: string; due?: string; dueTime?: string; plannedDate?: string; completedDate?: string; done: boolean; today: boolean; elapsed: number; mode?: TaskMode; startDate?: string; status?: TaskProgressStatus; progress?: number; progressLogs?: TaskProgressLog[] };
+type TaskItem = { parentId?: string; parentMilestoneId?: string; courseId?: string; requirements?: string; attachments?: NodeAttachment[]; parentCandidate?: boolean; blocks?: Block[]; id: string; title: string; area: Area; source: string; due?: string; dueTime?: string; plannedDate?: string; dismissedTodayDate?: string; completedDate?: string; done: boolean; today: boolean; elapsed: number; mode?: TaskMode; startDate?: string; status?: TaskProgressStatus; progress?: number; progressLogs?: TaskProgressLog[] };
 type PageNode = { id: string; space: "thoughts" | "free"; parentId: string | null; title: string; kind: "folder" | "page"; blocks: Block[] };
 type CourseSlot = { id: string; weekday: number; start: string; end: string; location: string; weeks?: string; source?: "manual" | "pku" | "bit" | "ics" };
 type AcademicImportPreset = "pku" | "bit";
@@ -96,6 +102,7 @@ type Reminder = { id: string; title: string; type: "exercise" | "break" | "sleep
 type Habit = { id: string; title: string; streak: number; today: boolean; schedule: string; lastCompletedDate?: string };
 type AppState = {
   version: 6;
+  reviewPool?: CourseReviewPool;
   tasks: TaskItem[];
   milestones: Milestone[];
   courses: Course[];
@@ -344,7 +351,7 @@ function postponeTask(task: TaskItem, days = 1): TaskItem {
   return { ...task, due, plannedDate, today: taskModeOf(task) === "single" && (due === today || plannedDate === today) };
 }
 
-function hydrateState(raw: unknown): AppState {
+function hydrateState(raw: unknown, initializeReviewPool = false): AppState {
   if (!raw || typeof raw !== "object") return initialState;
   const saved = raw as Partial<AppState> & { resources?: { id: string; title: string; type: string; progress: number; url?: string; note?: string }[] };
   const savedVersion = Number((raw as { version?: unknown }).version ?? 0);
@@ -374,7 +381,7 @@ function hydrateState(raw: unknown): AppState {
     };
   }) : [];
   const milestones = Array.isArray(saved.milestones) ? saved.milestones.map((item) => ({ ...item, attachments: item.attachments ?? [], blocks: item.blocks ? cleanStarterBlocks(item.blocks) : undefined, mode: item.courseId ? item.mode ?? "single" : undefined, parentCandidate: item.courseId ? item.parentCandidate ?? tasks.some((task) => task.parentMilestoneId === item.id) : undefined })) : [];
-  return withPlannedTaskStages<AppState>(migrateDailyStudyTasks<AppState>({
+  const normalized = migrateDailyStudyTasks<AppState>({
     ...initialState, ...saved, version: 6, courses, learning,
     tasks,
     milestones,
@@ -409,13 +416,16 @@ function hydrateState(raw: unknown): AppState {
       ruleVersion: STUDY_AUTOMATION_RULE_VERSION,
     },
     themes: { ...initialState.themes, ...(saved.themes ?? {}) },
-  }, dateKey()), dateKey(), uid);
+  }, dateKey());
+  const courseEvents = migrateCourseEvents(normalized);
+  return withPlannedTaskStages<AppState>(initializeReviewPool ? initializeCourseReviewPool(courseEvents) : courseEvents, dateKey(), uid);
 }
 
 function clientNormalizationChanged(raw: unknown, hydrated: AppState) {
-  if (!raw || typeof raw !== "object") return false;
+  if (!raw || typeof raw !== "object") return Boolean(hydrated.reviewPool);
   const saved = raw as Partial<AppState>;
   return saved.version !== hydrated.version
+    || JSON.stringify(saved.reviewPool ?? null) !== JSON.stringify(hydrated.reviewPool ?? null)
     || JSON.stringify(Array.isArray(saved.tasks) ? saved.tasks : []) !== JSON.stringify(hydrated.tasks)
     || JSON.stringify(Array.isArray(saved.learning) ? saved.learning : []) !== JSON.stringify(hydrated.learning)
     || JSON.stringify(Array.isArray(saved.habits) ? saved.habits : []) !== JSON.stringify(hydrated.habits)
@@ -427,23 +437,31 @@ function clientNormalizationChanged(raw: unknown, hydrated: AppState) {
 
 const emptyPreviewImports: ImportedCourse[] = [];
 function createLocalPreviewState(drafts: ImportedCourse[]): AppState {
-  if (!drafts.length) return { ...initialState, finance: createPreviewFinanceState() };
+  if (!drafts.length) return initializeCourseReviewPool({ ...initialState, finance: createPreviewFinanceState() });
   const courses: Course[] = drafts.map((draft, index) => ({
     id: `local-course-${index}`, title: draft.title, term: "2026 秋季", teacher: draft.teacher,
     location: draft.location, school: draft.school, progress: 0, requirements: "",
     schedule: draft.schedule.map((slot, i) => ({ ...slot, id: `local-slot-${index}-${i}` })),
     blocks: [{ id: `local-note-${index}`, type: "text", text: "本地试用笔记：可以在这里输入内容，检查重新导入课表后是否保留。" }],
   }));
-  return { ...initialState, courses, tasks: [
+  return initializeCourseReviewPool<AppState>({ ...initialState, courses, tasks: [
     { id: "demo-paper", title: "会计学专业导论结课论文", area: "课内", source: "会计学专业导论", due: dateKey(new Date(Date.now() + 7*86400000)), startDate: today, mode: "multi", status: "进行中", progress: 20, done: false, today: true, elapsed: 30, blocks: [{ id: "demo-paper-note", type: "text", text: "试用记录：在这里整理论文思路、资料和修改意见。" }] },
     { id: "demo-review", title: "今日审稿", area: "课内", source: "论文", parentId: "demo-paper", due: today, done: false, today: true, elapsed: 0, blocks: [] },
-  ], milestones: [{ id: "demo-course-node", courseId: courses[0]?.id, title: "提交结课论文", date: today, time: "18:00", location: "", requirements: "本地演示要求", area: "课内", done: false }], timeEntries: [{ id: "demo-time", taskId: "demo-paper", minutes: 30, date: today, mode: "manual", note: "整理文献" }], finance: createPreviewFinanceState(), timetableSettings: { termStartDate: "2026-08-31", activeSchool: "bit" } };
+  ], milestones: [{ id: "demo-course-node", courseId: courses[0]?.id, title: "提交结课论文", date: today, time: "18:00", location: "", requirements: "本地演示要求", area: "课内", done: false }], timeEntries: [{ id: "demo-time", taskId: "demo-paper", minutes: 30, date: today, mode: "manual", note: "整理文献" }], finance: createPreviewFinanceState(), timetableSettings: { termStartDate: "2026-08-31", activeSchool: "bit" } });
 }
 
 export default function DashboardClient({ account, visibleAccounts, onLogout, deploymentVersion, preview = false, previewAcademicCourses = emptyPreviewImports }: { account: WorkspaceAccount; visibleAccounts: WorkspaceAccount[]; onLogout: () => void; deploymentVersion: string; preview?: boolean; previewAcademicCourses?: ImportedCourse[] }) {
   const [active, setActive] = useState<NavId>("today");
   const [workDetail, setWorkDetail] = useState<WorkTarget | null>(null);
   const [manualTarget, setManualTarget] = useState<WorkTarget | null>(null);
+  const [reviewPoolOpen, setReviewPoolOpen] = useState<string | null>(null);
+  const [reviewDate, setReviewDate] = useState(dateKey);
+  useEffect(() => {
+    const updateDate = () => setReviewDate(dateKey());
+    const timer = window.setInterval(updateDate, 30_000);
+    window.addEventListener("focus", updateDate);
+    return () => { window.clearInterval(timer); window.removeEventListener("focus", updateDate); };
+  }, []);
   const [detail, setDetail] = useState<DetailTarget>(null);
   const [workspaceOwner, setWorkspaceOwner] = useState(account.id);
   const [data, setStoredData] = useState<AppState>(() => preview ? createLocalPreviewState(previewAcademicCourses) : initialState);
@@ -581,7 +599,7 @@ export default function DashboardClient({ account, visibleAccounts, onLogout, de
     }).then((result) => {
       if (!result || cancelled || saveEpochRef.current !== loadEpoch) return;
       cloudRevisionRef.current = Number(result.revision ?? 0);
-      const hydrated = result.data ? hydrateState(result.data) : initialState;
+      const hydrated = hydrateState(result.data ?? initialState, workspaceOwner === "owner");
       const needsNormalizationSave = !result.readOnly && clientNormalizationChanged(result.data, hydrated);
       setStoredData(hydrated);
       loadedWorkspaceRef.current = workspaceOwner;
@@ -734,7 +752,7 @@ export default function DashboardClient({ account, visibleAccounts, onLogout, de
     const result = await response.json();
     if (saveEpochRef.current !== refreshEpoch) return;
     cloudRevisionRef.current = Number(result.revision ?? 0);
-    const hydrated = result.data ? hydrateState(result.data) : initialState;
+    const hydrated = hydrateState(result.data ?? initialState, account.id === "owner");
     const needsNormalizationSave = clientNormalizationChanged(result.data, hydrated);
     dirtyRef.current = needsNormalizationSave;
     editVersionRef.current += 1;
@@ -746,16 +764,22 @@ export default function DashboardClient({ account, visibleAccounts, onLogout, de
     setSync(needsNormalizationSave ? "saving" : "cloud");
   }, [account.id, onLogout, preview]);
 
-  const navigate = (id: NavId) => { setActive(id); setDetail(null); setWorkDetail(null); setMobileNav(false); };
+  const navigate = (id: NavId) => { setActive(id); setDetail(null); setWorkDetail(null); setMobileNav(false); setReviewPoolOpen(null); };
   const daily = data.daily[today] ?? { note: "", gain: "", problem: "", feeling: "", tomorrow: "" };
-  const todayTasks = data.tasks.filter((task) => taskVisibleToday(task, today));
-  const todayCourseNodes = data.milestones.filter((node) => studyTaskVisibleOnDate(node, today));
+  const displayedData = withoutReviewPoolSources(data);
+  const changeReviewItem = (id: string, patch: Partial<Pick<ReviewPoolItem, "progress" | "note" | "done" | "selectedDate">>) => {
+    setData((current) => updateReviewPoolItem(current, id, patch, dateKey()));
+  };
+  const reviewToday = <ReviewPoolToday items={data.reviewPool?.items ?? []} today={reviewDate} readOnly={readOnly} onChange={changeReviewItem} onOpenItem={setReviewPoolOpen} />;
+  const reviewEntry = data.reviewPool ? <ReviewPoolEntry onOpen={() => setReviewPoolOpen("")} /> : null;
+  const todayTasks = displayedData.tasks.filter((task) => taskVisibleToday(task, today));
+  const todayCourseNodes = displayedData.milestones.filter((node) => studyTaskVisibleOnDate(node, today));
   const activeCourse = detail?.type === "course" ? data.courses.find((course) => course.id === detail.id) : undefined;
   const updateDaily = (field: keyof typeof daily, value: string) => setData((current) => ({ ...current, daily: { ...current.daily, [today]: { ...(current.daily[today] ?? daily), [field]: value } } }));
   const deleteDialog = (title: string, onDelete: () => void, description = "内容会从当前账号的云端空间中移除。") => setDialog({ title: `移除“${title}”？`, description, submitLabel: "确认移除", danger: true, fields: [], onSubmit: onDelete });
   const focusChoices: FocusChoice[] = [
-    ...data.tasks.map((task) => ({ kind: "task" as const, id: task.id, title: `${task.area} · ${task.title}`, done: task.done, group: taskModeOf(task) === "multi" ? "长期任务" as const : "短期任务" as const, listed: !task.done && (taskModeOf(task) === "multi" || taskVisibleToday(task, today)) })),
-    ...data.milestones.map((node) => {
+    ...displayedData.tasks.map((task) => ({ kind: "task" as const, id: task.id, title: `${task.area} · ${task.title}`, done: task.done, group: taskModeOf(task) === "multi" ? "长期任务" as const : "短期任务" as const, listed: !task.done && (taskModeOf(task) === "multi" || taskVisibleToday(task, today)) })),
+    ...displayedData.milestones.map((node) => {
       const courseTitle = data.courses.find((course) => course.id === node.courseId)?.title;
       return { kind: "milestone" as const, id: node.id, title: `${node.area} · ${courseTitle ? `${courseTitle} / ` : ""}${node.title}`, done: node.done, group: node.courseId ? (node.mode === "multi" ? "长期任务" as const : "短期任务" as const) : "事项" as const, listed: !node.done && todayCourseNodes.includes(node) };
     }),
@@ -811,6 +835,13 @@ export default function DashboardClient({ account, visibleAccounts, onLogout, de
         return { ...entry, date, ...(entry.plannedDate === today ? { plannedDate: date } : {}) };
       }) });
   }, [setData]);
+  const cancelToday = useCallback((target: WorkTarget) => {
+    if (readOnly) return;
+    const date = dateKey();
+    setData((current) => target.kind === "task"
+      ? { ...current, tasks: current.tasks.map((entry) => entry.id === target.id ? cancelWorkForDate(entry, date) : entry) }
+      : { ...current, milestones: current.milestones.map((entry) => entry.id === target.id && entry.courseId ? cancelWorkForDate(entry, date) : entry) });
+  }, [readOnly, setData]);
   const insertAiCourseNote = useCallback(({ courseId, question, answer }: { courseId: string; question: string; answer: string }) => {
     if (!answer.trim() || !data.courses.some((course) => course.id === courseId)) throw new Error("当前课程不存在或回答为空");
     const blocks = aiCourseAnswerBlocks(question, answer);
@@ -822,21 +853,21 @@ export default function DashboardClient({ account, visibleAccounts, onLogout, de
 
   return <div className={"shell design-" + designMode} style={{ "--accent": interfaceColor } as React.CSSProperties}>
     <aside className={`sidebar ${mobileNav ? "open" : ""}`}><button className="brand" onClick={() => navigate("today")}><span className="brandMark">序</span><span>序流</span></button><DailyYiyan /><div className="navGroup">{navItems.slice(0, 5).map((item) => <NavButton key={item.id} {...item} active={active} onClick={navigate} />)}</div><div className="navCaption">我的空间</div><div className="navGroup">{navItems.slice(5).map((item) => <NavButton key={item.id} {...item} active={active} onClick={navigate} />)}</div><button className="exportButton" onClick={exportData}>导出数据备份</button><button className="refreshButton" disabled={sync === "saving"} onClick={() => void reloadForUpdate()}>{sync === "saving" ? "保存后可刷新" : "↻ 刷新应用"}</button><a className="changelogLink" href="/changelog" target="_blank" rel="noreferrer">更新日志 ↗</a>{!preview && <button className="logoutButton" onClick={onLogout}>退出登录</button>}<div className="sidebarFoot"><span className={`syncDot ${sync}`} />{sync === "saving" ? "正在保存" : sync === "readonly" ? "正在查看只读空间" : sync === "error" ? "云端连接异常" : sync === "preview" ? "本地预览 · 不会写入云端" : "已保存到云端"}</div></aside>
-    <main className="main">{preview && <div className="readOnlyBanner">本地预览 · 刷新后重置</div>}<header className="mobileHeader"><button className="iconButton" aria-label="打开导航" onClick={() => setMobileNav(true)}>☰</button><strong>序流</strong><div className="mobileHeaderActions"><button className="iconButton refreshIconButton" disabled={sync === "saving"} aria-label="刷新应用" title="刷新应用" onClick={() => void reloadForUpdate()}>↻</button><span className={`syncDot ${sync}`} /></div></header>{updateAvailable && <div className="updateBanner"><span>网站已有新版本，为避免继续使用旧页面，请先刷新。</span><button disabled={sync === "saving"} onClick={() => void reloadForUpdate()}>{sync === "saving" ? "等待保存" : "立即刷新"}</button></div>}{readOnly && <div className="readOnlyBanner">正在查看 <strong>{visibleAccount.displayName}</strong> 的空间 · 只读</div>}{!loaded ? <div className="workspaceLoading">正在载入空间…</div> : <><ThemePicker color={interfaceColor} designMode={designMode} onDesignChange={chooseDesignMode} onChange={chooseInterfaceColor} />{workDetail ? <TaskDetail key={`${workspaceOwner}:${workDetail.kind}:${workDetail.id}`} target={workDetail} data={data} setData={setData} access={{ ownerId: workspaceOwner, readOnly, preview }} focus={focus} focusPanel={focusPanel} onManual={setManualTarget} onOpen={setWorkDetail} onClose={() => setWorkDetail(null)} requestDelete={requestWorkDeletion} postponeWork={postponeWork} /> : detail ? <DetailRouter target={detail} data={data} setData={setData} back={() => setDetail(null)} openWork={setWorkDetail} setDialog={setDialog} deleteDialog={deleteDialog} access={{ ownerId: workspaceOwner, readOnly, preview }} /> : <>
-      {active === "today" && <TodayView data={data} setData={setData} tasks={todayTasks} milestones={todayCourseNodes} totalMinutes={data.timeEntries.filter((entry) => entry.date === today).reduce((sum, entry) => sum + entry.minutes, 0)} daily={daily} updateDaily={updateDaily} focusPanel={focusPanel} openWork={setWorkDetail} requestDelete={requestWorkDeletion} postponeWork={postponeWork} access={{ ownerId: workspaceOwner, readOnly, preview }} readOnly={readOnly} setPopup={setPopup} setDialog={setDialog} />}
+    <main className="main">{preview && <div className="readOnlyBanner">本地预览 · 刷新后重置</div>}<header className="mobileHeader"><button className="iconButton" aria-label="打开导航" onClick={() => setMobileNav(true)}>☰</button><strong>序流</strong><div className="mobileHeaderActions"><button className="iconButton refreshIconButton" disabled={sync === "saving"} aria-label="刷新应用" title="刷新应用" onClick={() => void reloadForUpdate()}>↻</button><span className={`syncDot ${sync}`} /></div></header>{updateAvailable && <div className="updateBanner"><span>网站已有新版本，为避免继续使用旧页面，请先刷新。</span><button disabled={sync === "saving"} onClick={() => void reloadForUpdate()}>{sync === "saving" ? "等待保存" : "立即刷新"}</button></div>}{readOnly && <div className="readOnlyBanner">正在查看 <strong>{visibleAccount.displayName}</strong> 的空间 · 只读</div>}{!loaded ? <div className="workspaceLoading">正在载入空间…</div> : <><ThemePicker color={interfaceColor} designMode={designMode} onDesignChange={chooseDesignMode} onChange={chooseInterfaceColor} />{workDetail ? <TaskDetail key={`${workspaceOwner}:${workDetail.kind}:${workDetail.id}`} target={workDetail} data={data} setData={setData} access={{ ownerId: workspaceOwner, readOnly, preview }} focus={focus} focusPanel={focusPanel} onManual={setManualTarget} onOpen={setWorkDetail} onClose={() => setWorkDetail(null)} requestDelete={requestWorkDeletion} postponeWork={postponeWork} cancelToday={cancelToday} /> : detail ? <DetailRouter target={detail} data={displayedData} setData={setData} back={() => setDetail(null)} openWork={setWorkDetail} setDialog={setDialog} deleteDialog={deleteDialog} access={{ ownerId: workspaceOwner, readOnly, preview }} /> : <>
+      {active === "today" && <TodayView reviewToday={reviewToday} data={displayedData} setData={setData} tasks={todayTasks} milestones={todayCourseNodes} totalMinutes={data.timeEntries.filter((entry) => entry.date === today).reduce((sum, entry) => sum + entry.minutes, 0)} daily={daily} updateDaily={updateDaily} focusPanel={focusPanel} openWork={setWorkDetail} requestDelete={requestWorkDeletion} postponeWork={postponeWork} cancelToday={cancelToday} access={{ ownerId: workspaceOwner, readOnly, preview }} readOnly={readOnly} setPopup={setPopup} setDialog={setDialog} />}
       {active === "timetable" && <TimetableViewV2 data={data} setData={setData} setDialog={setDialog} openCourse={(id) => setDetail({ type: "course", id })} deleteDialog={deleteDialog} dualSchool={workspaceOwner === "owner"} readOnly={readOnly} />}
-      {active === "tasks" && <TaskOverviewView data={data} setData={setData} setDialog={setDialog} openWork={setWorkDetail} requestDelete={requestWorkDeletion} postponeWork={postponeWork} access={{ ownerId: workspaceOwner, readOnly, preview }} readOnly={readOnly} />}
-      {active === "calendar" && <CalendarView data={data} setData={setData} setDialog={setDialog} openWork={setWorkDetail} readOnly={readOnly} />}
-      {active === "review" && <ReviewView data={data} setData={setData} />}
+      {active === "tasks" && <TaskOverviewView reviewPoolEntry={reviewEntry} data={displayedData} setData={setData} setDialog={setDialog} openWork={setWorkDetail} requestDelete={requestWorkDeletion} postponeWork={postponeWork} cancelToday={cancelToday} access={{ ownerId: workspaceOwner, readOnly, preview }} readOnly={readOnly} />}
+      {active === "calendar" && <CalendarView data={displayedData} setData={setData} setDialog={setDialog} openWork={setWorkDetail} readOnly={readOnly} />}
+      {active === "review" && <ReviewView data={displayedData} setData={setData} />}
       {active === "finance" && <FinanceView finance={data.finance} readOnly={readOnly} projectOptions={[...data.courses.map((item) => item.title), ...data.learning.map((item) => item.title), ...data.research.map((item) => item.title), ...data.tools.map((item) => item.title)]} onChange={(updater) => setData((current) => ({ ...current, finance: updater(current.finance) }))} getWorkspaceBytes={() => new Blob([JSON.stringify(data)]).size} />}
-      {active === "school" && <SchoolView data={data} setData={setData} openDetail={(id) => setDetail({ type: "course", id })} setDialog={setDialog} deleteDialog={deleteDialog} />}
-      {active === "learning" && <LearningView data={data} setData={setData} openDetail={(id) => setDetail({ type: "learning", id })} setDialog={setDialog} deleteDialog={deleteDialog} />}
+      {active === "school" && <SchoolView data={displayedData} setData={setData} openDetail={(id) => setDetail({ type: "course", id })} setDialog={setDialog} deleteDialog={deleteDialog} />}
+      {active === "learning" && <LearningView data={displayedData} setData={setData} openDetail={(id) => setDetail({ type: "learning", id })} setDialog={setDialog} deleteDialog={deleteDialog} />}
       {(active === "thoughts" || active === "free") && <NotesView space={active} data={data} setData={setData} selectedPage={selectedPage} setSelectedPage={setSelectedPage} setDialog={setDialog} deleteDialog={deleteDialog} access={{ ownerId: workspaceOwner, readOnly, preview }} />}
       {active === "work" && <WorkView data={data} setData={setData} openDetail={(id) => setDetail({ type: "research", id })} setDialog={setDialog} deleteDialog={deleteDialog} />}
       {active === "ideas" && <IdeasView data={data} setData={setData} setDialog={setDialog} deleteDialog={deleteDialog} />}
       {active === "tools" && <ToolsView key={workspaceOwner} data={data} setData={setData} openDetail={(id) => setDetail({ type: "tool", id })} setDialog={setDialog} deleteDialog={deleteDialog} readOnly={readOnly} />}
-      {active === "life" && <LifeViewV2 data={data} setData={setData} openDetail={setDetail} setDialog={setDialog} deleteDialog={deleteDialog} setPopup={setPopup} alerts={reminderAlerts} readOnly={readOnly} workspaceOwner={workspaceOwner} />}
-    </>}</>}</main>
+    </>}<div key={workspaceOwner} className="lifeViewMount" hidden={active !== "life" || Boolean(workDetail) || Boolean(detail)}><LifeViewV2 data={data} setData={setData} openDetail={setDetail} setDialog={setDialog} deleteDialog={deleteDialog} setPopup={setPopup} alerts={reminderAlerts} readOnly={readOnly} workspaceOwner={workspaceOwner} /></div></>}</main>
+    {reviewPoolOpen !== null && data.reviewPool && <CourseReviewPoolDialog key={reviewPoolOpen} items={data.reviewPool.items} today={reviewDate} readOnly={readOnly} initialItemId={reviewPoolOpen} onClose={() => setReviewPoolOpen(null)} onChange={changeReviewItem} renderSources={(item) => <ReviewPoolSourceDetails item={item} data={data} access={{ ownerId: workspaceOwner, readOnly, preview }} />} />}
     {manualTarget && <ManualTimeDialog target={manualTarget} title={focusChoices.find(t => t.id === manualTarget.id && t.kind === manualTarget.kind)?.title ?? "任务"} onClose={() => setManualTarget(null)} onSave={entry => { recordTime(entry); setManualTarget(null); }} />}
     {!workDetail && active !== "today" && focus.session && <div className="activeFocusBar"><strong>{focusChoices.find(t => t.id === focus.session!.target.id && t.kind === focus.session!.target.kind)?.title ?? "当前任务"}</strong><span>{formatClock(focus.seconds)}</span><button onClick={() => setWorkDetail(focus.session!.target)}>打开计时与记录</button></div>}
     <AiAssistant accountName={account.displayName} activeWorkspaceOwner={workspaceOwner} activeWorkspaceName={visibleAccount.displayName} activeCourse={activeCourse ? { id: activeCourse.id, title: activeCourse.title, canInsert: !readOnly && !preview } : undefined} disabledReason={updateAvailable ? "网站已有新版本，请刷新页面后再使用 AI。" : aiDisabledReasonForSync(preview, sync)} onApplied={refreshAfterAi} onInsertCourseNote={insertAiCourseNote} />
@@ -851,6 +882,36 @@ export default function DashboardClient({ account, visibleAccounts, onLogout, de
       setData((current) => ({ ...current, reminders: current.reminders.map((item) => item.id === id ? { ...item, snoozedUntil: Date.now() + 300000 } : item) }));
     }} />
   </div>;
+}
+
+function ReviewPoolSourceDetails({ item, data, access }: { item: ReviewPoolItem; data: AppState; access: EditorAccess }) {
+  return <>{item.sources.map((source) => {
+    const task = source.kind === "task" ? data.tasks.find((entry) => entry.id === source.id) : undefined;
+    const node = source.kind === "milestone" ? data.milestones.find((entry) => entry.id === source.id) : undefined;
+    const record = task ?? node;
+    if (!record) return null;
+    const times = data.timeEntries.filter((entry) => entryMatches(entry, source));
+    return <details className="reviewPoolSource" key={`${source.kind}:${source.id}`}>
+      <summary>{record.title}</summary>
+      {record.requirements && <p className="reviewPoolOriginalText">{record.requirements}</p>}
+      {node?.outcomeText && <p className="reviewPoolOriginalText">{node.outcomeText}</p>}
+      {task?.progressLogs?.map((log) => <p className="reviewPoolOriginalText" key={log.id}>{log.date} · {log.progress}%{log.note ? ` · ${log.note}` : ""}</p>)}
+      {Boolean(record.elapsed) && <p>原记录投入 {record.elapsed} 分钟</p>}
+      {times.map((entry) => <p className="reviewPoolOriginalText" key={entry.id}>{entry.date} · {entry.minutes} 分钟{entry.note ? ` · ${entry.note}` : ""}</p>)}
+      {(record.blocks ?? []).map((block) => <div className="reviewPoolOriginalBlock" key={block.id} style={textStyle(block)}>
+        {block.type === "checklist" && <span>{block.checked ? "☑ " : "☐ "}</span>}
+        {block.inlineRuns?.length ? block.inlineRuns.map((run, index) => <span key={index} style={{ fontWeight: run.bold ? "bold" : undefined, fontStyle: run.italic ? "italic" : undefined, color: run.color, backgroundColor: run.backgroundColor, textDecoration: [run.underline ? "underline" : "", run.strike ? "line-through" : ""].filter(Boolean).join(" ") }}>{run.text}</span>) : block.text}
+        {block.type === "image" && block.url && <Image src={fileProxyUrl(block)} alt={block.text ?? "原笔记配图"} width={600} height={400} unoptimized />}
+        {block.type === "link" && block.url && <a href={block.url} target="_blank" rel="noreferrer">{block.url}</a>}
+        {block.type === "file" && block.url && <a href={fileProxyUrl(block)} target="_blank" rel="noreferrer">{block.fileName || "查看原附件"}</a>}
+        {block.rows && <div className="reviewPoolOriginalTable"><table><tbody>{block.rows.map((row, index) => <tr key={index}>{row.map((cell, column) => <td key={column}>{cell}</td>)}</tr>)}</tbody></table></div>}
+        {block.embeddedImages?.map((file) => <Image key={file.id} src={fileProxyUrl(file)} alt={file.caption || file.fileName} width={600} height={400} unoptimized />)}
+        {block.embeddedFiles?.map((file) => <a key={file.id} href={fileProxyUrl(file)} target="_blank" rel="noreferrer">{file.fileName}</a>)}
+      </div>)}
+      {Boolean(record.attachments?.length) && <NodeAttachments nodeId={record.id} scope={source.kind} label="原附件" files={record.attachments ?? []} access={{ ...access, readOnly: true }} onChange={() => {}} onBlockedChange={() => {}} />}
+      {Boolean(node?.outcomeAttachments?.length) && <NodeAttachments nodeId={record.id} label="原成果附件" files={node?.outcomeAttachments ?? []} access={{ ...access, readOnly: true }} onChange={() => {}} onBlockedChange={() => {}} />}
+    </details>;
+  })}</>;
 }
 
 function NavButton({ id, icon, label, active, onClick }: { id: NavId; icon: string; label: string; active: NavId; onClick: (id: NavId) => void }) { return <button className={`navButton ${active === id ? "active" : ""}`} onClick={() => onClick(id)}><span>{icon}</span>{label}</button>; }
@@ -940,27 +1001,13 @@ function SyncChip() { return <span className="syncChip"><span />云端自动保�
 function PanelTitle({ title, subtitle, meta }: { title: string; subtitle?: string; meta?: string }) { return <div className="panelHead"><div><h2>{title}</h2>{subtitle && <p>{subtitle}</p>}</div>{meta && <span className="countChip">{meta}</span>}</div>; }
 function SectionHead({ title, subtitle, action }: { title: string; subtitle?: string; action?: React.ReactNode }) { return <div className="sectionHead"><div><h2>{title}</h2>{subtitle && <p>{subtitle}</p>}</div>{action}</div>; }
 
-function TodayView({ data, setData, tasks, milestones, totalMinutes, daily, updateDaily, focusPanel, openWork, requestDelete, postponeWork, access, readOnly, setPopup, setDialog }: { data: AppState; setData: React.Dispatch<React.SetStateAction<AppState>>; tasks: TaskItem[]; milestones: Milestone[]; totalMinutes: number; daily: AppState["daily"][string]; updateDaily: (field: keyof AppState["daily"][string], value: string) => void; focusPanel: React.ReactNode; openWork: (target: WorkTarget) => void; requestDelete: (target: WorkTarget, title: string) => void; postponeWork: (target: WorkTarget, days?: number) => void; access: EditorAccess; readOnly: boolean; setPopup: (value: PopupState) => void; setDialog: (value: DialogConfig) => void }) {
+function TodayView({ reviewToday, data, setData, tasks, milestones, totalMinutes, daily, updateDaily, focusPanel, openWork, requestDelete, postponeWork, cancelToday, access, readOnly, setPopup, setDialog }: { reviewToday: React.ReactNode; data: AppState; setData: React.Dispatch<React.SetStateAction<AppState>>; tasks: TaskItem[]; milestones: Milestone[]; totalMinutes: number; daily: AppState["daily"][string]; updateDaily: (field: keyof AppState["daily"][string], value: string) => void; focusPanel: React.ReactNode; openWork: (target: WorkTarget) => void; requestDelete: (target: WorkTarget, title: string) => void; postponeWork: (target: WorkTarget, days?: number) => void; cancelToday: (target: WorkTarget) => void; access: EditorAccess; readOnly: boolean; setPopup: (value: PopupState) => void; setDialog: (value: DialogConfig) => void }) {
   const [creatingTask, setCreatingTask] = useState(false);
   const [editingTask, setEditingTask] = useState<TaskItem | null>(null);
   const [editingNode, setEditingNode] = useState<Milestone | null>(null);
   const deadlines = upcomingDeadlines(data.tasks, data.milestones, dateKey());
-  const addEvent = () => setDialog({
-    title: "新增事项",
-    submitLabel: "创建事项",
-    fields: [
-      { name: "title", label: "事项名称", placeholder: "例如：项目会议" },
-      { name: "date", label: "日期", type: "date", value: today },
-      { name: "time", label: "时间", type: "time", value: "00:00" },
-      { name: "location", label: "地点" },
-      { name: "requirements", label: "事项说明", type: "textarea", placeholder: "议程、携带材料或其他说明" },
-      { name: "area", label: "所属领域", type: "select", options: ["课内", "课外", "工作", "生活", "思考"], value: "工作" },
-    ],
-    onSubmit: (values) => {
-      const id = uid();
-      setData((current) => ({ ...current, milestones: [...current.milestones, { id, title: values.title.trim() || "未命名事项", date: values.date || today, time: values.time || "00:00", location: values.location.trim(), requirements: values.requirements.trim(), area: (values.area || "工作") as Area, done: false }] }));
-    },
-  });
+  const [creatingEvent, setCreatingEvent] = useState(false);
+  const addEvent = () => setCreatingEvent(true);
   const courseTasks = milestones.filter((node) => Boolean(node.courseId));
   const calendarItems = milestones.filter((node) => !node.courseId);
   type TodayTaskEntry = { kind: "task"; item: TaskItem } | { kind: "milestone"; item: Milestone };
@@ -1005,6 +1052,8 @@ function TodayView({ data, setData, tasks, milestones, totalMinutes, daily, upda
     },
   ];
   const allTaskEntries = taskGroups.flatMap((group) => group.entries);
+  const selectedReviews = data.reviewPool?.items.filter((item) => reviewPoolItemVisibleOnDate(item, dateKey())) ?? [];
+  const completedReviews = selectedReviews.filter((item) => item.done).length;
   const automaticTasks = milestones.filter((node) => Boolean(node.automationKey));
   const resetTodayStudyPlan = () => {
     const todayPrefix = `study:${dateKey()}:`;
@@ -1034,25 +1083,26 @@ function TodayView({ data, setData, tasks, milestones, totalMinutes, daily, upda
     <div className="taskBody">
       <button className="taskTitleButton" onClick={() => readOnly ? openWork({ kind: "task", id: entry.item.id }) : setEditingTask(entry.item)}>{entry.item.title}</button>
       {entry.item.done && <span className="taskStatus 已完成 todayCompletionStatus">已完成</span>}
-      <small>{entry.item.parentId ? "属于：" + (data.tasks.find((task) => task.id === entry.item.parentId)?.title ?? "上级任务") : entry.item.parentMilestoneId ? "属于：" + (data.milestones.find((node) => node.id === entry.item.parentMilestoneId)?.title ?? "关联对象") : entry.item.source} · {taskModeOf(entry.item) === "multi" ? (entry.item.startDate || "未设开始") + " → " + taskDeadlineLabel(entry.item) : `${entry.item.plannedDate === today ? "今日推进 · " : ""}${entry.item.due ? "截止 " + taskDeadlineLabel(entry.item) : "未设截止"}`}</small>
+      <small>{entry.item.parentId ? "属于：" + (data.tasks.find((task) => task.id === entry.item.parentId)?.title ?? "上级任务") : entry.item.parentMilestoneId ? "属于：" + (data.milestones.find((node) => node.id === entry.item.parentMilestoneId)?.title ?? "关联对象") : entry.item.source} · {taskModeOf(entry.item) === "multi" ? (entry.item.startDate || "未设开始") + " → " + taskDeadlineLabel(entry.item) : `${defaultTaskPlannedDate(entry.item) === today ? "今日推进 · " : ""}${entry.item.due ? "截止 " + taskDeadlineLabel(entry.item) : "未设截止"}`}</small>
       <button className="taskRecordLink" onClick={() => readOnly ? openWork({ kind: "task", id: entry.item.id }) : setEditingTask(entry.item)}>{readOnly ? "查看详细信息" : "修改基础信息"} · 已投入 {entry.item.elapsed} 分钟</button>
       {!readOnly && !entry.item.done && <button className="taskRecordLink" onClick={() => setDialog(taskProgressDialog(entry.item, setData))}>记录今日进度</button>}
       {(taskModeOf(entry.item) === "multi" || taskProgressOf(entry.item) > 0) && <><span>{taskProgressOf(entry.item)}% · {taskStatusOf(entry.item)}</span><i className="todayTaskProgress"><b style={{ width: taskProgressOf(entry.item) + "%" }} /></i></>}
     </div>
-    <div className="taskRowActions"><span className={"areaTag " + areaClass[entry.item.area]}>{entry.item.area}</span>{!entry.item.done && <button type="button" className="quickPostponeButton" disabled={readOnly} aria-label={"将任务推迟一天：" + entry.item.title} onClick={() => postponeWork({ kind: "task", id: entry.item.id })}>＋1天</button>}<button type="button" className="miniRemove todayQuickDelete" disabled={readOnly} aria-label={"快捷删除任务：" + entry.item.title} onClick={() => requestDelete({ kind: "task", id: entry.item.id }, entry.item.title)}>×</button></div>
+    <div className="taskRowActions"><span className={"areaTag " + areaClass[entry.item.area]}>{entry.item.area}</span>{!entry.item.done && <button type="button" className="quickPostponeButton" disabled={readOnly} aria-label={"将任务推迟一天：" + entry.item.title} onClick={() => postponeWork({ kind: "task", id: entry.item.id })}>＋1天</button>}{!entry.item.done && <button type="button" className="cancelTodayButton" disabled={readOnly} aria-label={"取消今天：" + entry.item.title} onClick={() => cancelToday({ kind: "task", id: entry.item.id })}>取消今天</button>}<button type="button" className="miniRemove todayQuickDelete" disabled={readOnly} aria-label={"快捷删除任务：" + entry.item.title} onClick={() => requestDelete({ kind: "task", id: entry.item.id }, entry.item.title)}>×</button></div>
   </div> : <div key={"milestone-" + entry.item.id} className={"taskRow " + (entry.item.done ? "done" : "")}>
     <button className="checkButton" disabled={readOnly} aria-pressed={entry.item.done} aria-label={(entry.item.done ? "标记未完成：" : "标记完成：") + entry.item.title} onClick={() => setData((current) => ({ ...current, milestones: current.milestones.map((node) => node.id === entry.item.id ? { ...node, done: !node.done } : node) }))}>{entry.item.done ? "✓" : ""}</button>
-    <div className="taskBody"><button className="taskTitleButton" onClick={() => readOnly ? openWork({ kind: "milestone", id: entry.item.id }) : setEditingNode(entry.item)}>{entry.item.title}</button>{entry.item.done && <span className="taskStatus 已完成 todayCompletionStatus">已完成</span>}<small>{entry.item.automationKey ? DAILY_STUDY_DURATION : data.courses.find((course) => course.id === entry.item.courseId)?.title ?? "课程任务"} · {entry.item.plannedDate === today ? "今日推进 · " : ""}{entry.item.mode === "multi" || entry.item.plannedDate ? "截止 " : ""}{entry.item.date}</small><button className="taskRecordLink" onClick={() => readOnly ? openWork({ kind: "milestone", id: entry.item.id }) : setEditingNode(entry.item)}>{readOnly ? "查看详细信息" : "修改基础信息"} · 已投入 {entry.item.elapsed ?? 0} 分钟</button></div>
-    <div className="taskRowActions"><span className={"areaTag " + areaClass[entry.item.area]}>{entry.item.area}</span>{!entry.item.done && <button type="button" className="quickPostponeButton" disabled={readOnly} aria-label={"将课程任务推迟一天：" + entry.item.title} onClick={() => postponeWork({ kind: "milestone", id: entry.item.id })}>＋1天</button>}<button type="button" className="miniRemove todayQuickDelete" disabled={readOnly} aria-label={"快捷删除任务：" + entry.item.title} onClick={() => requestDelete({ kind: "milestone", id: entry.item.id }, entry.item.title)}>×</button></div>
+    <div className="taskBody"><button className="taskTitleButton" onClick={() => readOnly ? openWork({ kind: "milestone", id: entry.item.id }) : setEditingNode(entry.item)}>{entry.item.title}</button>{entry.item.done && <span className="taskStatus 已完成 todayCompletionStatus">已完成</span>}<small>{entry.item.automationKey ? DAILY_STUDY_DURATION : data.courses.find((course) => course.id === entry.item.courseId)?.title ?? "课程任务"} · {defaultTaskPlannedDate(entry.item) === today ? "今日推进 · " : ""}{entry.item.mode === "multi" || entry.item.plannedDate ? "截止 " : ""}{entry.item.date}</small><button className="taskRecordLink" onClick={() => readOnly ? openWork({ kind: "milestone", id: entry.item.id }) : setEditingNode(entry.item)}>{readOnly ? "查看详细信息" : "修改基础信息"} · 已投入 {entry.item.elapsed ?? 0} 分钟</button></div>
+    <div className="taskRowActions"><span className={"areaTag " + areaClass[entry.item.area]}>{entry.item.area}</span>{!entry.item.done && <button type="button" className="quickPostponeButton" disabled={readOnly} aria-label={"将课程任务推迟一天：" + entry.item.title} onClick={() => postponeWork({ kind: "milestone", id: entry.item.id })}>＋1天</button>}{!entry.item.done && <button type="button" className="cancelTodayButton" disabled={readOnly} aria-label={"取消今天：" + entry.item.title} onClick={() => cancelToday({ kind: "milestone", id: entry.item.id })}>取消今天</button>}<button type="button" className="miniRemove todayQuickDelete" disabled={readOnly} aria-label={"快捷删除任务：" + entry.item.title} onClick={() => requestDelete({ kind: "milestone", id: entry.item.id }, entry.item.title)}>×</button></div>
   </div>;
   return <div className="page">
-    <PageHead eyebrow={(new Date().getMonth() + 1) + "月" + new Date().getDate() + "日 · " + new Intl.DateTimeFormat("zh-CN", { weekday: "long" }).format(new Date())} title="今日" subtitle={allTaskEntries.filter((entry) => !entry.item.done).length + " 项任务待完成 · 今日已专注 " + formatMinutes(totalMinutes)} action={<div className="pageHeadActions"><button className="primaryButton" disabled={readOnly} onClick={() => setCreatingTask(true)}>＋ 新增任务</button><button className="softButton" disabled={readOnly} onClick={addEvent}>＋ 新增事项</button><SyncChip /></div>} />
+    <PageHead eyebrow={(new Date().getMonth() + 1) + "月" + new Date().getDate() + "日 · " + new Intl.DateTimeFormat("zh-CN", { weekday: "long" }).format(new Date())} title="今日" subtitle={(allTaskEntries.filter((entry) => !entry.item.done).length + selectedReviews.length - completedReviews) + " 项任务待完成 · 今日已专注 " + formatMinutes(totalMinutes)} action={<div className="pageHeadActions"><button className="primaryButton" disabled={readOnly} onClick={() => setCreatingTask(true)}>＋ 新增任务</button><button className="softButton" disabled={readOnly} onClick={addEvent}>＋ 新增事项</button><SyncChip /></div>} />
     {creatingTask && <TaskSettingsDialog access={access} tasks={data.tasks} milestones={data.milestones} courses={data.courses} learning={data.learning} onClose={() => setCreatingTask(false)} onSave={(task) => { setData((current) => ({ ...current, tasks: [...current.tasks, task] })); setCreatingTask(false); }} />}
     {editingTask && <TaskSettingsDialog task={editingTask} access={access} tasks={data.tasks} milestones={data.milestones} courses={data.courses} learning={data.learning} onClose={() => setEditingTask(null)} onSave={(task) => { setData((current) => ({ ...current, tasks: current.tasks.map((item) => item.id === task.id ? preserveTaskContent(item, task) : item) })); setEditingTask(null); }} onOpenDetail={() => { const id = editingTask.id; setEditingTask(null); openWork({ kind: "task", id }); }} />}
-    {editingNode && <MilestoneSettingsDialog node={editingNode} onClose={() => setEditingNode(null)} onSave={(node) => { setData((current) => ({ ...current, milestones: current.milestones.map((item) => item.id === node.id ? node : item) })); setEditingNode(null); }} onOpenDetail={() => { const id = editingNode.id; setEditingNode(null); openWork({ kind: "milestone", id }); }} />}
+    {creatingEvent && <CourseEventDialog courses={data.courses} readOnly={readOnly} onClose={() => setCreatingEvent(false)} onSave={(node) => { setData((current) => ({ ...current, milestones: [...current.milestones, node] })); setCreatingEvent(false); }} />}
+    {editingNode && <MilestoneSettingsDialog courses={data.courses} node={editingNode} onClose={() => setEditingNode(null)} onSave={(node) => { setData((current) => ({ ...current, milestones: current.milestones.map((item) => item.id === node.id ? node : item) })); setEditingNode(null); }} onOpenDetail={() => { const id = editingNode.id; setEditingNode(null); openWork({ kind: "milestone", id }); }} />}
     <div className="todayGrid"><div className="stack">
       {taskGroups.map((group) => <Fragment key={group.id}><section className="panel taskPanel todayCategoryPanel">
-        <PanelTitle title={group.title} meta={group.entries.filter((entry) => entry.item.done).length + " / " + group.entries.length} />
+        <PanelTitle title={group.title} meta={(group.entries.filter((entry) => entry.item.done).length + (group.id === "single" ? completedReviews : 0)) + " / " + (group.entries.length + (group.id === "single" ? selectedReviews.length : 0))} />
         <div className={"taskList " + (group.id === "single" ? "groupedTaskList" : "")}>{group.id === "single" ? shortTaskSections.map((section) => <div className="todayTaskSubgroup" key={section.id}>
           <div className="todayTaskSubhead"><strong>{section.title}</strong><span>{section.entries.length} 项</span></div>
           {section.id === "automatic" ? automaticCourseGroups.map((course) => <details className="todayAutomaticCourse" key={course.courseId}>
@@ -1060,14 +1110,15 @@ function TodayView({ data, setData, tasks, milestones, totalMinutes, daily, upda
             {course.entries.map(renderTaskEntry)}
           </details>) : section.entries.map(renderTaskEntry)}
         </div>) : group.entries.map(renderTaskEntry)}</div>
-        {!group.entries.length && <div className="emptyState compact"><h2>今天没有{group.title}</h2></div>}
-      </section>{group.id === "single" && <section className="panel taskPanel todayCategoryPanel"><PanelTitle title="事项" meta={calendarItems.filter((item) => item.done).length + " / " + calendarItems.length} /><div className="taskList">{calendarItems.map((item) => <div className={"taskRow " + (item.done ? "done" : "")} key={item.id}><button className="checkButton" disabled={readOnly} aria-pressed={item.done} aria-label={(item.done ? "标记未完成：" : "标记完成：") + item.title} onClick={() => setData((current) => ({ ...current, milestones: current.milestones.map((node) => node.id === item.id ? { ...node, done: !node.done } : node) }))}>{item.done ? "✓" : ""}</button><div className="taskBody"><button className="taskTitleButton" onClick={() => readOnly ? openWork({ kind: "milestone", id: item.id }) : setEditingNode(item)}>{item.title}</button>{item.done && <span className="taskStatus 已完成 todayCompletionStatus">已完成</span>}<span>{item.time} · {item.location || "未填写地点"}</span><button className="taskRecordLink" onClick={() => readOnly ? openWork({ kind: "milestone", id: item.id }) : setEditingNode(item)}>{readOnly ? "查看详细信息" : "修改基础信息"} · 已投入 {item.elapsed ?? 0} 分钟</button></div><div className="taskRowActions"><span className={"areaTag " + areaClass[item.area]}>{item.area}</span>{!item.done && <button type="button" className="quickPostponeButton" disabled={readOnly} aria-label={"将事项推迟一天：" + item.title} onClick={() => postponeWork({ kind: "milestone", id: item.id })}>＋1天</button>}<button type="button" className="miniRemove todayQuickDelete" disabled={readOnly} aria-label={"快捷删除事项：" + item.title} onClick={() => requestDelete({ kind: "milestone", id: item.id }, item.title)}>×</button></div></div>)}</div>{!calendarItems.length && <div className="emptyState compact"><h2>今天没有事项</h2></div>}</section>}</Fragment>)}
+        {!group.entries.length && !(group.id === "single" && selectedReviews.length) && <div className="emptyState compact"><h2>今天没有{group.title}</h2></div>}
+        {group.id === "single" && reviewToday}
+      </section>{group.id === "single" && <section className="panel taskPanel todayCategoryPanel"><PanelTitle title="事项" meta={calendarItems.filter((item) => item.done).length + " / " + calendarItems.length} /><div className="taskList">{calendarItems.map((item) => <div className={"taskRow " + (item.done ? "done" : "")} key={item.id}><button className="checkButton" disabled={readOnly} aria-pressed={item.done} aria-label={(item.done ? "标记未完成：" : "标记完成：") + item.title} onClick={() => setData((current) => ({ ...current, milestones: current.milestones.map((node) => node.id === item.id ? { ...node, done: !node.done } : node) }))}>{item.done ? "✓" : ""}</button><div className="taskBody"><button className="taskTitleButton" onClick={() => readOnly ? openWork({ kind: "milestone", id: item.id }) : setEditingNode(item)}>{item.title}</button>{item.done && <span className="taskStatus 已完成 todayCompletionStatus">已完成</span>}<span>{[eventDateLabel(item), eventCourseLabel(item, data.courses), assessmentTypeLabel(item.assessmentType), item.location].filter(Boolean).join(" · ")}</span><button className="taskRecordLink" onClick={() => readOnly ? openWork({ kind: "milestone", id: item.id }) : setEditingNode(item)}>{readOnly ? "查看详细信息" : "修改基础信息"} · 已投入 {item.elapsed ?? 0} 分钟</button></div><div className="taskRowActions"><span className={"areaTag " + areaClass[item.area]}>{item.area}</span>{!item.done && <button type="button" className="quickPostponeButton" disabled={readOnly} aria-label={"将事项推迟一天：" + item.title} onClick={() => postponeWork({ kind: "milestone", id: item.id })}>＋1天</button>}<button type="button" className="miniRemove todayQuickDelete" disabled={readOnly} aria-label={"快捷删除事项：" + item.title} onClick={() => requestDelete({ kind: "milestone", id: item.id }, item.title)}>×</button></div></div>)}</div>{!calendarItems.length && <div className="emptyState compact"><h2>今天没有事项</h2></div>}</section>}</Fragment>)}
       <section className="panel notePanel"><PanelTitle title="今日随记" meta="自动保存" /><textarea value={daily.note} onChange={(event) => updateDaily("note", event.target.value)} aria-label="今日随记" /></section>
-    </div><div className="stack"><section className="panel studyPlanPanel"><PanelTitle title="课表学习计划" meta={data.studyAutomation.enabled ? "已开启" : "已暂停"} /><p>{data.studyAutomation.enabled ? `今日自动安排 ${automaticTasks.length} 项` : "已暂停"}</p><div className="studyPlanActions"><button className="softButton" disabled={readOnly} onClick={toggleStudyPlan}>{data.studyAutomation.enabled ? "暂停自动安排" : "开启自动安排"}</button>{data.studyAutomation.enabled && <button className="softButton" disabled={readOnly} onClick={resetTodayStudyPlan}>重新安排今天</button>}</div></section>{focusPanel}<section className="panel todayHabitsPanel"><PanelTitle title="今日习惯" meta={data.habits.filter((habit) => habit.today).length + " / " + data.habits.length} /><div className="todayHabitList">{data.habits.map((habit) => <div className="habitRow todayHabitRow" key={habit.id}><button className={`habitCheck ${habit.today ? "done" : ""}`} disabled={readOnly} aria-pressed={habit.today} aria-label={(habit.today ? "取消打卡：" : "完成打卡：") + habit.title} onClick={() => setData((current) => ({ ...current, habits: current.habits.map((item) => item.id === habit.id ? toggledHabit(item) : item) }))}>{habit.today ? "✓" : ""}</button><div><strong>{habit.title}</strong><span>{habit.schedule} · 连续 {habit.streak} 天</span></div></div>)}</div>{!data.habits.length && <div className="emptyState compact"><h2>还没有习惯</h2></div>}</section><div className="miniStats"><div><strong>{formatMinutes(totalMinutes)}</strong><span>今日专注</span></div><div><strong>{allTaskEntries.filter((entry) => entry.item.done).length}</strong><span>完成任务</span></div><div><strong>{Math.round(data.habits.filter((habit) => habit.today).length / Math.max(1, data.habits.length) * 100)}%</strong><span>习惯完成</span></div></div><section className="panel reminderPanel"><PanelTitle title="生活提醒" /><div className="reminderList">{data.reminders.map((reminder) => <div className="reminderRow" key={reminder.id}><span className={"reminderIcon " + reminder.type}>{reminder.type === "sleep" ? "眠" : reminder.type === "break" ? "息" : reminder.type === "exercise" ? "动" : "提"}</span><div><strong>{reminder.title}</strong><span>{[...(reminder.type === "break" ? ["每 " + (reminder.intervalMinutes ?? 20) + " 分钟 · 自动计时"] : []), ...reminder.times].join(" / ")} · {reminder.enabled ? "等待提醒" : "已关闭"}</span></div><button className="softButton" onClick={() => setPopup({ eyebrow: "提醒预览", title: reminder.title, body: "你可以完成、延迟 5 分钟或关闭这条页面提示。" })}>预览</button></div>)}</div></section>
+    </div><div className="stack"><section className="panel studyPlanPanel"><PanelTitle title="课表学习计划" meta={data.studyAutomation.enabled ? "已开启" : "已暂停"} /><p>{data.studyAutomation.enabled ? `今日自动安排 ${automaticTasks.length} 项` : "已暂停"}</p><div className="studyPlanActions"><button className="softButton" disabled={readOnly} onClick={toggleStudyPlan}>{data.studyAutomation.enabled ? "暂停自动安排" : "开启自动安排"}</button>{data.studyAutomation.enabled && <button className="softButton" disabled={readOnly} onClick={resetTodayStudyPlan}>重新安排今天</button>}</div></section>{focusPanel}<section className="panel todayHabitsPanel"><PanelTitle title="今日习惯" meta={data.habits.filter((habit) => habit.today).length + " / " + data.habits.length} /><div className="todayHabitList">{data.habits.map((habit) => <div className="habitRow todayHabitRow" key={habit.id}><button className={`habitCheck ${habit.today ? "done" : ""}`} disabled={readOnly} aria-pressed={habit.today} aria-label={(habit.today ? "取消打卡：" : "完成打卡：") + habit.title} onClick={() => setData((current) => ({ ...current, habits: current.habits.map((item) => item.id === habit.id ? toggledHabit(item) : item) }))}>{habit.today ? "✓" : ""}</button><div><strong>{habit.title}</strong><span>{habit.schedule} · 连续 {habit.streak} 天</span></div></div>)}</div>{!data.habits.length && <div className="emptyState compact"><h2>还没有习惯</h2></div>}</section><div className="miniStats"><div><strong>{formatMinutes(totalMinutes)}</strong><span>今日专注</span></div><div><strong>{allTaskEntries.filter((entry) => entry.item.done).length + completedReviews}</strong><span>完成任务</span></div><div><strong>{Math.round(data.habits.filter((habit) => habit.today).length / Math.max(1, data.habits.length) * 100)}%</strong><span>习惯完成</span></div></div><section className="panel reminderPanel"><PanelTitle title="生活提醒" /><div className="reminderList">{data.reminders.map((reminder) => <div className="reminderRow" key={reminder.id}><span className={"reminderIcon " + reminder.type}>{reminder.type === "sleep" ? "眠" : reminder.type === "break" ? "息" : reminder.type === "exercise" ? "动" : "提"}</span><div><strong>{reminder.title}</strong><span>{[...(reminder.type === "break" ? ["每 " + (reminder.intervalMinutes ?? 20) + " 分钟 · 自动计时"] : []), ...reminder.times].join(" / ")} · {reminder.enabled ? "等待提醒" : "已关闭"}</span></div><button className="softButton" onClick={() => setPopup({ eyebrow: "提醒预览", title: reminder.title, body: "你可以完成、延迟 5 分钟或关闭这条页面提示。" })}>预览</button></div>)}</div></section>
       <section className="panel upcomingDeadlinePanel" aria-label="近期截止">
         <PanelTitle title="近期截止" meta={String(deadlines.length)} />
         <div className="upcomingDeadlineList">{deadlines.map((item) => <button type="button" className="upcomingDeadlineRow" key={item.kind + "-" + item.id} aria-label={"查看近期截止：" + item.title} onClick={() => openWork({ kind: item.kind, id: item.id })}>
-          <strong>{item.title}</strong><span className="upcomingDeadlineMeta"><time dateTime={item.date + (item.time ? "T" + item.time : "")}>{item.date}{item.time ? " " + item.time : ""}</time><span>{item.entity === "task" ? "任务" : "事项"}</span></span>
+          <strong>{item.title}</strong><span className="upcomingDeadlineMeta"><time dateTime={item.date + (item.time ? "T" + item.time : "")}>{item.kind === "milestone" ? eventDateLabel(data.milestones.find((node) => node.id === item.id) ?? { date: item.date, time: item.time ?? "" }) : item.date + (item.time ? " " + item.time : "")}</time><span>{item.entity === "task" ? "任务" : "事项"}</span></span>
         </button>)}</div>
         {!deadlines.length && <p className="upcomingDeadlineEmpty">暂无</p>}
       </section>
@@ -1279,13 +1330,14 @@ function ManualTimeDialog({ target, title, onClose, onSave }: { target: WorkTarg
   }}><div className="dialogHead"><div><span>时间记录</span><h2>补记投入时间</h2><p>{title}</p></div><button type="button" aria-label="关闭补记" onClick={onClose}>×</button></div><div className="dialogFields"><label>分钟数<input required type="number" min="1" max="1440" step="1" value={minutes} onChange={e => setMinutes(e.target.value)} /></label><label>记录日期<input required type="date" value={date} onChange={e => setDate(e.target.value)} /></label><label className="wide">做了什么<textarea maxLength={500} value={note} onChange={e => setNote(e.target.value)} placeholder="例如：审阅初稿，调整第三部分结构" /></label></div>{error && <p role="alert" className="dialogError">{error}</p>}<div className="dialogActions"><button type="button" className="softButton" onClick={onClose}>取消</button><button className="primaryButton" type="submit">记入时间</button></div></form></div>;
 }
 
-function TaskDetail({ target, data, setData, access, focus, focusPanel, onManual, onOpen, onClose, requestDelete, postponeWork }: {
+function TaskDetail({ target, data, setData, access, focus, focusPanel, onManual, onOpen, onClose, requestDelete, postponeWork, cancelToday }: {
   target: WorkTarget; data: AppState; setData: React.Dispatch<React.SetStateAction<AppState>>; access: EditorAccess;
   focus: FocusController; focusPanel: React.ReactNode; onManual: (target: WorkTarget) => void; onOpen: (target: WorkTarget) => void; onClose: () => void;
-  requestDelete: (target: WorkTarget, title: string) => void; postponeWork: (target: WorkTarget, days?: number) => void;
+  requestDelete: (target: WorkTarget, title: string) => void; postponeWork: (target: WorkTarget, days?: number) => void; cancelToday: (target: WorkTarget) => void;
 }) {
   const [editing, setEditing] = useState<TaskItem | "new" | null>(null);
   const [nodePending, setNodePending] = useState(false);
+  const [editingEvent, setEditingEvent] = useState(false);
   const [focusExpanded, setFocusExpanded] = useState(Boolean(focus.session));
   const [requirementsExpanded, setRequirementsExpanded] = useState(false);
   useEffect(() => { window.scrollTo({ top: 0, behavior: "instant" }); }, []);
@@ -1307,7 +1359,7 @@ function TaskDetail({ target, data, setData, access, focus, focusPanel, onManual
     ? (taskModeOf(task) === "multi" ? "长期任务" : "短期任务") + " · " + task.area + " · " + task.source + " · " + taskScheduleSummary(task, dateKey())
     : isCourseTask
       ? (node?.mode === "multi" ? "长期任务" : "短期任务") + " · 课内 · " + node?.date + " " + node?.time + " · " + (data.courses.find((course) => course.id === node?.courseId)?.title ?? "课程任务")
-      : "事项 · " + node?.area + " · " + node?.date + " " + node?.time + (node?.location ? " · " + node.location : "");
+      : ["事项", node && (eventCourseLabel(node, data.courses) || node.area), node && assessmentTypeLabel(node.assessmentType), node && eventDateLabel(node), node?.plannedDate && node.plannedDate + " 计划推进", node?.location].filter(Boolean).join(" · ");
   const toggle = () => setData((current) => target.kind === "task"
     ? { ...current, tasks: current.tasks.map((entry) => entry.id === target.id ? withTaskCompletion(entry, !entry.done) : entry) }
     : { ...current, milestones: current.milestones.map((entry) => entry.id === target.id ? { ...entry, done: !entry.done } : entry) });
@@ -1321,29 +1373,33 @@ function TaskDetail({ target, data, setData, access, focus, focusPanel, onManual
     : { ...current, milestones: current.milestones.map((entry) => entry.id === target.id ? { ...entry, blocks } : entry) });
   return <div className="page taskDetailPage">
     <button className="backButton" disabled={nodePending} onClick={onClose}>← 返回列表</button>
-    <PageHead eyebrow={isEvent ? "事项详情" : isCourseTask ? "课程任务详情" : "任务详情"} title={item.title} subtitle={subtitle} action={<div className="pageHeadActions">{task && <button className="softButton" disabled={access.readOnly} onClick={() => setEditing(task)}>修改任务</button>}{!item.done && <button className="softButton" disabled={access.readOnly || nodePending} onClick={() => postponeWork(target)}>推迟 1 天</button>}<button className="primaryButton" disabled={access.readOnly} onClick={toggle}>{item.done ? "重新打开" + entityLabel : "标记" + entityLabel + "完成"}</button><details className="taskMoreActions taskDetailMore"><summary>更多</summary><div><button type="button" className="dangerText" disabled={access.readOnly || nodePending} onClick={remove}>删除{entityLabel}</button></div></details></div>} />
+    <PageHead eyebrow={isEvent ? "事项详情" : isCourseTask ? "课程任务详情" : "任务详情"} title={item.title} subtitle={subtitle} action={<div className="pageHeadActions">{task && <button className="softButton" disabled={access.readOnly} onClick={() => setEditing(task)}>修改任务</button>}{isEvent && <button className="softButton" disabled={access.readOnly || nodePending} onClick={() => setEditingEvent(true)}>修改事项</button>}{!item.done && (!isEvent || node?.date) && <button className="softButton" disabled={access.readOnly || nodePending} onClick={() => postponeWork(target)}>推迟 1 天</button>}{!isEvent && !item.done && (task ? taskVisibleToday(task, dateKey()) : node && courseNodeVisibleToday(node, dateKey())) && <button type="button" className="cancelTodayButton" disabled={access.readOnly} onClick={() => cancelToday(target)}>取消今天</button>}<button className="primaryButton" disabled={access.readOnly} onClick={toggle}>{item.done ? "重新打开" + entityLabel : "标记" + entityLabel + "完成"}</button><details className="taskMoreActions taskDetailMore"><summary>更多</summary><div><button type="button" className="dangerText" disabled={access.readOnly || nodePending} onClick={remove}>删除{entityLabel}</button></div></details></div>} />
     {parent && <button className="taskParentLink" disabled={nodePending} onClick={() => onOpen(parent)}>属于：{parentTitle ?? "查看关联内容"} →</button>}
     <div className="taskDetailGrid"><div className="stack">
       {task && <section className="panel taskWorkPanel"><SectionHead title="任务内容" action={!task.requirements && !requirementsExpanded && !access.readOnly ? <button className="softButton" onClick={() => setRequirementsExpanded(true)}>＋ 添加具体要求</button> : undefined} />{(Boolean(task.requirements) || requirementsExpanded) && <label className="editField"><span>具体要求</span><textarea readOnly={access.readOnly} maxLength={4000} value={task.requirements ?? ""}  onChange={(event) => { const requirements = event.target.value; setData((current) => ({ ...current, tasks: current.tasks.map((entry) => entry.id === task.id ? { ...entry, requirements } : entry) })); }} /></label>}<details className="taskDetailDisclosure taskAttachmentsDisclosure"><summary>要求附件 <span>{task.attachments?.length ?? 0} 个</span></summary><NodeAttachments nodeId={task.id} scope="task" label="要求" files={task.attachments ?? []} access={access} onBlockedChange={setNodePending} onChange={(update) => setData((current) => ({ ...current, tasks: current.tasks.map((entry) => entry.id === task.id ? { ...entry, attachments: update(entry.attachments ?? []) } : entry) }))} /></details></section>}
       <section className="panel taskChildrenPanel"><SectionHead title={isEvent ? "关联任务" : "子任务"} subtitle={children.length ? children.filter((entry) => entry.done).length + " / " + children.length + " 项完成" : undefined} action={<button className="softButton" disabled={access.readOnly || nodePending} onClick={() => setEditing("new")}>＋ 添加任务</button>} />{children.length > 0 && <div className="taskList">{children.map((child) => <div className={"taskRow " + (child.done ? "done" : "")} key={child.id}><button className="checkButton" disabled={access.readOnly} aria-label={"切换子任务完成：" + child.title} onClick={() => setData((current) => ({ ...current, tasks: current.tasks.map((entry) => entry.id === child.id ? withTaskCompletion(entry, !entry.done) : entry) }))}>{child.done ? "✓" : ""}</button><div className="taskBody"><button className="taskTitleButton" disabled={nodePending} onClick={() => onOpen({ kind: "task", id: child.id })}>{child.title}</button><span>{taskScheduleSummary(child, today)} · 已投入 {child.elapsed} 分钟</span></div></div>)}</div>}</section>
       <section className="panel taskTimePanel" aria-label={entityLabel + "时间记录"}><SectionHead title="时间投入" action={<div className="pageHeadActions"><button className="softButton" disabled={access.readOnly} onClick={() => onManual(target)}>补记时间</button><button className="primaryButton" disabled={access.readOnly} onClick={() => { setFocusExpanded(true); focus.start(target); }}>开始计时</button></div>} /><div className="taskTimeStats"><div><strong>{formatMinutes(ownMinutes)}</strong><span>本{entityLabel}累计</span></div><div><strong>{formatMinutes(entries.filter((entry) => entry.date === dateKey()).reduce((sum, entry) => sum + entry.minutes, 0))}</strong><span>今日投入</span></div>{combined !== ownMinutes && <div><strong>{formatMinutes(combined)}</strong><span>含全部子任务</span></div>}</div><button className="taskInlineToggle" type="button" aria-expanded={focusExpanded} onClick={() => setFocusExpanded((value) => !value)}>{focusExpanded ? "收起计时器" : "展开计时器"} →</button>{focusExpanded && <div className="taskFocusInline">{focusPanel}</div>}{entries.length > 0 && <details className="taskDetailDisclosure"><summary>时间明细 <span>{entries.length} 条</span></summary><div className="taskTimeHistory">{[...entries].reverse().slice(0, 50).map((entry) => <div key={entry.id}><time>{entry.date}</time><strong>{entry.minutes} 分钟</strong><span>{entry.mode === "manual" ? "手动补记" : entry.mode === "pomodoro" ? "番茄钟" : "正向计时"}</span>{entry.note && <p>{entry.note}</p>}</div>)}</div></details>}{task?.progressLogs?.length ? <details className="taskDetailDisclosure"><summary>推进历史 <span>{task.progressLogs.length} 条</span></summary><div className="taskProgressHistory">{[...task.progressLogs].reverse().slice(0, 20).map((log) => <div key={log.id}><time>{log.date}</time><span>{log.status} · {log.progress}%</span><p>{log.note}</p></div>)}</div></details> : null}</section>
-      {node && <section className="panel taskRequirements"><CourseNodeEditor node={node} variant={node.courseId ? "courseTask" : "event"} access={access} onPendingChange={setNodePending} onChange={(update) => setData((current) => ({ ...current, milestones: current.milestones.map((entry) => entry.id === node.id ? update(entry) : entry) }))} onClose={onClose} /></section>}
+      {node?.courseId && <section className="panel taskRequirements"><CourseNodeEditor node={node} variant={node.courseId ? "courseTask" : "event"} access={access} onPendingChange={setNodePending} onChange={(update) => setData((current) => ({ ...current, milestones: current.milestones.map((entry) => entry.id === node.id ? update(entry) : entry) }))} onClose={onClose} /></section>}
+      {node && isEvent && <section className="panel taskRequirements courseEventContent"><SectionHead title="事项内容" /><label className="editField"><span>要求与备注</span><textarea readOnly={access.readOnly} maxLength={4000} value={node.requirements} onChange={(event) => { const requirements = event.target.value; setData((current) => ({ ...current, milestones: current.milestones.map((entry) => entry.id === node.id ? { ...entry, requirements } : entry) })); }} /></label><NodeAttachments nodeId={node.id} label="要求" files={node.attachments ?? []} access={access} onBlockedChange={setNodePending} onChange={(update) => setData((current) => ({ ...current, milestones: current.milestones.map((entry) => entry.id === node.id ? { ...entry, attachments: update(entry.attachments ?? []) } : entry) }))} /><label className="editField"><span>事项记录</span><textarea readOnly={access.readOnly} maxLength={4000} value={node.outcomeText ?? ""} onChange={(event) => { const outcomeText = event.target.value; setData((current) => ({ ...current, milestones: current.milestones.map((entry) => entry.id === node.id ? { ...entry, outcomeText } : entry) })); }} /></label><NodeAttachments nodeId={node.id} label="成果" files={node.outcomeAttachments ?? []} access={access} onBlockedChange={setNodePending} onChange={(update) => setData((current) => ({ ...current, milestones: current.milestones.map((entry) => entry.id === node.id ? { ...entry, outcomeAttachments: update(entry.outcomeAttachments ?? []) } : entry) }))} /></section>}
       <section className="panel editorSection" aria-label={entityLabel + "记录空间"}><SectionHead title={entityLabel + "记录"} /><BlockEditor blocks={item.blocks ?? []} onChange={saveBlocks} access={access} /></section>
     </div></div>
+    {editingEvent && node && <CourseEventDialog node={node} courses={data.courses} readOnly={access.readOnly} onClose={() => setEditingEvent(false)} onSave={(value) => { setData((current) => ({ ...current, milestones: current.milestones.map((entry) => entry.id === value.id ? value : entry) })); setEditingEvent(false); }} />}
     {editing && <TaskSettingsDialog access={access} tasks={data.tasks} milestones={data.milestones} courses={data.courses} learning={data.learning} task={editing === "new" ? undefined : editing} presetParent={editing === "new" ? target : undefined} onClose={() => setEditing(null)} onSave={saveTask} />}
   </div>;
 }
-function TaskOverviewView({ data, setData, setDialog, openWork, requestDelete, postponeWork, access, readOnly }: { data: AppState; setData: React.Dispatch<React.SetStateAction<AppState>>; setDialog: (value: DialogConfig) => void; openWork: (target: WorkTarget) => void; requestDelete: (target: WorkTarget, title: string) => void; postponeWork: (target: WorkTarget, days?: number) => void; access: EditorAccess; readOnly: boolean }) {
+function TaskOverviewView({ reviewPoolEntry, data, setData, setDialog, openWork, requestDelete, postponeWork, cancelToday, access, readOnly }: { reviewPoolEntry: React.ReactNode; data: AppState; setData: React.Dispatch<React.SetStateAction<AppState>>; setDialog: (value: DialogConfig) => void; openWork: (target: WorkTarget) => void; requestDelete: (target: WorkTarget, title: string) => void; postponeWork: (target: WorkTarget, days?: number) => void; cancelToday: (target: WorkTarget) => void; access: EditorAccess; readOnly: boolean }) {
   const today = dateKey();
   const [scope, setScope] = useState<"semester" | "week" | "active" | "done">("semester");
   const [editingTask, setEditingTask] = useState<TaskItem | "new" | null>(null);
   const [editingNode, setEditingNode] = useState<Milestone | null>(null);
+  const [eventCourseFilter, setEventCourseFilter] = useState("");
+  const [eventAssessmentFilter, setEventAssessmentFilter] = useState("");
   const end = new Date();
   end.setDate(end.getDate() + 7);
   const weekEnd = dateKey(end);
   const items = [
     ...data.tasks.map((task) => ({ id: task.id, kind: "task" as const, entity: "task" as const, period: taskModeOf(task), title: task.title, area: task.area, source: task.courseId ? data.courses.find((course) => course.id === task.courseId)?.title ?? task.source : task.source, due: task.due ?? "", done: task.done, progress: taskProgressOf(task), status: taskStatusOf(task), task, node: undefined })),
-    ...data.milestones.map((node) => ({ id: node.id, kind: "milestone" as const, entity: node.courseId ? "task" as const : "event" as const, period: node.courseId ? (node.mode ?? "single") as TaskMode : undefined, title: node.title, area: node.area, source: node.courseId ? data.courses.find((course) => course.id === node.courseId)?.title ?? "课程任务" : node.location || "日历事项", due: node.date, done: node.done, progress: node.done ? 100 : 0, status: node.done ? "已完成" as const : "未开始" as const, task: undefined, node })),
+    ...data.milestones.map((node) => ({ id: node.id, kind: "milestone" as const, entity: node.courseId ? "task" as const : "event" as const, period: node.courseId ? (node.mode ?? "single") as TaskMode : undefined, title: node.title, area: node.area, source: node.courseId ? data.courses.find((course) => course.id === node.courseId)?.title ?? "课程任务" : eventCourseLabel(node, data.courses) || node.location || "日历事项", due: node.date, done: node.done, progress: node.done ? 100 : 0, status: node.done ? "已完成" as const : "未开始" as const, task: undefined, node })),
   ].sort((a, b) => (a.due || "9999").localeCompare(b.due || "9999"));
   const visible = items.filter((item) => {
     if (scope === "done") return item.done;
@@ -1354,7 +1410,7 @@ function TaskOverviewView({ data, setData, setDialog, openWork, requestDelete, p
   const sections = [
     { id: "multi", title: "长期任务", items: visible.filter((item) => item.entity === "task" && item.period === "multi") },
     { id: "single", title: "短期任务", items: visible.filter((item) => item.entity === "task" && item.period !== "multi") },
-    { id: "event", title: "事项", items: visible.filter((item) => item.entity === "event") },
+    { id: "event", title: "事项", items: visible.filter((item) => item.entity === "event" && (!eventCourseFilter || (eventCourseFilter === "unlinked" ? !item.node?.linkedCourseId : item.node?.linkedCourseId === eventCourseFilter)) && (!eventAssessmentFilter || item.node?.assessmentType === eventAssessmentFilter)) },
   ];
   const taskCount = items.filter((item) => item.entity === "task").length;
   const eventCount = items.filter((item) => item.entity === "event").length;
@@ -1370,43 +1426,32 @@ function TaskOverviewView({ data, setData, setDialog, openWork, requestDelete, p
       ? { ...current, tasks: current.tasks.map((task) => task.id === item.id ? planTaskForDate(task, plannedDate) : task) }
       : { ...current, milestones: current.milestones.map((node) => node.id === item.id && node.courseId ? planTaskForDate(node, plannedDate) : node) });
   };
-  const addEvent = () => setDialog({
-    title: "新增事项",
-    submitLabel: "创建事项",
-    fields: [
-      { name: "title", label: "事项名称", placeholder: "例如：项目会议" },
-      { name: "date", label: "日期", type: "date", value: today },
-      { name: "time", label: "时间", type: "time", value: "00:00" },
-      { name: "location", label: "地点" },
-      { name: "requirements", label: "事项说明", type: "textarea", placeholder: "议程、携带材料或其他说明" },
-      { name: "area", label: "所属领域", type: "select", options: ["课内", "课外", "工作", "生活", "思考"], value: "工作" },
-    ],
-    onSubmit: (values) => {
-      const id = uid();
-      setData((current) => ({ ...current, milestones: [...current.milestones, { id, title: values.title.trim() || "未命名事项", date: values.date || today, time: values.time || "00:00", location: values.location.trim(), requirements: values.requirements.trim(), area: (values.area || "工作") as Area, done: false }] }));
-    },
-  });
+  const [creatingEvent, setCreatingEvent] = useState(false);
+  const addEvent = () => setCreatingEvent(true);
   const recordProgress = (task: TaskItem) => setDialog(taskProgressDialog(task, setData));
   const renderOverviewItem = (item: (typeof items)[number]) => {
     const isMulti = item.entity === "task" && item.period === "multi";
     const latest = item.task?.progressLogs?.at(-1);
-    const plannedDate = item.task?.plannedDate ?? item.node?.plannedDate;
-    const plannedToday = plannedDate === today;
+    const scheduledItem = item.task ?? item.node!;
+    const plannedDate = item.entity === "task" ? defaultTaskPlannedDate(scheduledItem) : item.node?.plannedDate;
+    const cancelledToday = scheduledItem.dismissedTodayDate === today;
+    const plannedToday = !cancelledToday && (item.task ? taskVisibleToday(item.task, today) : Boolean(item.node?.courseId && courseNodeVisibleToday(item.node, today)));
     return <div className={"overviewRow " + (item.done ? "done " : "") + (isMulti ? "multiTask" : "")} key={item.kind + "-" + item.id}>
       <button className="checkButton" disabled={readOnly} aria-pressed={item.done} aria-label={(item.done ? "重新打开" : "完成") + item.title} onClick={() => toggle(item)}>{item.done ? "✓" : ""}</button>
-      <div className="overviewTaskMain"><div className="overviewTaskTitle"><button className="taskTitleButton" onClick={() => readOnly ? openWork({ kind: item.kind, id: item.id }) : item.task ? setEditingTask(item.task) : setEditingNode(item.node!)}>{item.title}</button><span className={"areaTag " + areaClass[item.area]}>{item.area}</span>{(isMulti || (item.task && item.progress > 0)) && <span className={"taskStatus " + item.status}>{item.status}</span>}</div><span>{item.task?.parentId ? "属于：" + (data.tasks.find((task) => task.id === item.task!.parentId)?.title ?? "上级任务") : item.task?.parentMilestoneId ? "属于：" + (data.milestones.find((node) => node.id === item.task!.parentMilestoneId)?.title ?? "关联对象") : item.source || "未分类"}{item.node?.courseId ? " · 课程任务" : ""}</span>{item.task && (isMulti || item.progress > 0) && <><div className="taskOverviewProgress"><i><b style={{ width: item.progress + "%" }} /></i><strong>{item.progress}%</strong></div>{latest && <small>{latest.date}{latest.note ? " · " + latest.note : " · 记录为 " + latest.progress + "%"}</small>}</>}</div>
-      <div className="overviewTaskSide"><div className="overviewSchedule"><time>{item.task ? (isMulti ? (item.task.startDate || "未设开始") + " → " : item.task.due ? "截止 " : "") + taskDeadlineLabel(item.task) : item.due || "未设日期"}</time>{plannedDate && <small>{plannedToday ? "今日推进" : plannedDate + " 计划推进"}</small>}{item.task && isMulti && <small>{taskScheduleSummary(item.task, today)}</small>}{item.node && <small>{item.node.time}{item.node.location ? " · " + item.node.location : ""}</small>}</div>
+      <div className="overviewTaskMain"><div className="overviewTaskTitle"><button className="taskTitleButton" onClick={() => readOnly ? openWork({ kind: item.kind, id: item.id }) : item.task ? setEditingTask(item.task) : setEditingNode(item.node!)}>{item.title}</button><span className={"areaTag " + areaClass[item.area]}>{item.area}</span>{(isMulti || (item.task && item.progress > 0)) && <span className={"taskStatus " + item.status}>{item.status}</span>}</div><span>{item.task?.parentId ? "属于：" + (data.tasks.find((task) => task.id === item.task!.parentId)?.title ?? "上级任务") : item.task?.parentMilestoneId ? "属于：" + (data.milestones.find((node) => node.id === item.task!.parentMilestoneId)?.title ?? "关联对象") : item.source || "未分类"}{item.node?.courseId ? " · 课程任务" : item.node?.assessmentType ? " · " + assessmentTypeLabel(item.node.assessmentType) : ""}</span>{item.task && (isMulti || item.progress > 0) && <><div className="taskOverviewProgress"><i><b style={{ width: item.progress + "%" }} /></i><strong>{item.progress}%</strong></div>{latest && <small>{latest.date}{latest.note ? " · " + latest.note : " · 记录为 " + latest.progress + "%"}</small>}</>}</div>
+      <div className="overviewTaskSide"><div className="overviewSchedule"><time>{item.task ? (isMulti ? (item.task.startDate || "未设开始") + " → " : item.task.due ? "截止 " : "") + taskDeadlineLabel(item.task) : item.node ? eventDateLabel(item.node) : "待定"}</time>{plannedDate && <small>{!cancelledToday && plannedDate === today ? "今日推进" : plannedDate + " 计划推进"}</small>}{cancelledToday && <small className="cancelledTodayLabel">今天已取消</small>}{item.task && isMulti && <small>{taskScheduleSummary(item.task, today)}</small>}{item.node?.courseId && <small>{item.node.time}{item.node.location ? " · " + item.node.location : ""}</small>}</div>
       <div className="overviewTaskActions">
-        {item.entity === "task" && !item.done && <button type="button" className="softButton quickTodayButton" disabled={readOnly || plannedToday} aria-pressed={plannedToday} aria-label={(plannedToday ? "已安排今天：" : "今天做：") + item.title} title="安排到今日，保留原截止日期" onClick={() => planToday(item)}>{plannedToday ? "✓ 已安排今天" : "今天做"}</button>}
+        {item.entity === "task" && !item.done && plannedToday ? <button type="button" className="cancelTodayButton" disabled={readOnly} aria-label={"取消今天：" + item.title} onClick={() => cancelToday({ kind: item.kind, id: item.id })}>取消今天</button> : item.entity === "task" && !item.done && <button type="button" className="softButton quickTodayButton" disabled={readOnly || plannedToday} aria-pressed={plannedToday} aria-label={(plannedToday ? "已安排今天：" : "今天做：") + item.title} title="安排到今日，保留原截止日期" onClick={() => planToday(item)}>{plannedToday ? "✓ 已安排今天" : "今天做"}</button>}
         <button className="softButton" disabled={readOnly} onClick={() => item.task ? setEditingTask(item.task) : setEditingNode(item.node!)}>修改</button>
         {item.task && !readOnly && !item.done && <button className="softButton" onClick={() => recordProgress(item.task!)}>记进度</button>}
-        {!item.done && <button className="quickPostponeButton" disabled={readOnly} aria-label={"推迟 1 天：" + item.title} onClick={() => postponeWork({ kind: item.kind, id: item.id })}>＋1 天</button>}
+        {!item.done && (item.entity === "task" || item.node?.date) && <button className="quickPostponeButton" disabled={readOnly} aria-label={"推迟 1 天：" + item.title} onClick={() => postponeWork({ kind: item.kind, id: item.id })}>＋1 天</button>}
         <details className="taskMoreActions"><summary>更多</summary><div><button type="button" aria-label={"查看详情：" + item.title} onClick={() => openWork({ kind: item.kind, id: item.id })}>查看详情</button><button type="button" aria-label={"删除：" + item.title} className="dangerText" disabled={readOnly} onClick={() => requestDelete({ kind: item.kind, id: item.id }, item.title)}>删除</button></div></details>
       </div></div>
     </div>;
   };
   return <div className="page taskOverviewPage">
     <PageHead eyebrow="全局执行与时间系统" title="任务与事项" action={<div className="pageHeadActions"><button className="primaryButton" disabled={readOnly} onClick={() => setEditingTask("new")}>＋ 新增任务</button><button className="softButton" disabled={readOnly} onClick={addEvent}>＋ 新增事项</button></div>} />
+    {reviewPoolEntry}
     <div className="overviewStats"><div><span>全部任务</span><strong>{taskCount}</strong></div><div><span>全部事项</span><strong>{eventCount}</strong></div><div><span>本周待办</span><strong>{weekCount}</strong></div></div>
     <div className="scopeTabs taskScopeTabs"><button className={scope === "semester" ? "active" : ""} onClick={() => setScope("semester")}>全部待办</button><button className={scope === "week" ? "active" : ""} onClick={() => setScope("week")}>本周</button><button className={scope === "active" ? "active" : ""} onClick={() => setScope("active")}>长期推进</button><button className={scope === "done" ? "active" : ""} onClick={() => setScope("done")}>已完成</button></div>
     <div className="taskOverviewSections">{sections.map((section) => {
@@ -1416,6 +1461,7 @@ function TaskOverviewView({ data, setData, setDialog, openWork, requestDelete, p
       ].filter((group) => group.items.length);
       return <section className={"panel overviewPanel overviewGroup " + section.id} key={section.id}>
       <div className="overviewGroupHead"><div><span>{section.id === "event" ? "日历" : "任务"}</span><h2>{section.title}</h2></div><strong>{section.items.length}</strong></div>
+      {section.id === "event" && <details className="courseEventFilters"><summary>筛选事项{eventCourseFilter || eventAssessmentFilter ? " · 已筛选" : ""}</summary><div><label><span>课程</span><select aria-label="按课程筛选事项" value={eventCourseFilter} onChange={(event) => setEventCourseFilter(event.target.value)}><option value="">全部课程</option><option value="unlinked">未关联课程</option>{data.courses.map((course) => <option key={course.id} value={course.id}>{course.title}</option>)}</select></label><label><span>考核类型</span><select aria-label="按考核类型筛选事项" value={eventAssessmentFilter} onChange={(event) => setEventAssessmentFilter(event.target.value)}><option value="">全部类型</option>{assessmentTypeOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>{(eventCourseFilter || eventAssessmentFilter) && <button type="button" onClick={() => { setEventCourseFilter(""); setEventAssessmentFilter(""); }}>清除筛选</button>}</div></details>}
       <div className="overviewList">{sourceGroups.map((group) => <div className="overviewTaskSubgroup" key={group.id}>
         {group.title && <div className="overviewTaskSubhead"><strong>{group.title}</strong><span>{group.items.length} 项</span></div>}
         {group.id === "automatic" ? [...new Set(group.items.map((item) => item.node?.courseId))].map((courseId) => {
@@ -1429,7 +1475,8 @@ function TaskOverviewView({ data, setData, setDialog, openWork, requestDelete, p
     </section>;
     })}</div>
     {editingTask && <TaskSettingsDialog access={access} tasks={data.tasks} milestones={data.milestones} courses={data.courses} learning={data.learning} task={editingTask === "new" ? undefined : editingTask} onClose={() => setEditingTask(null)} onSave={(task) => { saveTask(task); setEditingTask(null); }} onOpenDetail={editingTask === "new" ? undefined : () => { const id = editingTask.id; setEditingTask(null); openWork({ kind: "task", id }); }} />}
-    {editingNode && <MilestoneSettingsDialog node={editingNode} onClose={() => setEditingNode(null)} onSave={(node) => { setData((current) => ({ ...current, milestones: current.milestones.map((item) => item.id === node.id ? node : item) })); setEditingNode(null); }} onOpenDetail={() => { const id = editingNode.id; setEditingNode(null); openWork({ kind: "milestone", id }); }} />}
+    {creatingEvent && <CourseEventDialog courses={data.courses} readOnly={readOnly} onClose={() => setCreatingEvent(false)} onSave={(node) => { setData((current) => ({ ...current, milestones: [...current.milestones, node] })); setCreatingEvent(false); }} />}
+    {editingNode && <MilestoneSettingsDialog courses={data.courses} node={editingNode} onClose={() => setEditingNode(null)} onSave={(node) => { setData((current) => ({ ...current, milestones: current.milestones.map((item) => item.id === node.id ? node : item) })); setEditingNode(null); }} onOpenDetail={() => { const id = editingNode.id; setEditingNode(null); openWork({ kind: "milestone", id }); }} />}
   </div>;
 }
 
@@ -1466,7 +1513,9 @@ function TaskSettingsDialog({ task, tasks, milestones, courses, learning, preset
   const [startDate, setStartDate] = useState(task?.startDate || today);
   const [due, setDue] = useState(task?.due || "");
   const [dueTime, setDueTime] = useState(task?.dueTime ?? (task?.due ? "00:00" : ""));
-  const [plannedDate, setPlannedDate] = useState(() => task ? task.plannedDate ?? "" : dateKey());
+  const [plannedDateInput, setPlannedDate] = useState<string | null>(task?.plannedDate ?? null);
+  const planEdited = useRef(false);
+  const plannedDate = plannedDateInput ?? defaultTaskPlannedDate({ due, mode }) ?? (task ? "" : dateKey());
   const [status, setStatus] = useState<TaskProgressStatus>(taskStatusOf(task ?? {}));
   const [progress, setProgress] = useState(taskProgressOf(task ?? {}));
   const [error, setError] = useState("");
@@ -1524,6 +1573,7 @@ function TaskSettingsDialog({ task, tasks, milestones, courses, learning, preset
       due: due || undefined,
       dueTime: due ? dueTime || undefined : undefined,
       plannedDate: plannedDate || undefined,
+      dismissedTodayDate: planEdited.current ? undefined : task?.dismissedTodayDate,
       done: nextStatus === "已完成",
       completedDate: nextStatus === "已完成" ? taskStatusOf(task ?? {}) === "已完成" ? task?.completedDate : dateKey() : undefined,
       today: mode === "single" && (due === today || plannedDate === today),
@@ -1556,7 +1606,7 @@ function TaskSettingsDialog({ task, tasks, milestones, courses, learning, preset
       <label className="wide taskCandidateToggle"><span><input type="checkbox" checked={parentCandidate} onChange={(event) => setParentCandidate(event.target.checked)} />允许其他任务归属于它</span></label>
       <div className="taskFormSectionHead wide"><strong>时间安排</strong></div>
       {mode === "multi" && <label><span>开始日期</span><input type="date" required value={startDate} onChange={(event) => setStartDate(event.target.value)} /></label>}
-      <div className="taskPlannedField"><div className="taskDateFieldHead"><label htmlFor="task-planned-date">计划推进日（可选）</label><button type="button" disabled={plannedDate === dateKey()} onClick={() => setPlannedDate(dateKey())}>今天</button></div><input id="task-planned-date" type="date" value={plannedDate} onChange={(event) => setPlannedDate(event.target.value)} /></div>
+      <div className="taskPlannedField"><div className="taskDateFieldHead"><label htmlFor="task-planned-date">计划推进日（可选）</label><button type="button" disabled={plannedDate === dateKey()} onClick={() => { planEdited.current = true; setPlannedDate(dateKey()); }}>今天</button></div><input id="task-planned-date" type="date" value={plannedDate} onChange={(event) => { planEdited.current = true; setPlannedDate(event.target.value || null); }} /></div>
       <label><span>截止日期（可选）</span><input type="date" value={due} min={mode === "multi" ? startDate : undefined} onChange={(event) => { setDue(event.target.value); setDueTime((current) => event.target.value ? current || "00:00" : ""); }} /></label>
       <label><span>截止时间（可选）</span><input type="time" value={dueTime} disabled={!due} onChange={(event) => setDueTime(event.target.value)} /></label>
       <div className="taskFormSectionHead wide"><strong>完成状态</strong></div>
@@ -1569,10 +1619,11 @@ function TaskSettingsDialog({ task, tasks, milestones, courses, learning, preset
   </form></div>;
 }
 
-function MilestoneSettingsDialog({ node, onClose, onSave, onOpenDetail }: { node: Milestone; onClose: () => void; onSave: (node: Milestone) => void; onOpenDetail: () => void }) {
+function MilestoneSettingsDialog({ node, courses, onClose, onSave, onOpenDetail }: { node: Milestone; courses: Course[]; onClose: () => void; onSave: (node: Milestone) => void; onOpenDetail: () => void }) {
   const [draft, setDraft] = useState<Milestone>(() => ({ ...node }));
   const openDetailAfterSave = useRef(false);
   const saveButtonRef = useRef<HTMLButtonElement>(null);
+  if (!node.courseId) return <CourseEventDialog node={node} courses={courses} readOnly={false} onSave={onSave} onClose={onClose} />;
   const isCourseTask = Boolean(draft.courseId);
   const entityLabel = isCourseTask ? "课程任务" : "事项";
   const patch = (values: Partial<Milestone>) => setDraft((current) => ({ ...current, ...values }));
@@ -1586,7 +1637,7 @@ function MilestoneSettingsDialog({ node, onClose, onSave, onOpenDetail }: { node
       {!isCourseTask && <label><span>所属领域</span><select value={draft.area} onChange={(event) => patch({ area: event.target.value as Area })}>{(["课内", "课外", "工作", "生活", "思考"] as Area[]).map((area) => <option key={area}>{area}</option>)}</select></label>}
       <label><span>日期</span><input type="date" required value={draft.date} onChange={(event) => patch({ date: event.target.value })} /></label>
       <label><span>时间</span><input type="time" required value={draft.time} onChange={(event) => patch({ time: event.target.value })} /></label>
-      {isCourseTask && <div className="taskPlannedField wide"><div className="taskDateFieldHead"><label htmlFor="course-task-planned-date">计划推进日（可选）</label><button type="button" disabled={draft.plannedDate === dateKey()} onClick={() => patch({ plannedDate: dateKey() })}>今天</button></div><input id="course-task-planned-date" type="date" value={draft.plannedDate ?? ""} onChange={(event) => patch({ plannedDate: event.target.value || undefined })} /></div>}
+      {isCourseTask && <div className="taskPlannedField wide"><div className="taskDateFieldHead"><label htmlFor="course-task-planned-date">计划推进日（可选）</label><button type="button" disabled={draft.plannedDate === dateKey()} onClick={() => setDraft((current) => planTaskForDate(current, dateKey()))}>今天</button></div><input id="course-task-planned-date" type="date" value={defaultTaskPlannedDate(draft) ?? ""} onChange={(event) => patch({ plannedDate: event.target.value || undefined, dismissedTodayDate: undefined })} /></div>}
       <label className="wide"><span>地点</span><input maxLength={500} value={draft.location} onChange={(event) => patch({ location: event.target.value })} /></label>
     </div>
     <div className="dialogActions"><button type="submit" className="softButton dialogDetailAction" onClick={() => { openDetailAfterSave.current = true; }}>保存并进入详细界面</button><button type="button" className="softButton" onClick={onClose}>取消</button><button ref={saveButtonRef} type="submit" className="primaryButton" onClick={() => { openDetailAfterSave.current = false; }}>保存设置</button></div>
@@ -1596,23 +1647,10 @@ function CalendarView({ data, setData, setDialog, openWork, readOnly }: { data: 
   const start = new Date(); start.setDate(start.getDate() - start.getDay());
   const days = Array.from({ length: 35 }, (_, index) => { const date = new Date(start); date.setDate(start.getDate() + index); return date; });
   const [editingNode, setEditingNode] = useState<Milestone | null>(null);
-  const addNode = () => setDialog({
-    title: "新建日历事项",
-    submitLabel: "创建事项",
-    fields: [
-      { name: "title", label: "事项名称", placeholder: "例如：项目会议" },
-      { name: "date", label: "日期", type: "date", value: today },
-      { name: "time", label: "时间", type: "time", value: "00:00" },
-      { name: "location", label: "地点" },
-      { name: "requirements", label: "事项说明", type: "textarea" },
-      { name: "area", label: "所属领域", type: "select", options: ["课内", "课外", "工作", "生活", "思考"], value: "工作" },
-    ],
-    onSubmit: (values) => {
-      const id = uid();
-      setData((current) => ({ ...current, milestones: [...current.milestones, { id, title: values.title.trim() || "未命名事项", date: values.date || today, time: values.time || "00:00", location: values.location.trim(), requirements: values.requirements.trim(), area: (values.area || "工作") as Area, done: false }] }));
-    },
-  });
-  return <div className="page"><PageHead eyebrow="全局时间线" title="日历" action={<button className="primaryButton" disabled={readOnly} onClick={addNode}>＋ 新建事项</button>} /><section className="panel calendarPanel"><div className="weekHead">{"日一二三四五六".split("").map((day) => <span key={day}>周{day}</span>)}</div><div className="calendarGrid">{days.map((date) => { const key = dateKey(date); const events = data.milestones.filter((item) => item.date === key); return <div className={"calendarCell " + (key === today ? "today" : "")} key={key}><strong>{date.getDate()}</strong><div>{events.map((event) => <button type="button" key={event.id} className={"calendarEvent " + areaClass[event.area]} title={(event.courseId ? "课程任务" : "事项") + " · " + event.time + " " + event.location + " " + event.requirements} onClick={() => readOnly ? openWork({ kind: "milestone", id: event.id }) : setEditingNode(event)}><small>{event.courseId ? "任务" : "事项"}</small>{event.time} {event.title}</button>)}</div></div>; })}</div></section>{editingNode && <MilestoneSettingsDialog node={editingNode} onClose={() => setEditingNode(null)} onSave={(node) => { setData((current) => ({ ...current, milestones: current.milestones.map((item) => item.id === node.id ? node : item) })); setEditingNode(null); }} onOpenDetail={() => { const id = editingNode.id; setEditingNode(null); openWork({ kind: "milestone", id }); }} />}</div>;
+  const [creatingEvent, setCreatingEvent] = useState(false);
+  const addNode = () => setCreatingEvent(true);
+  return <div className="page"><PageHead eyebrow="全局时间线" title="日历" action={<button className="primaryButton" disabled={readOnly} onClick={addNode}>＋ 新建事项</button>} /><section className="panel calendarPanel"><div className="weekHead">{"日一二三四五六".split("").map((day) => <span key={day}>周{day}</span>)}</div><div className="calendarGrid">{days.map((date) => { const key = dateKey(date); const events = data.milestones.filter((item) => item.date === key); return <div className={"calendarCell " + (key === today ? "today" : "")} key={key}><strong>{date.getDate()}</strong><div>{events.map((event) => <button type="button" key={event.id} className={"calendarEvent " + areaClass[event.area]} title={[event.courseId ? "课程任务" : "事项", eventCourseLabel(event, data.courses), assessmentTypeLabel(event.assessmentType), eventDateLabel(event), event.location].filter(Boolean).join(" · ")} onClick={() => readOnly ? openWork({ kind: "milestone", id: event.id }) : setEditingNode(event)}><small>{event.courseId ? "任务" : assessmentTypeLabel(event.assessmentType) || "事项"}</small>{event.time} {event.title}</button>)}</div></div>; })}</div></section>{creatingEvent && <CourseEventDialog courses={data.courses} readOnly={readOnly} onClose={() => setCreatingEvent(false)} onSave={(node) => { setData((current) => ({ ...current, milestones: [...current.milestones, node] })); setCreatingEvent(false); }} />}
+    {editingNode && <MilestoneSettingsDialog courses={data.courses} node={editingNode} onClose={() => setEditingNode(null)} onSave={(node) => { setData((current) => ({ ...current, milestones: current.milestones.map((item) => item.id === node.id ? node : item) })); setEditingNode(null); }} onOpenDetail={() => { const id = editingNode.id; setEditingNode(null); openWork({ kind: "milestone", id }); }} />}</div>;
 }
 function ReviewView({ data, setData }: { data: AppState; setData: React.Dispatch<React.SetStateAction<AppState>> }) {
   const [selectedDate, setSelectedDate] = useState(today);
@@ -1723,9 +1761,7 @@ function LifeViewV2({ data, setData, openDetail, setDialog, deleteDialog, setPop
     <PageHead eyebrow="生活管理" title="日常习惯和规律（总）" />
     <section className="lifeSection"><SectionHead title="日常习惯和规律（总）" action={<button className="softButton" onClick={addHabit}>＋ 添加</button>} /><div className="lifeGrid"><div className="panel lifePanel"><h3>今日习惯</h3>{data.habits.map((habit) => <div className="habitRow" key={habit.id}><button className={`habitCheck ${habit.today ? "done" : ""}`} onClick={() => setData((current) => ({ ...current, habits: current.habits.map((item) => item.id === habit.id ? toggledHabit(item) : item) }))}>{habit.today ? "✓" : ""}</button><div><strong>{habit.title}</strong><span>{habit.schedule} · 连续 {habit.streak} 天</span></div><button className="miniRemove" onClick={() => deleteDialog(habit.title, () => setData((current) => ({ ...current, habits: current.habits.filter((item) => item.id !== habit.id) })))}>×</button></div>)}</div><div className="panel lifePanel"><h3>生活流程</h3>{data.routines.map((routine) => <div className="routineRow" key={routine.id}><span>{routine.title.slice(0, 1)}</span><div><strong>{routine.title}</strong><p>{routine.note}</p></div></div>)}</div></div></section>
     <section className="lifeSection">
-      <SectionHead title="习惯提醒" action={<button className="softButton" onClick={() => editReminder()}>＋ 新增提醒</button>} />
-
-      <ReminderAlertsSettings alerts={alerts} readOnly={readOnly} />
+      <SectionHead title="习惯提醒" action={<div className="lifeReminderHeadingActions"><ReminderAlertsSettings alerts={alerts} readOnly={readOnly} /><button className="softButton" disabled={readOnly} onClick={() => editReminder()}>＋ 新增提醒</button></div>} />
       <EyeRestCycle key={workspaceOwner} owner={workspaceOwner} readOnly={readOnly} alerts={alerts} onPopup={showEyeRestPopup} />
       <div className="panel reminderSettings">
         {!data.reminders.length && <div className="emptyState compact"><h2>暂无提醒</h2></div>}
@@ -1733,18 +1769,16 @@ function LifeViewV2({ data, setData, openDetail, setDialog, deleteDialog, setPop
           <span className={`reminderIcon ${reminder.type}`}>{reminder.type === "sleep" ? "眠" : reminder.type === "break" ? "息" : reminder.type === "exercise" ? "动" : "提"}</span>
           <div className="reminderProjectBody">
             <strong>{reminder.title}</strong>
-            <p className="reminderMode">{reminder.enabled ? reminder.type === "break" ? "自动间隔提醒 · 不依赖专注计时" : "固定时间提醒" : "已关闭"}</p>
-            <div className="reminderTimes">
-              {reminder.type === "break" && <label className="intervalField">每 <input aria-label={`${reminder.title} 间隔分钟`} type="number" min="5" max="1440" value={reminder.intervalMinutes ?? 20} onChange={(event) => patchReminder(reminder.id, { intervalMinutes: Math.max(5, Number(event.target.value) || 20) })} /> 分钟</label>}
-              {reminder.times.map((time, index) => <span key={`${reminder.id}-${index}`}><input aria-label={`${reminder.title} 提醒时间 ${index + 1}`} type="time" value={time} onChange={(event) => patchReminder(reminder.id, { times: reminder.times.map((entry, entryIndex) => entryIndex === index ? event.target.value : entry) })} /><button aria-label={`移除时间 ${time}`} onClick={() => patchReminder(reminder.id, { times: reminder.times.filter((_, entryIndex) => entryIndex !== index) })}>×</button></span>)}
-              <button className="addTimeButton" onClick={() => patchReminder(reminder.id, { times: [...reminder.times, "12:00"] })}>＋ 固定时间</button>
-            </div>
+            <p className="reminderMode">{[reminder.type === "break" ? `每 ${reminder.intervalMinutes ?? 20} 分钟` : "", ...reminder.times].filter(Boolean).join(" · ") || "未设时间"}</p>
           </div>
           <div className="reminderActions">
-            <button className={`switch ${reminder.enabled ? "on" : ""}`} role="switch" aria-checked={reminder.enabled} aria-label={`${reminder.enabled ? "关闭" : "开启"}${reminder.title}提醒`} onClick={() => patchReminder(reminder.id, { enabled: !reminder.enabled })}><span /></button>
-            <button className="softButton" onClick={() => editReminder(reminder)}>编辑</button>
-            <button className="softButton" onClick={() => setPopup({ eyebrow: "提醒预览", title: reminder.title, body: reminder.type === "break" ? `打开网页后，每 ${reminder.intervalMinutes ?? 20} 分钟自动提醒，不依赖专注计时。本次预览不会改变计时或提醒设置。` : "固定时间到达后会弹出页面提示。本次预览不会改变提醒设置。" })}>预览</button>
-            <button className="miniRemove" aria-label={`删除${reminder.title}提醒`} onClick={() => deleteDialog(reminder.title, () => setData((current) => ({ ...current, reminders: current.reminders.filter((item) => item.id !== reminder.id) })))}>×</button>
+            <span className="lifeReminderEnabled">{reminder.enabled ? "已开启" : "已关闭"}</span>
+            <button className={`switch ${reminder.enabled ? "on" : ""}`} disabled={readOnly} role="switch" aria-checked={reminder.enabled} aria-label={`${reminder.enabled ? "关闭" : "开启"}${reminder.title}提醒`} onClick={() => patchReminder(reminder.id, { enabled: !reminder.enabled })}><span /></button>
+            <details className="lifeReminderMore"><summary aria-label={`${reminder.title}更多操作`}>⋯</summary><div className="lifeReminderMenu">
+              <button type="button" disabled={readOnly} onClick={(event) => { event.currentTarget.closest("details")?.removeAttribute("open"); editReminder(reminder); }}>编辑提醒</button>
+              <button type="button" onClick={(event) => { event.currentTarget.closest("details")?.removeAttribute("open"); setPopup({ eyebrow: "提醒预览", title: reminder.title, body: reminder.type === "break" ? `每 ${reminder.intervalMinutes ?? 20} 分钟自动提醒。本次预览不会改变计时或提醒设置。` : "固定时间到达后会弹出页面提示。本次预览不会改变提醒设置。" }); }}>预览</button>
+              <button type="button" className="dangerText" disabled={readOnly} onClick={(event) => { event.currentTarget.closest("details")?.removeAttribute("open"); deleteDialog(reminder.title, () => setData((current) => ({ ...current, reminders: current.reminders.filter((item) => item.id !== reminder.id) }))); }}>删除提醒</button>
+            </div></details>
           </div>
         </div>)}
       </div>
@@ -1755,13 +1789,34 @@ function LifeViewV2({ data, setData, openDetail, setDialog, deleteDialog, setPop
 }
 
 function NotesView({ space, data, setData, selectedPage, setSelectedPage, setDialog, deleteDialog, access }: CollectionProps & { space: "thoughts" | "free"; selectedPage: string; setSelectedPage: (id: string) => void; access: EditorAccess }) {
+  const [navigationOpen, setNavigationOpen] = useState(true);
+  const [removedPages, setRemovedPages] = useState<{ node: PageNode; index: number }[]>([]);
+  const [deleteNotice, setDeleteNotice] = useState(false);
+  const pagesRef = useRef(data.pages);
+  useEffect(() => { pagesRef.current = data.pages; }, [data.pages]);
+  useEffect(() => { if (!deleteNotice) return; const timer = window.setTimeout(() => setDeleteNotice(false), 6000); return () => window.clearTimeout(timer); }, [deleteNotice, removedPages]);
   const nodes = data.pages.filter((item) => item.space === space); const selected = nodes.find((item) => item.id === selectedPage) ?? nodes.find((item) => item.kind === "page") ?? nodes[0];
   useEffect(() => { if (selected && selected.id !== selectedPage) setSelectedPage(selected.id); }, [selected, selectedPage, setSelectedPage]);
-  const addNode = (kind: "folder" | "page", parentId: string | null = selected?.kind === "folder" ? selected.id : selected?.parentId ?? null) => setDialog({ title: kind === "folder" ? "新建文件夹" : "新建页面", description: parentId ? "将创建在当前层级中。" : "将创建在根目录。", submitLabel: "创建", fields: [{ name: "title", label: "名称", placeholder: kind === "folder" ? "文件夹名称" : "页面标题" }], onSubmit: (values) => { const id = uid(); setData((current) => ({ ...current, pages: [...current.pages, { id, space, parentId, title: values.title || (kind === "folder" ? "未命名文件夹" : "未命名页面"), kind, blocks: kind === "page" ? starterBlocks("开始记录") : [] }] })); setSelectedPage(id); } });
-  const removeNode = (id: string) => setData((current) => { const removedIds = pageTreeIds(current.pages, id); return { ...current, pages: current.pages.filter((item) => !removedIds.has(item.id)) }; });
+  const addNode = (kind: "folder" | "page", parentId: string | null = selected?.kind === "folder" ? selected.id : selected?.parentId ?? null) => setDialog({ title: kind === "folder" ? "新建文件夹" : "新建页面", submitLabel: "创建", fields: [{ name: "title", label: "名称", placeholder: kind === "folder" ? "文件夹名称" : "页面标题" }], onSubmit: (values) => { const id = uid(); setData((current) => ({ ...current, pages: [...current.pages, { id, space, parentId, title: values.title || (kind === "folder" ? "未命名文件夹" : "未命名页面"), kind, blocks: [] }] })); setSelectedPage(id); } });
+  const removeNode = (id: string) => {
+    const removedIds = pageTreeIds(pagesRef.current, id);
+    setRemovedPages(pagesRef.current.flatMap((node, index) => removedIds.has(node.id) ? [{ node, index }] : []));
+    setDeleteNotice(true);
+    setData((current) => ({ ...current, pages: current.pages.filter((item) => !removedIds.has(item.id)) }));
+  };
+  const restorePages = () => {
+    setData((current) => { const pages = [...current.pages]; for (const { node, index } of removedPages) { if (!pages.some((page) => page.id === node.id)) pages.splice(Math.min(index, pages.length), 0, node); } return { ...current, pages }; });
+    if (removedPages[0]) setSelectedPage(removedPages[0].node.id);
+    setRemovedPages([]); setDeleteNotice(false);
+  };
   const children = (parentId: string | null) => nodes.filter((item) => item.parentId === parentId);
   const renderTree = (parentId: string | null, depth = 0): React.ReactNode => children(parentId).map((node) => <div className="treeBranch" key={node.id} style={{ "--depth": depth } as React.CSSProperties}><button className={`treeNode ${selected?.id === node.id ? "active" : ""}`} onClick={() => setSelectedPage(node.id)}><span className="treeGlyph">{node.kind === "folder" ? "▾" : "·"}</span><span>{node.title}</span></button>{node.kind === "folder" && <div className="treeChildren">{renderTree(node.id, depth + 1)}</div>}</div>);
-  return <div className="page notesPage"><PageHead eyebrow={space === "thoughts" ? "思考集" : "自由空间"} title={space === "thoughts" ? "思考集" : "自由空间"} /><section className="notesShell"><aside className="treePanel"><div className="treeActions"><button onClick={() => addNode("folder", null)}>＋ 根文件夹</button><button onClick={() => addNode("page")}>＋ 页面</button></div><div className="treeRootLabel">{space === "thoughts" ? "思考集根目录" : "自由空间根目录"}</div><div className="treeList">{renderTree(null)}</div></aside><div className="editorArea">{selected ? selected.kind === "page" ? <><div className="editorTop"><input className="pageTitleInput" value={selected.title} onChange={(event) => setData((current) => ({ ...current, pages: current.pages.map((item) => item.id === selected.id ? { ...item, title: event.target.value } : item) }))} /><button className="textButton dangerText" onClick={() => deleteDialog(selected.title, () => removeNode(selected.id))}>移除页面</button></div><BlockEditor blocks={selected.blocks} onChange={(blocks) => setData((current) => ({ ...current, pages: current.pages.map((item) => item.id === selected.id ? { ...item, blocks } : item) }))} access={access} /></> : <div className="folderLanding"><span className="largeFolder">▰</span><p className="eyebrow">文件夹</p><input className="pageTitleInput" value={selected.title} onChange={(event) => setData((current) => ({ ...current, pages: current.pages.map((item) => item.id === selected.id ? { ...item, title: event.target.value } : item) }))} /><p>{children(selected.id).length} 项内容</p><div className="folderActions"><button className="primaryButton" onClick={() => addNode("page", selected.id)}>＋ 新建页面</button><button className="softButton" onClick={() => addNode("folder", selected.id)}>＋ 子文件夹</button><button className="textButton dangerText" onClick={() => deleteDialog(selected.title, () => removeNode(selected.id))}>移除文件夹</button></div></div> : <div className="emptyState"><h2>暂无内容</h2></div>}</div></section></div>;
+  return <div className="page notesPage documentNotes"><PageHead eyebrow="" title={space === "thoughts" ? "思考集" : "自由空间"} action={<div className="documentPageActions"><button type="button" className="textButton" aria-expanded={navigationOpen} onClick={() => setNavigationOpen((open) => !open)}>{navigationOpen ? "收起文档导航" : "展开文档导航"}</button>{removedPages.length > 0 && <button type="button" className="textButton" disabled={access.readOnly} onClick={restorePages}>撤销删除</button>}</div>} />
+    <section className={`notesShell ${navigationOpen ? "" : "documentNavClosed"}`}><aside className="treePanel" hidden={!navigationOpen}><div className="treeActions"><button disabled={access.readOnly} onClick={() => addNode("folder", null)}>＋ 文件夹</button><button disabled={access.readOnly} onClick={() => addNode("page")}>＋ 页面</button></div><div className="treeList">{renderTree(null)}</div></aside>
+      <div className="editorArea">{selected ? <><div className="editorTop"><input className="pageTitleInput" aria-label={selected.kind === "page" ? "页面标题" : "文件夹名称"} readOnly={access.readOnly} value={selected.title} onChange={(event) => setData((current) => ({ ...current, pages: current.pages.map((item) => item.id === selected.id ? { ...item, title: event.target.value } : item) }))} /><details className="documentPageMenu"><summary aria-label="页面更多操作">⋯</summary><div><button type="button" className="dangerText" disabled={access.readOnly} onClick={(event) => { event.currentTarget.closest("details")?.removeAttribute("open"); deleteDialog(selected.title, () => removeNode(selected.id)); }}>{selected.kind === "page" ? "移除页面" : "移除文件夹"}</button></div></details></div>
+        {selected.kind === "page" ? <BlockEditor key={selected.id} blocks={selected.blocks} onChange={(blocks) => setData((current) => ({ ...current, pages: current.pages.map((item) => item.id === selected.id ? { ...item, blocks } : item) }))} access={access} /> : <div className="documentFolder"><div className="folderActions"><button className="softButton" disabled={access.readOnly} onClick={() => addNode("page", selected.id)}>＋ 页面</button><button className="textButton" disabled={access.readOnly} onClick={() => addNode("folder", selected.id)}>＋ 子文件夹</button></div><div className="documentFolderItems">{children(selected.id).map((item) => <button type="button" key={item.id} onClick={() => setSelectedPage(item.id)}>{item.kind === "folder" ? "▸ " : ""}{item.title}</button>)}</div></div>}</> : <div className="documentNoPages"><button type="button" className="softButton" disabled={access.readOnly} onClick={() => addNode("page", null)}>＋ 新建页面</button></div>}</div></section>
+    {deleteNotice && removedPages.length > 0 && <div className="documentToast" role="status"><span>已删除</span><button type="button" disabled={access.readOnly} onClick={restorePages}>撤销</button><button type="button" aria-label="关闭删除提示" onClick={() => setDeleteNotice(false)}>×</button></div>}
+  </div>;
 }
 
 function CollectionPage({ eyebrow, title, subtitle, addLabel, onAdd, children }: { eyebrow: string; title: string; subtitle?: string; addLabel: string; onAdd: () => void; children: React.ReactNode }) { return <div className="page"><PageHead eyebrow={eyebrow} title={title} subtitle={subtitle} action={<button className="primaryButton" onClick={onAdd}>＋ {addLabel}</button>} />{children}</div>; }
@@ -1800,13 +1855,15 @@ function SubjectLinkedTasks({ tasks, openWork }: { tasks: TaskItem[]; openWork: 
 function CourseDetail({ course, data, setData, back, openWork, setDialog, deleteDialog, access }: { course: Course; data: AppState; setData: React.Dispatch<React.SetStateAction<AppState>>; back: () => void; openWork: (target: WorkTarget) => void; setDialog: (value: DialogConfig) => void; deleteDialog: (title: string, onDelete: () => void) => void; access: EditorAccess }) {
   const [editingNodeId, setEditingNodeId] = useState("");
   const [creatingNode, setCreatingNode] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<Milestone | null>(null);
+  const relatedEvents = data.milestones.filter((item) => !item.courseId && item.linkedCourseId === course.id);
   const [nodePending, setNodePending] = useState(false);
   const nodes = data.milestones.filter((item) => item.courseId === course.id && !item.automationKey);
   const linkedTasks = data.tasks.filter((item) => item.courseId === course.id);
   const patchCourse = (patch: Partial<Course>) => setData((current) => ({ ...current, courses: current.courses.map((item) => item.id === course.id ? { ...item, ...patch } : item) }));
   const updateNode = (nodeId: string, update: (current: Milestone) => Milestone) => setData((current) => ({ ...current, milestones: current.milestones.map((item) => item.id === nodeId ? update(item) : item) }));
   const addNode = () => setCreatingNode(true);
-  return <DetailLayout eyebrow={`${course.term} · 课内课程`} title={course.title} back={back}><div className="detailGrid"><div className="detailMain"><section className="panel detailSection"><SectionHead title="课程基本要求" /><div className="fieldGrid"><label className="editField"><span>所属课表</span><select value={courseSchool(course)} onChange={(event) => patchCourse({ school: event.target.value as AcademicImportPreset })}><option value="pku">北京大学</option><option value="bit">北京理工大学</option></select></label><EditableField label="教师或说明" value={course.teacher} onChange={(value) => patchCourse({ teacher: value })} /><EditableField label="上课地点" value={course.location} onChange={(value) => patchCourse({ location: value })} /><EditableField label="当前进度" value={String(course.progress)} type="number" onChange={(value) => patchCourse({ progress: Math.min(100, Number(value) || 0) })} /><label className="editField wide"><span>课程要求</span><textarea value={course.requirements} onChange={(event) => patchCourse({ requirements: event.target.value })} /></label></div></section><section className="panel detailSection"><SectionHead title="课程任务" action={!access.readOnly && <button className="primaryButton" disabled={creatingNode} onClick={addNode}>＋ 新增课程任务</button>} />{creatingNode && <CourseNodeForm courseId={course.id} location={course.location} date={today} access={access} onCancel={() => setCreatingNode(false)} onCreate={(node) => { setData((current) => ({ ...current, milestones: [...current.milestones, node] })); setCreatingNode(false); setEditingNodeId(node.id); }} />}<div className="nodeTable"><div className="nodeTableHead"><span>任务</span><span>时间</span><span>地点</span><span>要求与成果</span><span>完成</span></div>{nodes.map((node) => <Fragment key={node.id}><div className={`nodeRow ${node.done ? "done" : ""}`}><strong>{node.title}</strong><span>{node.date}<small>{node.time}</small></span><span>{node.location}</span><div className="nodeRequirementCell"><span title={node.requirements}>{node.requirements || "未填写要求"}</span><button type="button" disabled={nodePending} aria-expanded={editingNodeId === node.id} onClick={() => setEditingNodeId((current) => current === node.id ? "" : node.id)}>{editingNodeId === node.id ? "收起" : "查看要求与成果"}{node.attachments?.length ? ` · ${node.attachments.length} 个要求附件` : ""}</button><small className="nodeOutcomeSummary">{node.outcomeAttachments?.length ? `已保存 ${node.outcomeAttachments.length} 个成果文件` : node.outcomeText ? "已记录成果说明" : "暂无成果"}</small></div><button className={`habitCheck ${node.done ? "done" : ""}`} disabled={access.readOnly} aria-label={`${node.done ? "取消完成" : "标记完成"}：${node.title}`} onClick={() => updateNode(node.id, (current) => ({ ...current, done: !current.done }))}>{node.done ? "✓" : ""}</button><button className="miniRemove" disabled={access.readOnly || nodePending} aria-label={`删除课程节点：${node.title}`} onClick={() => deleteDialog(node.title, () => setData((current) => ({ ...current, milestones: current.milestones.filter((item) => item.id !== node.id) })))}>×</button></div>{editingNodeId === node.id && <CourseNodeEditor key={node.id} onPendingChange={setNodePending} node={node} access={access} onChange={(update) => updateNode(node.id, update)} onClose={() => setEditingNodeId("")} />}</Fragment>)}</div><SubjectLinkedTasks tasks={linkedTasks} openWork={openWork} /></section><section className="panel editorSection"><SectionHead title="资料、笔记与自由内容" /><BlockEditor blocks={course.blocks} onChange={(blocks) => patchCourse({ blocks })} showToc={false} access={access} /></section></div><aside className="detailAside"><div className="progressCard"><span>课程进度</span><strong>{course.progress}%</strong><div className="progressLine"><i style={{ width: `${course.progress}%` }} /></div></div><BlockToc blocks={course.blocks} /></aside></div></DetailLayout>;
+  return <DetailLayout eyebrow={`${course.term} · 课内课程`} title={course.title} back={back}><div className="detailGrid courseDocumentPage"><div className="detailMain"><section className="panel editorSection"><SectionHead title="资料、笔记与自由内容" /><BlockEditor blocks={course.blocks} onChange={(blocks) => patchCourse({ blocks })} showToc={false} access={access} /></section><details className="panel detailSection courseDocumentInfo"><summary>课程基本要求</summary><div className="fieldGrid"><label className="editField"><span>所属课表</span><select value={courseSchool(course)} onChange={(event) => patchCourse({ school: event.target.value as AcademicImportPreset })}><option value="pku">北京大学</option><option value="bit">北京理工大学</option></select></label><EditableField label="教师或说明" value={course.teacher} onChange={(value) => patchCourse({ teacher: value })} /><EditableField label="上课地点" value={course.location} onChange={(value) => patchCourse({ location: value })} /><EditableField label="当前进度" value={String(course.progress)} type="number" onChange={(value) => patchCourse({ progress: Math.min(100, Number(value) || 0) })} /><label className="editField wide"><span>课程要求</span><textarea value={course.requirements} onChange={(event) => patchCourse({ requirements: event.target.value })} /></label></div></details><section className="panel detailSection"><SectionHead title="课程任务" action={!access.readOnly && <button className="primaryButton" disabled={creatingNode} onClick={addNode}>＋ 新增课程任务</button>} />{creatingNode && <CourseNodeForm courseId={course.id} location={course.location} date={today} access={access} onCancel={() => setCreatingNode(false)} onCreate={(node) => { setData((current) => ({ ...current, milestones: [...current.milestones, node] })); setCreatingNode(false); setEditingNodeId(node.id); }} />}<div className="nodeTable"><div className="nodeTableHead"><span>任务</span><span>时间</span><span>地点</span><span>要求与成果</span><span>完成</span></div>{nodes.map((node) => <Fragment key={node.id}><div className={`nodeRow ${node.done ? "done" : ""}`}><strong>{node.title}</strong><span>{node.date}<small>{node.time}</small></span><span>{node.location}</span><div className="nodeRequirementCell"><span title={node.requirements}>{node.requirements || "未填写要求"}</span><button type="button" disabled={nodePending} aria-expanded={editingNodeId === node.id} onClick={() => setEditingNodeId((current) => current === node.id ? "" : node.id)}>{editingNodeId === node.id ? "收起" : "查看要求与成果"}{node.attachments?.length ? ` · ${node.attachments.length} 个要求附件` : ""}</button><small className="nodeOutcomeSummary">{node.outcomeAttachments?.length ? `已保存 ${node.outcomeAttachments.length} 个成果文件` : node.outcomeText ? "已记录成果说明" : "暂无成果"}</small></div><button className={`habitCheck ${node.done ? "done" : ""}`} disabled={access.readOnly} aria-label={`${node.done ? "取消完成" : "标记完成"}：${node.title}`} onClick={() => updateNode(node.id, (current) => ({ ...current, done: !current.done }))}>{node.done ? "✓" : ""}</button><button className="miniRemove" disabled={access.readOnly || nodePending} aria-label={`删除课程节点：${node.title}`} onClick={() => deleteDialog(node.title, () => setData((current) => ({ ...current, milestones: current.milestones.filter((item) => item.id !== node.id) })))}>×</button></div>{editingNodeId === node.id && <CourseNodeEditor key={node.id} onPendingChange={setNodePending} node={node} access={access} onChange={(update) => updateNode(node.id, update)} onClose={() => setEditingNodeId("")} />}</Fragment>)}</div><SubjectLinkedTasks tasks={linkedTasks} openWork={openWork} /></section>{relatedEvents.length > 0 && <section className="panel detailSection courseRelatedEvents"><SectionHead title="相关事项 / 考核节点" /><div>{relatedEvents.map((item) => <div className={"courseRelatedEvent " + (item.done ? "done" : "")} key={item.id}><button type="button" className="checkButton" disabled={access.readOnly} aria-label={(item.done ? "标记未完成：" : "标记完成：") + item.title} aria-pressed={item.done} onClick={() => updateNode(item.id, (current) => ({ ...current, done: !current.done }))}>{item.done ? "✓" : ""}</button><button type="button" className="courseRelatedEventTitle" onClick={() => openWork({ kind: "milestone", id: item.id })}><strong>{item.title}</strong><span>{[assessmentTypeLabel(item.assessmentType), eventDateLabel(item)].filter(Boolean).join(" · ")}</span></button><button type="button" className="softButton" disabled={access.readOnly} onClick={() => setEditingEvent(item)}>修改</button></div>)}</div></section>}{editingEvent && <CourseEventDialog node={editingEvent} courses={data.courses} readOnly={access.readOnly} onClose={() => setEditingEvent(null)} onSave={(value) => { updateNode(value.id, () => value); setEditingEvent(null); }} />}</div><aside className="detailAside"><div className="progressCard"><span>课程进度</span><strong>{course.progress}%</strong><div className="progressLine"><i style={{ width: `${course.progress}%` }} /></div></div><BlockToc blocks={course.blocks} /></aside></div></DetailLayout>;
 }
 
 function LearningDetail({ item, data, setData, back, openWork, setDialog, access }: { item: LearningArea; data: AppState; setData: React.Dispatch<React.SetStateAction<AppState>>; back: () => void; openWork: (target: WorkTarget) => void; setDialog: (value: DialogConfig) => void; access: EditorAccess }) {
@@ -1937,10 +1994,10 @@ function scrollToContentBlock(id: string) {
 
 function BlockToc({ blocks, compact = false }: { blocks: Block[]; compact?: boolean }) {
   const headings = blocks.filter((block) => block.type === "heading" && block.text?.trim());
-  return <nav className={`blockToc ${compact ? "compact" : ""}`} aria-label="内容目录">
-    <div><strong>内容目录</strong><span>{headings.length} 个标题</span></div>
-    {headings.length ? <ol>{headings.map((block) => <li className={`level${block.headingLevel ?? 1}`} key={block.id}><button onClick={() => scrollToContentBlock(block.id)}>{block.text}</button></li>)}</ol> : <p>暂无标题</p>}
-  </nav>;
+  if (!headings.length) return null;
+  return <details className={`blockToc documentToc ${compact ? "compact" : ""}`}><summary>目录 <span>{headings.length}</span></summary>
+    <nav aria-label="内容目录"><ol>{headings.map((block) => <li className={`level${block.headingLevel ?? 1}`} key={block.id}><button type="button" onClick={() => scrollToContentBlock(block.id)}>{block.text}</button></li>)}</ol></nav>
+  </details>;
 }
 
 function BlockInsertPoint({ index, open, dropActive, onToggle, onInsert, onDragOver, onDrop }: {
@@ -2160,7 +2217,7 @@ function sanitizedRichPaste(html: string) {
   return output.innerHTML;
 }
 
-function RichTextField({ block, placeholder, ariaLabel, multiline, onChange, onSelection }: { block: Block; placeholder: string; ariaLabel: string; multiline: boolean; onChange: (value: Pick<Block, "text" | "inlineRuns">) => void; onSelection: (selection: SavedInlineSelection | null) => void }) {
+function RichTextField({ block, placeholder, ariaLabel, multiline, readOnly = false, onChange, onSelection }: { block: Block; placeholder: string; ariaLabel: string; multiline: boolean; readOnly?: boolean; onChange: (value: Pick<Block, "text" | "inlineRuns">) => void; onSelection: (selection: SavedInlineSelection | null) => void }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const element = ref.current;
@@ -2189,7 +2246,8 @@ function RichTextField({ block, placeholder, ariaLabel, multiline, onChange, onS
   return <div
     ref={ref}
     className="richTextField"
-    contentEditable
+    contentEditable={!readOnly}
+    aria-readonly={readOnly}
     role="textbox"
     data-block-id={block.id}
     aria-label={ariaLabel}
@@ -2228,6 +2286,11 @@ function fileProxyUrl(asset: { url?: string; fileName?: string }, download = fal
 }
 
 function BlockEditor({ blocks, onChange, showToc = true, access }: { blocks: Block[]; onChange: (blocks: Block[]) => void; showToc?: boolean; access: EditorAccess }) {
+  const [draftBlock] = useState<Block>(() => ({ id: uid(), type: "text", text: "" }));
+  const visibleBlocks = blocks.length ? blocks : [draftBlock];
+  const [formatOpen, setFormatOpen] = useState(false);
+  const [deleteToast, setDeleteToast] = useState(false);
+  const insertMenuRef = useRef<HTMLDetailsElement>(null);
   const [selectedId, setSelectedId] = useState(() => blocks.find((block) => formatBlockTypes.has(block.type))?.id ?? "");
   const [selectionLabel, setSelectionLabel] = useState("");
   const [floatingToolbar, setFloatingToolbar] = useState<FloatingInlineToolbar | null>(null);
@@ -2243,6 +2306,11 @@ function BlockEditor({ blocks, onChange, showToc = true, access }: { blocks: Blo
   const [draggingBlockId, setDraggingBlockId] = useState("");
   const [blockDropIndex, setBlockDropIndex] = useState<number | null>(null);
   const [deletedItems, setDeletedItems] = useState<DeletedItem[]>([]);
+  useEffect(() => {
+    setDeleteToast(deletedItems.length > 0);
+    const timer = window.setTimeout(() => setDeleteToast(false), 6000);
+    return () => window.clearTimeout(timer);
+  }, [deletedItems]);
   const blocksRef = useRef(blocks);
   const editorRef = useRef<HTMLDivElement>(null);
   const floatingToolbarRef = useRef<HTMLDivElement>(null);
@@ -2253,8 +2321,8 @@ function BlockEditor({ blocks, onChange, showToc = true, access }: { blocks: Blo
   useEffect(() => {
     if (!blocks.some((block) => block.id === selectedId && formatBlockTypes.has(block.type))) setSelectedId(blocks.find((block) => formatBlockTypes.has(block.type))?.id ?? "");
   }, [blocks, selectedId]);
-  const emitBlocks = (next: Block[]) => { blocksRef.current = next; onChange(next); };
-  const selected = blocks.find((block) => block.id === selectedId && formatBlockTypes.has(block.type));
+  const emitBlocks = (next: Block[]) => { if (access.readOnly) return; blocksRef.current = next; onChange(next); };
+  const selected = visibleBlocks.find((block) => block.id === selectedId && formatBlockTypes.has(block.type)) ?? (!blocks.length ? draftBlock : undefined);
   const add = (type: BlockType, options: { headingLevel?: 1 | 2 | 3; at?: number } = {}) => {
     const headingLevel = options.headingLevel ?? 1;
     const block: Block = type === "table" ? { id: uid(), type, rows: [["项目", "内容"], ["", ""]] } : type === "file" ? { id: uid(), type } : { id: uid(), type, text: type === "heading" ? (headingLevel === 1 ? "新标题" : "新次级标题") : type === "checklist" ? "待办事项" : "", ...(type === "heading" ? { headingLevel } : {}) };
@@ -2263,10 +2331,19 @@ function BlockEditor({ blocks, onChange, showToc = true, access }: { blocks: Blo
     next.splice(at, 0, block);
     emitBlocks(next);
     setInsertAt(null);
+    if (insertMenuRef.current) insertMenuRef.current.open = false;
     if (formatBlockTypes.has(type)) setSelectedId(block.id);
     return block;
   };
-  const patch = (id: string, value: Partial<Block>) => emitBlocks(blocksRef.current.map((block) => block.id === id ? { ...block, ...value } : block));
+  const patch = (id: string, value: Partial<Block>) => {
+    if (access.readOnly) return;
+    if (!blocksRef.current.length && id === draftBlock.id) {
+      if (value.text || value.inlineRuns?.length || Object.keys(value).some((key) => key !== "text" && key !== "inlineRuns")) emitBlocks([{ ...draftBlock, ...value }]);
+      return;
+    }
+    emitBlocks(blocksRef.current.map((block) => block.id === id ? { ...block, ...value } : block));
+  };
+  const ensureDraftBlock = (id: string) => { if (!blocksRef.current.length && id === draftBlock.id) emitBlocks([draftBlock]); };
   const closeInlineToolbar = useCallback(() => {
     selectionRef.current = null;
     setSelectionLabel("");
@@ -2513,6 +2590,7 @@ function BlockEditor({ blocks, onChange, showToc = true, access }: { blocks: Blo
     if (access.preview) { setEditorNotice("本地预览不连接云端图片库，请在正式网站插入。"); return; }
     if (!file.type.startsWith("image/")) { setUploads((current) => ({ ...current, [uploadKey]: { progress: 0, error: "文字框内只能插入图片文件。" } })); return; }
     if (file.size > 50 * 1024 * 1024) { setUploads((current) => ({ ...current, [uploadKey]: { progress: 0, error: "单张图片不能超过 50 MB。" } })); return; }
+    ensureDraftBlock(blockId);
     const currentBlock = blocksRef.current.find((block) => block.id === blockId);
     if ((currentBlock?.embeddedImages?.length ?? 0) + (currentBlock?.embeddedFiles?.length ?? 0) >= 50) { setUploads((current) => ({ ...current, [uploadKey]: { progress: 0, error: "一个文字框最多插入 50 个图片或文件。" } })); return; }
     const imageId = uid();
@@ -2542,6 +2620,7 @@ function BlockEditor({ blocks, onChange, showToc = true, access }: { blocks: Blo
     if (access.readOnly) { setEditorNotice("只读空间不能插入文件。"); return; }
     if (access.preview) { setEditorNotice("本地预览不连接云端资料库，请在正式网站插入。"); return; }
     if (file.size > 50 * 1024 * 1024) { setUploads((current) => ({ ...current, [uploadKey]: { progress: 0, error: "单个文件不能超过 50 MB。" } })); return; }
+    ensureDraftBlock(blockId);
     const currentBlock = blocksRef.current.find((block) => block.id === blockId);
     if ((currentBlock?.embeddedImages?.length ?? 0) + (currentBlock?.embeddedFiles?.length ?? 0) >= 50) { setUploads((current) => ({ ...current, [uploadKey]: { progress: 0, error: "一个文字框最多插入 50 个图片或文件。" } })); return; }
     const fileId = uid();
@@ -2584,10 +2663,14 @@ function BlockEditor({ blocks, onChange, showToc = true, access }: { blocks: Blo
   const characterCount = blocks.reduce((sum, block) => sum + (block.text?.length ?? 0), 0);
   const lastDeleted = deletedItems.at(-1);
   const deletedLabel = lastDeleted ? (lastDeleted.kind === "embeddedImage" ? (lastDeleted.image.caption?.trim() || lastDeleted.image.fileName || "内嵌图片") : lastDeleted.kind === "embeddedFile" ? lastDeleted.file.fileName : (lastDeleted.block.text?.trim() || lastDeleted.block.fileName || (lastDeleted.block.type === "image" ? "图片" : lastDeleted.block.type === "file" ? "附件" : "内容块"))).slice(0, 36) : "";
-  return <div ref={editorRef} className={`blockEditor ${draggingEditor ? "dragging" : ""}`}>
-    <div className="editorSummary"><div><strong>自由笔记与资料库</strong><span>{characterCount} 字 · {blocks.length} 个内容块 · {attachmentCount} 份资料</span></div><small>最大 50 MB</small></div>
-    <div className="blockToolbar"><span>末尾插入</span><button onClick={() => add("heading", { headingLevel: 1 })}>标题</button><button onClick={() => add("heading", { headingLevel: 2 })}>次级标题</button><button onClick={() => add("text")}>正文</button><button onClick={() => add("checklist")}>清单</button><button onClick={() => add("link")}>链接</button><button onClick={() => add("table")}>表格</button><button onClick={() => add("image")}>图片</button><button onClick={() => add("file")}>附件</button></div>
-    {lastDeleted && <div className="undoDeleteBar" role="status" aria-live="polite"><span>已删除“{deletedLabel}{deletedLabel.length >= 36 ? "…" : ""}”{deletedItems.length > 1 ? ` · 还可撤回 ${deletedItems.length} 项` : ""}</span><button type="button" onClick={undoDelete}>撤回删除</button></div>}
+  return <div ref={editorRef} className={`blockEditor documentEditor ${draggingEditor ? "dragging" : ""}`}>
+    <div className="documentToolbar">
+      {!access.readOnly && <details className="documentInsert" ref={insertMenuRef}><summary>＋ 插入</summary><div className="blockToolbar" role="toolbar" aria-label="插入内容"><button type="button" onClick={() => add("heading", { headingLevel: 1 })}>标题</button><button type="button" onClick={() => add("heading", { headingLevel: 2 })}>次级标题</button><button type="button" onClick={() => add("text")}>正文</button><button type="button" onClick={() => add("checklist")}>清单</button><button type="button" onClick={() => add("link")}>链接</button><button type="button" onClick={() => add("table")}>表格</button><button type="button" onClick={() => add("image")}>图片</button><button type="button" onClick={() => add("file")}>附件</button></div></details>}
+      {selected && !access.readOnly && <button type="button" className="documentFormatToggle" aria-expanded={formatOpen} onClick={() => setFormatOpen((open) => !open)}>段落样式</button>}
+      {lastDeleted && <button type="button" className="documentUndo" disabled={access.readOnly} onClick={undoDelete}>撤销删除</button>}
+      <details className="documentInfo"><summary aria-label="文档详情">⋯</summary><div><span>{characterCount} 字 · {blocks.length} 个内容块</span><span>{attachmentCount} 份资料 · 单个文件最大 50 MB</span></div></details>
+    </div>
+    {lastDeleted && deleteToast && <div className="documentToast" role="status" aria-live="polite"><span>已删除“{deletedLabel}{deletedLabel.length >= 36 ? "…" : ""}”</span><button type="button" onClick={undoDelete}>撤销</button><button type="button" aria-label="关闭删除提示" onClick={() => setDeleteToast(false)}>×</button></div>}
     {floatingToolbar && selectionLabel && <div
       ref={floatingToolbarRef}
       className={`floatingInlineToolbar ${floatingToolbar.placement}`}
@@ -2621,7 +2704,7 @@ function BlockEditor({ blocks, onChange, showToc = true, access }: { blocks: Blo
         </div>
       </div>}
     </div>}
-    <details className="wholeBlockTools"><summary>整段样式（作用于整个内容块）</summary><div className="formatToolbar" aria-label="整段文字格式">
+    {formatOpen && selected && !access.readOnly && <div className="formatToolbar documentFormat" aria-label="整段文字格式">
       <span>{selected ? `当前：${selected.type === "heading" ? "标题" : selected.type === "text" ? "正文" : selected.type === "checklist" ? "清单" : selected.type === "link" ? "链接名称" : "图片说明"}` : "先点选一个文字块"}</span>
       {selected && <>
         {selected.type === "heading" && <label>级别<select aria-label="标题级别" value={selected.headingLevel ?? 1} onChange={(event) => patch(selected.id, { headingLevel: Number(event.target.value) as 1 | 2 | 3 })}><option value="1">一级</option><option value="2">二级</option><option value="3">三级</option></select></label>}
@@ -2636,14 +2719,13 @@ function BlockEditor({ blocks, onChange, showToc = true, access }: { blocks: Blo
         <label className="colorControl">底色<input aria-label="整段文字底色" type="color" value={selected.backgroundColor ?? "#ffffff"} onChange={(event) => patch(selected.id, { backgroundColor: event.target.value })} /></label>
         <button aria-label="清除整段格式" onClick={() => patch(selected.id, { color: undefined, backgroundColor: undefined, fontSize: undefined, fontWeight: undefined, fontStyle: undefined, textDecoration: undefined, textAlign: undefined, fontFamily: undefined })}>清除整段格式</button>
       </>}
-    </div></details>
+    </div>}
     {editorNotice && <p className="editorNotice">{editorNotice}</p>}
     {showToc && <BlockToc blocks={blocks} compact />}
     <div className="blocks" onDragEnter={(event) => { if (event.dataTransfer.types.includes("Files")) setDraggingEditor(true); }} onDragOver={(event) => { if (event.dataTransfer.types.includes("Files")) { event.preventDefault(); event.dataTransfer.dropEffect = "copy"; } }} onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDraggingEditor(false); }} onDrop={(event) => { if (!event.dataTransfer.files.length) return; event.preventDefault(); setDraggingEditor(false); addDroppedFiles(Array.from(event.dataTransfer.files)); }}>
       {draggingEditor && <div className="editorDropOverlay">松开即可加入图片或附件</div>}
-      {!blocks.length && <div className="editorEmpty"><strong>从这里开始记录</strong></div>}
-      {blocks.map((block, index) => <Fragment key={block.id}>
-        <BlockInsertPoint index={index} open={insertAt === index} dropActive={blockDropIndex === index} onToggle={() => setInsertAt((current) => current === index ? null : index)} onInsert={(type, headingLevel) => add(type, { headingLevel, at: index })} onDragOver={(event) => markBlockDrop(event, index)} onDrop={(event) => dropBlockAt(event, index)} />
+      {visibleBlocks.map((block, index) => <Fragment key={block.id}>
+        {blocks.length > 0 && <BlockInsertPoint index={index} open={insertAt === index} dropActive={blockDropIndex === index} onToggle={() => setInsertAt((current) => current === index ? null : index)} onInsert={(type, headingLevel) => add(type, { headingLevel, at: index })} onDragOver={(event) => markBlockDrop(event, index)} onDrop={(event) => dropBlockAt(event, index)} />}
         <div
           id={`content-block-${block.id}`}
           className={`editorBlock ${block.type} ${selectedId === block.id ? "selected" : ""} ${draggingBlockId === block.id ? "reordering" : ""}`}
@@ -2652,9 +2734,9 @@ function BlockEditor({ blocks, onChange, showToc = true, access }: { blocks: Blo
           onDrop={(event) => { if (!draggingBlockRef.current) return; const rect = event.currentTarget.getBoundingClientRect(); dropBlockAt(event, index + (event.clientY >= rect.top + rect.height / 2 ? 1 : 0)); }}
         >
           <button type="button" className="dragMark" draggable aria-label="拖动调整内容块顺序" title="按住拖动调整顺序；Alt＋方向键也可移动" onDragStart={(event) => startBlockDrag(event, block.id)} onDragEnd={finishBlockDrag} onKeyDown={(event) => { if (event.altKey && event.key === "ArrowUp") { event.preventDefault(); moveBlockBy(block.id, -1); } if (event.altKey && event.key === "ArrowDown") { event.preventDefault(); moveBlockBy(block.id, 1); } }}>⋮⋮</button>
-          {block.type === "heading" && <RichTextField block={block} placeholder="标题" ariaLabel={`标题：${block.text || "未命名"}`} multiline={false} onChange={(value) => patch(block.id, value)} onSelection={rememberSelection} />}
+          {block.type === "heading" && <RichTextField block={block} placeholder="标题" ariaLabel={`标题：${block.text || "未命名"}`} multiline={false} onChange={(value) => patch(block.id, value)} onSelection={rememberSelection} readOnly={access.readOnly} />}
           {block.type === "text" && <div className={`richTextBlock ${uploads[`embedded:${block.id}`]?.dragging ? "draggingImage" : ""}`} onDragEnter={(event) => { if (!event.dataTransfer.types.includes("Files")) return; event.preventDefault(); event.stopPropagation(); setDraggingEditor(false); setUploads((current) => ({ ...current, [`embedded:${block.id}`]: { ...(current[`embedded:${block.id}`] ?? { progress: 0 }), dragging: true } })); }} onDragOver={(event) => { if (!event.dataTransfer.types.includes("Files")) return; event.preventDefault(); event.stopPropagation(); event.dataTransfer.dropEffect = "copy"; setUploads((current) => ({ ...current, [`embedded:${block.id}`]: { ...(current[`embedded:${block.id}`] ?? { progress: 0 }), dragging: true } })); }} onDragLeave={(event) => { if (event.currentTarget.contains(event.relatedTarget as Node | null)) return; setUploads((current) => ({ ...current, [`embedded:${block.id}`]: { ...(current[`embedded:${block.id}`] ?? { progress: 0 }), dragging: false } })); }} onDrop={(event) => { if (!event.dataTransfer.files.length) return; event.preventDefault(); event.stopPropagation(); const files = Array.from(event.dataTransfer.files); setDraggingEditor(false); setUploads((current) => ({ ...current, [`embedded:${block.id}`]: { ...(current[`embedded:${block.id}`] ?? { progress: 0 }), dragging: false, error: undefined } })); void uploadEmbeddedAssets(block.id, files); }}>
-            <RichTextField block={block} placeholder="输入正文…" ariaLabel="正文内容" multiline onChange={(value) => patch(block.id, value)} onSelection={rememberSelection} />
+            <RichTextField block={block} placeholder="输入正文…" ariaLabel="正文内容" multiline onChange={(value) => patch(block.id, value)} onSelection={rememberSelection} readOnly={access.readOnly} />
             {block.embeddedImages?.length ? <div className="embeddedImageGrid">{block.embeddedImages.map((image) => <figure key={image.id}>
               <Image src={fileProxyUrl(image)} alt={image.caption || image.fileName || "内嵌图片"} width={900} height={560} unoptimized />
               <figcaption><input value={image.caption ?? ""} placeholder="添加图片说明" aria-label={`图片说明：${image.fileName}`} onChange={(event) => patch(block.id, { embeddedImages: block.embeddedImages?.map((entry) => entry.id === image.id ? { ...entry, caption: event.target.value } : entry) })} /><a href={fileProxyUrl(image, true)}>下载</a><button type="button" aria-label={`移除内嵌图片：${image.fileName}`} onClick={() => removeEmbeddedImage(block.id, image.id)}>×</button></figcaption>
@@ -2664,9 +2746,9 @@ function BlockEditor({ blocks, onChange, showToc = true, access }: { blocks: Blo
             {uploads[`embedded:${block.id}`]?.progress > 0 && uploads[`embedded:${block.id}`]?.progress < 100 && <div className="uploadProgress"><i style={{ width: `${uploads[`embedded:${block.id}`].progress}%` }} /><span>正在插入资料 {uploads[`embedded:${block.id}`].progress}%</span></div>}
             {uploads[`embedded:${block.id}`]?.error && <p className="uploadError">{uploads[`embedded:${block.id}`].error}</p>}
           </div>}
-          {block.type === "checklist" && <><button className={"habitCheck " + (block.checked ? "done" : "")} onClick={() => patch(block.id, { checked: !block.checked })}>{block.checked ? "✓" : ""}</button><RichTextField block={block} placeholder="清单项" ariaLabel="清单内容" multiline={false} onChange={(value) => patch(block.id, value)} onSelection={rememberSelection} /></>}
-          {block.type === "link" && <><RichTextField block={block} placeholder="链接名称" ariaLabel="链接名称" multiline={false} onChange={(value) => patch(block.id, value)} onSelection={rememberSelection} /><input value={block.url ?? ""} placeholder="https://" aria-label="链接地址" onChange={(event) => patch(block.id, { url: event.target.value })} /></>}
-          {block.type === "image" && <div className="imageBlock">{block.url ? <><Image src={block.url.startsWith("data:") ? block.url : fileProxyUrl(block)} alt={block.text || block.fileName || "内容图片"} width={900} height={520} unoptimized /><div className="assetActions"><span>{block.fileName ? `${block.fileName} · ${formatBytes(block.fileSize)}` : "已保存图片"}</span><a href={block.url.startsWith("data:") ? block.url : fileProxyUrl(block, true)} download={block.fileName}>下载</a><label><input type="file" accept="image/*" onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadFile(block.id, file, "image"); }} />替换</label></div></> : <label className={uploads[block.id]?.dragging ? "assetDrop dragging" : "assetDrop"} onDragEnter={(event) => { event.preventDefault(); event.stopPropagation(); setUploads((current) => ({ ...current, [block.id]: { ...(current[block.id] ?? { progress: 0 }), dragging: true } })); }} onDragOver={(event) => { event.preventDefault(); event.stopPropagation(); }} onDragLeave={(event) => { event.preventDefault(); event.stopPropagation(); setUploads((current) => ({ ...current, [block.id]: { ...(current[block.id] ?? { progress: 0 }), dragging: false } })); }} onDrop={(event) => uploadDrop(event, block.id, "image")}><input type="file" accept="image/*" onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadFile(block.id, file, "image"); }} /><strong>拖入图片，或点击选择</strong><small>最大 50 MB</small></label>}{uploads[block.id]?.progress > 0 && uploads[block.id]?.progress < 100 && <div className="uploadProgress"><i style={{ width: `${uploads[block.id].progress}%` }} /><span>正在上传 {uploads[block.id].progress}%</span></div>}{uploads[block.id]?.error && <p className="uploadError">{uploads[block.id].error}</p>}<RichTextField block={block} placeholder="图片说明" ariaLabel="图片说明" multiline={false} onChange={(value) => patch(block.id, value)} onSelection={rememberSelection} /></div>}
+          {block.type === "checklist" && <><button className={"habitCheck " + (block.checked ? "done" : "")} onClick={() => patch(block.id, { checked: !block.checked })}>{block.checked ? "✓" : ""}</button><RichTextField block={block} placeholder="清单项" ariaLabel="清单内容" multiline={false} onChange={(value) => patch(block.id, value)} onSelection={rememberSelection} readOnly={access.readOnly} /></>}
+          {block.type === "link" && <><RichTextField block={block} placeholder="链接名称" ariaLabel="链接名称" multiline={false} onChange={(value) => patch(block.id, value)} onSelection={rememberSelection} readOnly={access.readOnly} /><input value={block.url ?? ""} placeholder="https://" aria-label="链接地址" onChange={(event) => patch(block.id, { url: event.target.value })} /></>}
+          {block.type === "image" && <div className="imageBlock">{block.url ? <><Image src={block.url.startsWith("data:") ? block.url : fileProxyUrl(block)} alt={block.text || block.fileName || "内容图片"} width={900} height={520} unoptimized /><div className="assetActions"><span>{block.fileName ? `${block.fileName} · ${formatBytes(block.fileSize)}` : "已保存图片"}</span><a href={block.url.startsWith("data:") ? block.url : fileProxyUrl(block, true)} download={block.fileName}>下载</a><label><input type="file" accept="image/*" onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadFile(block.id, file, "image"); }} />替换</label></div></> : <label className={uploads[block.id]?.dragging ? "assetDrop dragging" : "assetDrop"} onDragEnter={(event) => { event.preventDefault(); event.stopPropagation(); setUploads((current) => ({ ...current, [block.id]: { ...(current[block.id] ?? { progress: 0 }), dragging: true } })); }} onDragOver={(event) => { event.preventDefault(); event.stopPropagation(); }} onDragLeave={(event) => { event.preventDefault(); event.stopPropagation(); setUploads((current) => ({ ...current, [block.id]: { ...(current[block.id] ?? { progress: 0 }), dragging: false } })); }} onDrop={(event) => uploadDrop(event, block.id, "image")}><input type="file" accept="image/*" onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadFile(block.id, file, "image"); }} /><strong>拖入图片，或点击选择</strong><small>最大 50 MB</small></label>}{uploads[block.id]?.progress > 0 && uploads[block.id]?.progress < 100 && <div className="uploadProgress"><i style={{ width: `${uploads[block.id].progress}%` }} /><span>正在上传 {uploads[block.id].progress}%</span></div>}{uploads[block.id]?.error && <p className="uploadError">{uploads[block.id].error}</p>}<RichTextField block={block} placeholder="图片说明" ariaLabel="图片说明" multiline={false} onChange={(value) => patch(block.id, value)} onSelection={rememberSelection} readOnly={access.readOnly} /></div>}
           {block.type === "file" && <div className="fileBlock">{block.url ? <><span className="fileIcon">{(block.fileName?.split(".").pop() || "资料").slice(0, 4).toUpperCase()}</span><div className="fileMeta"><strong>{block.fileName || "未命名资料"}</strong><span>{formatBytes(block.fileSize)} · {block.mimeType || "文件"}{block.uploadedAt ? ` · ${new Date(block.uploadedAt).toLocaleDateString("zh-CN")}` : ""}</span></div><div className="fileActions"><a href={fileProxyUrl(block)} target="_blank" rel="noreferrer">打开</a><a href={fileProxyUrl(block, true)}>下载</a><label><input type="file" onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadFile(block.id, file, "file"); }} />替换</label></div></> : <label className={uploads[block.id]?.dragging ? "assetDrop dragging" : "assetDrop"} onDragEnter={(event) => { event.preventDefault(); event.stopPropagation(); setUploads((current) => ({ ...current, [block.id]: { ...(current[block.id] ?? { progress: 0 }), dragging: true } })); }} onDragOver={(event) => { event.preventDefault(); event.stopPropagation(); }} onDragLeave={(event) => { event.preventDefault(); event.stopPropagation(); setUploads((current) => ({ ...current, [block.id]: { ...(current[block.id] ?? { progress: 0 }), dragging: false } })); }} onDrop={(event) => uploadDrop(event, block.id, "file")}><input type="file" onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadFile(block.id, file, "file"); }} /><strong>拖入资料，或点击选择</strong><small>最大 50 MB</small></label>}{uploads[block.id]?.progress > 0 && uploads[block.id]?.progress < 100 && <div className="uploadProgress"><i style={{ width: `${uploads[block.id].progress}%` }} /><span>正在上传 {uploads[block.id].progress}%</span></div>}{uploads[block.id]?.error && <p className="uploadError">{uploads[block.id].error}</p>}</div>}
           {block.type === "table" && <TableBlock rows={block.rows ?? [["项目", "内容"]]} onChange={(rows) => patch(block.id, { rows })} />}
           <div className="blockOrderActions" aria-label="调整内容块顺序"><button type="button" disabled={index === 0} aria-label="上移内容块" onClick={() => moveBlockBy(block.id, -1)}>↑</button><button type="button" disabled={index === blocks.length - 1} aria-label="下移内容块" onClick={() => moveBlockBy(block.id, 1)}>↓</button></div>

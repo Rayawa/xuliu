@@ -1,3 +1,5 @@
+import { reviewPoolReadProjection } from "./course-review-pool.ts";
+
 export type AiCourseContext = {
   source: "untrusted_workspace_data";
   id: string;
@@ -14,6 +16,8 @@ export type AiCourseContext = {
     time: string;
     location: string;
     requirements: string;
+    kind: "task" | "event";
+    eventDateKind?: "occurs" | "deadline";
   }>;
 };
 
@@ -27,7 +31,7 @@ function limitedText(value: unknown, max: number) {
 
 export function aiCourseContextFromWorkspace(workspace: unknown, activeCourseId?: string): AiCourseContext | null {
   if (!activeCourseId) return null;
-  const state = recordOf(workspace);
+  const state = reviewPoolReadProjection(workspace);
   if (!state || !Array.isArray(state.courses)) return null;
   const course = state.courses.map(recordOf).find((item) => item?.id === activeCourseId);
   if (!course) return null;
@@ -41,13 +45,15 @@ export function aiCourseContextFromWorkspace(workspace: unknown, activeCourseId?
     : [];
   const upcomingMilestones = Array.isArray(state.milestones)
     ? state.milestones.map(recordOf)
-      .filter((milestone) => milestone?.courseId === activeCourseId)
-      .map((milestone) => ({
+      .filter((milestone) => milestone?.courseId === activeCourseId || milestone?.linkedCourseId === activeCourseId)
+      .map<AiCourseContext["upcomingMilestones"][number]>((milestone) => ({
         title: limitedText(milestone?.title, 300),
         date: limitedText(milestone?.date, 20),
         time: limitedText(milestone?.time, 20),
         location: limitedText(milestone?.location, 300),
         requirements: limitedText(milestone?.requirements, 1_000),
+        kind: milestone?.courseId ? "task" as const : "event" as const,
+        ...(milestone?.eventDateKind === "occurs" || milestone?.eventDateKind === "deadline" ? { eventDateKind: milestone.eventDateKind } : {}),
       }))
       .sort((left, right) => `${left.date} ${left.time}`.localeCompare(`${right.date} ${right.time}`))
       .slice(0, 10)

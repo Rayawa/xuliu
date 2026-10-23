@@ -1,0 +1,41 @@
+.courseEventDialog { position: fixed; inset: 0; width: min(570px, calc(100vw - 32px)); max-width: none; max-height: calc(100dvh - 40px); margin: auto; padding: 0; overflow: auto; overscroll-behavior: contain; border: 1px solid var(--line); border-radius: 15px; color: var(--text); background: var(--paper); box-shadow: 0 24px 80px #0003; }
+.courseEventDialog::backdrop { background: #17201b66; backdrop-filter: blur(3px); }
+.courseEventDialogHead { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 21px 24px 16px; border-bottom: 1px solid var(--line); }
+.courseEventDialogHead h2 { margin: 0; font-size: 21px; font-weight: 600; }
+.courseEventClose { width: 34px; height: 34px; border: 0; border-radius: 7px; color: var(--muted); background: var(--paper-soft); font-size: 24px; line-height: 1; cursor: pointer; }
+.courseEventDialog form { padding: 21px 24px; }
+.courseEventFields, .courseEventExtraFields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 16px; min-width: 0; margin: 0; padding: 0; border: 0; }
+.courseEventFields label { display: grid; gap: 7px; min-width: 0; color: var(--muted); font-size: 12px; }
+.courseEventWide { grid-column: 1 / -1; }
+.courseEventFields :is(input, select, textarea) { box-sizing: border-box; min-width: 0; width: 100%; min-height: 39px; border: 1px solid var(--line); border-radius: 7px; padding: 9px 10px; color: var(--text); background: var(--paper-soft); font: inherit; line-height: 1.5; }
+.courseEventFields textarea { resize: vertical; }
+.courseEventFields :is(input, select, textarea):focus-visible, .courseEventDialog button:focus-visible, .courseEventMore summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.courseEventFields :disabled { opacity: .65; cursor: default; }
+.courseEventMore { min-width: 0; border-top: 1px solid var(--line); padding-top: 13px; }
+.courseEventMore > summary { width: fit-content; cursor: pointer; font-size: 12px; color: var(--muted); padding: 4px 0; }
+.courseEventExtraFields { margin-top: 13px; }
+.courseEventError { margin: 13px 0 0; color: #a23e38; font-size: 12px; }
+.courseEventDialogActions { display: flex; justify-content: flex-end; gap: 9px; margin-top: 21px; }
+.courseEventDialogActions button { padding: 9px 15px; }
+.courseEventPath { color: var(--muted); font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
+.courseEventFilters { margin: 0 0 16px; color: var(--muted); font-size: 12px; }
+.courseEventFilters > summary { width: fit-content; cursor: pointer; padding: 5px 0; }
+.courseEventFilters > div { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 10px; padding-top: 10px; }
+.courseEventFilters label { display: grid; gap: 5px; min-width: 0; max-width: 100%; }
+.courseEventFilters select { min-width: 0; max-width: 100%; border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; background: var(--paper-soft); color: var(--text); font: inherit; }
+.courseEventFilters button { border: 0; padding: 8px; color: var(--muted); background: transparent; cursor: pointer; }
+.courseRelatedEvent { display: flex; align-items: center; gap: 12px; padding: 12px 0; }
+.courseRelatedEvent + .courseRelatedEvent { border-top: 1px solid var(--line); }
+.courseRelatedEventTitle { display: grid; gap: 6px; flex: 1; min-width: 0; padding: 3px 0; text-align: left; color: var(--text); background: transparent; border: 0; cursor: pointer; }
+.courseRelatedEventTitle strong { font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
+.courseRelatedEventTitle span { font-size: 12px; color: var(--muted); }
+.courseRelatedEvent.done .courseRelatedEventTitle strong { text-decoration: line-through; color: var(--muted); }
+.courseRelatedEvent > .softButton { padding: 7px 10px; font-size: 12px; }
+.courseEventContent { display: grid; gap: 18px; }
+@media (max-width: 460px) {
+  .courseEventDialog { width: calc(100vw - 24px); max-height: calc(100dvh - 24px); }
+  .courseEventDialogHead { padding: 17px 18px 13px; }
+  .courseEventDialog form { padding: 17px 18px; }
+  .courseEventFields, .courseEventExtraFields { gap: 13px 10px; }
+  .courseEventFields input[type="date"], .courseEventFields input[type="time"] { padding-inline: 5px; }
+}

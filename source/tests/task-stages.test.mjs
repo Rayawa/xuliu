@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { withPlannedTaskStages } from '../lib/task-stages.ts';
-import { planTaskForDate, taskVisibleToday } from '../lib/task-progress.ts';
+import { cancelWorkForDate, courseNodeVisibleToday, planTaskForDate, taskVisibleToday } from '../lib/task-progress.ts';
 import { createEmptyWorkspaceState, workspaceStateSchema } from '../lib/workspace-state-schema.ts';
 
 const today = '2026-10-12';
@@ -154,4 +154,84 @@ test('postponing or deleting a course stage keeps the course deadline and comple
   const removed = withPlannedTaskStages({ ...first, tasks: [] }, today, createId, first);
   assert.deepEqual(removed.milestones[0], { ...node, plannedDate: undefined });
   assert.equal(withPlannedTaskStages(removed, today, createId).tasks.length, 0);
+});
+
+test('cancel today on a stage also dismisses its long parent without recreating the stage on reload', () => {
+  const first = withPlannedTaskStages(stateFor(), today, createId);
+  const edited = { ...first, tasks: first.tasks.map((task) => task.parentId ? { ...task, progress: 40, requirements: '保留阶段笔记' } : task) };
+  const next = { ...edited, tasks: edited.tasks.map((task) => task.parentId ? cancelWorkForDate(task, today) : task) };
+  const cancelled = withPlannedTaskStages(next, today, createId, edited);
+  assert.deepEqual(cancelled.tasks[0], { ...parent, dismissedTodayDate: today });
+  assert.deepEqual(cancelled.tasks[1], { ...edited.tasks[1], dismissedTodayDate: today });
+  assert.equal(cancelled.tasks.every((task) => !taskVisibleToday(task, today)), true);
+  assert.equal(withPlannedTaskStages(cancelled, today, createId), cancelled);
+  assert.deepEqual(workspaceStateSchema.parse(JSON.parse(JSON.stringify(cancelled))), cancelled);
+  for (const idToPlan of [parent.id, edited.tasks[1].id]) {
+    const replanned = { ...cancelled, tasks: cancelled.tasks.map((task) => task.id === idToPlan ? planTaskForDate(task, today) : task) };
+    const restored = withPlannedTaskStages(replanned, today, createId, cancelled);
+    assert.deepEqual(restored, edited);
+    assert.equal(restored.tasks.length, 2);
+  }
+});
+
+test('cancelling a long parent hides its generated stage but leaves other days and independent assignments intact', () => {
+  const first = withPlannedTaskStages(stateFor(), today, createId);
+  const tomorrowStage = { ...first.tasks[1], id: 'stage:tomorrow', plannedDate: tomorrow };
+  const assignment = { ...first.tasks[1], id: 'formal-assignment', due: today, requirements: '正式作业', parentId: parent.id };
+  const original = { ...first, tasks: [...first.tasks, tomorrowStage, assignment] };
+  const next = { ...original, tasks: original.tasks.map((task) => task.id === parent.id ? cancelWorkForDate(task, today) : task) };
+  const cancelled = withPlannedTaskStages(next, today, createId, original);
+  assert.equal(taskVisibleToday(cancelled.tasks[0], today), false);
+  assert.equal(taskVisibleToday(cancelled.tasks[1], today), false);
+  assert.equal(cancelled.tasks[2], tomorrowStage);
+  assert.equal(cancelled.tasks[3], assignment);
+  assert.equal(withPlannedTaskStages(cancelled, today, createId), cancelled);
+});
+
+test('course parent and stage cancellation keep the course deadline and completed history intact', () => {
+  const node = { id: 'course-paper', courseId: 'course', title: '结课论文', mode: 'multi', date: today, time: '18:00', plannedDate: today, location: '', requirements: '论文要求', area: '课内', done: false };
+  const first = withPlannedTaskStages(stateFor([], [node]), today, createId);
+  for (const kind of ['task', 'milestone']) {
+    const next = kind === 'task'
+      ? { ...first, tasks: first.tasks.map((task) => cancelWorkForDate(task, today)) }
+      : { ...first, milestones: [cancelWorkForDate(node, today)] };
+    const cancelled = withPlannedTaskStages(next, today, createId, first);
+    assert.equal(courseNodeVisibleToday(cancelled.milestones[0], today), false);
+    assert.equal(taskVisibleToday(cancelled.tasks[0], today), false);
+    assert.deepEqual(cancelled.milestones[0], { ...node, dismissedTodayDate: today });
+    assert.equal(withPlannedTaskStages(cancelled, today, createId), cancelled);
+    const replanned = { ...cancelled, milestones: [planTaskForDate(cancelled.milestones[0], today)] };
+    assert.deepEqual(withPlannedTaskStages(replanned, today, createId, cancelled), first);
+  }
+});
+
+test('a manually linked branch can cancel its matching parent reminder without changing unrelated branches', () => {
+  const branch = { id: 'draft', title: '完成初稿', parentId: parent.id, area: parent.area, source: parent.title, plannedDate: today, done: false, today: false, elapsed: 20 };
+  const later = { ...branch, id: 'later', plannedDate: tomorrow };
+  const otherStage = { ...branch, id: 'stage:other', title: '独立阶段' };
+  const original = stateFor([parent, branch, later, otherStage]);
+  const next = { ...original, tasks: original.tasks.map((task) => task.id === branch.id ? cancelWorkForDate(task, today) : task) };
+  const cancelled = withPlannedTaskStages(next, today, createId, original);
+  assert.equal(cancelled.tasks.length, 4);
+  assert.equal(cancelled.tasks[0].dismissedTodayDate, today);
+  assert.equal(cancelled.tasks[1].dismissedTodayDate, today);
+  assert.equal(cancelled.tasks[2], later);
+  assert.equal(cancelled.tasks[3], otherStage);
+  assert.equal(withPlannedTaskStages(cancelled, today, createId), cancelled);
+});
+
+test('a deadline-only stage also cancels its unplanned long parent and can be explicitly selected again', () => {
+  const unplanned = { ...parent, plannedDate: undefined, startDate: today };
+  const branch = { id: 'draft', title: '完成初稿', parentId: parent.id, area: parent.area, source: parent.title, due: today, done: false, today: false, elapsed: 20 };
+  const original = stateFor([unplanned, branch]);
+  const next = { ...original, tasks: [unplanned, cancelWorkForDate(branch, today)] };
+  const cancelled = withPlannedTaskStages(next, today, createId, original);
+  assert.equal(cancelled.tasks[0].dismissedTodayDate, today);
+  assert.equal(cancelled.tasks.every((task) => !taskVisibleToday(task, today)), true);
+  assert.equal(withPlannedTaskStages(cancelled, today, createId), cancelled);
+  const nextPlan = { ...cancelled, tasks: [cancelled.tasks[0], planTaskForDate(cancelled.tasks[1], today)] };
+  const restored = withPlannedTaskStages(nextPlan, today, createId, cancelled);
+  assert.equal(restored.tasks.length, 2);
+  assert.equal(restored.tasks[0].dismissedTodayDate, undefined);
+  assert.equal(restored.tasks.every((task) => taskVisibleToday(task, today)), true);
 });

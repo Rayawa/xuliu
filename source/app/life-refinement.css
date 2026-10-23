@@ -1,0 +1,80 @@
+.lifeReminderSettings { display: inline-flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px 12px; }
+.lifeReminderStatus { color: var(--muted); font-size: 11px; line-height: 1.5; }
+.lifeReminderEntry { white-space: nowrap; }
+.lifeViewMount[hidden] { display: none !important; }
+.lifeViewMount .lifePage > .pageHead { gap: 18px; margin-bottom: 24px; padding-bottom: 14px; }
+.lifeViewMount .lifePage > .pageHead h1 { font-size: clamp(24px, 2.5vw, 30px); line-height: 1.25; }
+.lifeViewMount .lifeSection { margin-top: 28px; }
+.lifeViewMount .lifeSection:first-of-type { margin-top: 0; }
+.lifeViewMount .lifePanel { padding: 18px 20px; }
+.lifeReminderHeadingActions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
+.lifePage .lifeReminderHeadingActions > button { min-height: 34px; padding: 8px 12px; font-size: 12px; white-space: nowrap; }
+.lifePage .reminderSettings { padding: 8px 20px; }
+.lifePage .emptyState.compact { min-height: 0; padding: 18px 0; }
+.lifePage .emptyState.compact h2 { margin: 0; color: var(--muted); font-size: 13px; font-weight: 400; }
+.lifePage .reminderProjectRow { grid-template-columns: 34px minmax(0, 1fr) auto; gap: 10px; padding: 13px 0; }
+.lifePage .reminderProjectBody { gap: 3px; }
+.lifePage .reminderProjectBody > strong { overflow-wrap: anywhere; font-size: 14px; }
+.lifePage .reminderMode { font-size: 12px; }
+.lifePage .reminderProjectRow > .reminderActions { grid-column: auto; gap: 8px; }
+.lifeReminderEnabled { color: var(--muted); font-size: 11px; white-space: nowrap; }
+.lifeReminderMore { position: relative; }
+.lifeReminderMore > summary { display: grid; place-items: center; width: 30px; height: 30px; border: 1px solid transparent; border-radius: 8px; color: var(--muted); list-style: none; cursor: pointer; font-size: 20px; line-height: 1; }
+.lifeReminderMore > summary::-webkit-details-marker { display: none; }
+.lifeReminderMore[open] > summary, .lifeReminderMore > summary:hover { border-color: var(--line); background: var(--paper-soft); }
+.lifeReminderMenu { position: absolute; top: calc(100% + 4px); right: 0; z-index: 20; display: grid; min-width: 120px; padding: 5px; border: 1px solid var(--line); border-radius: 9px; background: var(--paper); box-shadow: 0 6px 20px #0002; }
+.lifeReminderMenu > button { padding: 9px 11px; border: 0; border-radius: 5px; background: transparent; text-align: left; white-space: nowrap; font-size: 12px; }
+.lifeReminderMenu > button:hover { background: var(--paper-soft); }
+.lifeReminderMore :is(button, summary):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.lifeReminderDialog.alertPreferences { position: fixed; inset: 0; width: min(600px, calc(100vw - 32px)); max-width: none; max-height: calc(100dvh - 40px); margin: auto; padding: 24px; overflow: auto; border: 1px solid var(--line); border-radius: 15px; color: var(--text); background: var(--paper); box-shadow: 0 20px 70px #0003; }
+.lifeReminderDialog::backdrop { background: #20282073; backdrop-filter: blur(3px); }
+.lifeReminderDialogHead { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 22px; }
+.lifeReminderDialogHead h2 { margin: 0 0 5px; font-size: 20px; }
+.lifeReminderDialogHead span { color: var(--muted); font-size: 11px; font-weight: 400; }
+.lifeReminderDialog.alertPreferences .lifeReminderClose { flex: 0 0 32px; min-height: 32px; padding: 0; border: 1px solid var(--line); border-radius: 50%; color: var(--muted); background: var(--paper-soft); font-size: 21px; }
+.lifeReminderDialog.alertPreferences button { font-size: 12px; min-height: 34px; }
+.lifeReminderDialog .alertPreferenceGrid { gap: 22px; }
+.lifeReminderDialog .alertPreferenceItem > strong, .lifeReminderDialog .alertSoundHead > strong { font-size: 14px; }
+.lifeReminderDialog .alertPreferenceActions { margin-top: 14px; }
+.lifeReminderDialog .alertPreferenceItem small { font-size: 12px; }
+.lifeReminderDialog .alertSoundChoice, .lifeReminderDialog .alertVolume { font-size: 12px; }
+.lifeReminderDialog .alertSoundChoice select { padding: 8px; border-radius: 7px; background: var(--paper); }
+.lifeReminderDialog .alertFeedback { padding: 10px 12px; margin-top: 14px; font-size: 12px; }
+.lifeEyeCycle.eyeRestCycle { padding: 18px 20px; margin-bottom: 14px; }
+.lifeEyeCycle .eyeRestHead h3 { margin: 0; font-size: 15px; }
+.lifeEyeCycle .eyeRestHead p { margin: 6px 0 0; font-size: 12px; }
+.lifeEyeCycle .eyeRestHead > .primaryButton { flex: 0 0 auto; }
+.lifeEyeCycle .eyeRestPhase { padding: 4px 8px; background: transparent; font-size: 11px; font-weight: 500; }
+.lifeEyeCycle .eyeRestBody { margin-top: 16px; }
+.lifeEyeTimerRow { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px 20px; }
+.lifeEyeCycle .eyeRestClock { font-size: 34px; font-weight: 600; }
+.lifeEyeCycle .eyeRestActions { gap: 6px; margin: 0; }
+.lifeEyeCycle .eyeRestActions button { min-height: 34px; padding: 8px 12px; }
+.lifeEyeCycle .eyeRestProgress { height: 4px; margin: 14px 0 11px; }
+.lifeEyeDetails summary { width: fit-content; color: var(--muted); font-size: 11px; cursor: pointer; }
+.lifeEyeDetails .eyeRestMeta { justify-content: flex-start; flex-wrap: wrap; align-items: center; gap: 7px 18px; margin-top: 10px; font-size: 11px; }
+.lifeEyeCycle :is(button, summary):focus-visible, .lifeReminderEntry:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.aiLauncher.aiLauncherCompact { min-height: 38px; gap: 6px; padding: 5px 11px 5px 5px; box-shadow: 0 5px 18px #26332c24; }
+.aiLauncher.aiLauncherCompact span { width: 26px; height: 26px; font-size: 10px; }
+.aiLauncher.aiLauncherCompact b { font-size: 11px; font-weight: 600; }
+.aiLauncher.aiLauncherCompact.open { padding-right: 8px; }
+@media (max-width: 760px) {
+  .lifeReminderDialog .alertPreferenceGrid { grid-template-columns: 1fr; gap: 20px; }
+  .lifeReminderDialog .alertPreferenceItem + .alertPreferenceItem { padding-top: 18px; }
+  .aiLauncher.aiLauncherCompact { right: 12px; bottom: 74px; }
+  .aiLauncher.aiLauncherCompact.open { padding: 5px; }
+}
+@media (max-width: 480px) {
+  .lifePage .lifeSection > .sectionHead { flex-wrap: wrap; gap: 10px; }
+  .lifeReminderHeadingActions { justify-content: flex-start; }
+  .lifePage .reminderSettings { padding-inline: 14px; }
+  .lifePage .reminderProjectRow { grid-template-columns: 28px minmax(0, 1fr) auto; gap: 8px; }
+  .lifePage .reminderProjectRow > .reminderIcon { width: 28px; height: 32px; font-size: 13px; }
+  .lifeReminderEnabled { display: none; }
+  .lifeReminderSettings { gap: 7px; }
+  .lifeReminderStatus { font-size: 10px; }
+  .lifeReminderDialog.alertPreferences { padding: 20px 18px; width: calc(100vw - 24px); }
+  .lifeEyeCycle.eyeRestCycle { padding: 16px; }
+  .lifeEyeCycle .eyeRestHead { align-items: center; gap: 12px; }
+  .lifeEyeCycle .eyeRestHead > div { align-items: center; }
+}

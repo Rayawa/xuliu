@@ -4,6 +4,7 @@ import { z } from "zod";
 import { canViewWorkspace, findAccountById, getVisibleAccounts, type AccountId } from "./accounts";
 import { createInitialFinanceState } from "./finance";
 import { getWorkspaceRecord } from "./workspace-store";
+import { reviewPoolReadProjection } from "./course-review-pool";
 
 export const workspaceModuleSchema = z.enum([
   "tasks",
@@ -22,11 +23,20 @@ export const workspaceModuleSchema = z.enum([
   "daily",
   "timeEntries",
   "finance",
+  "reviewPool",
 ]);
 
 export type WorkspaceModule = z.infer<typeof workspaceModuleSchema>;
 
 const blockedKeyPattern = /(password|secret|token|cookie|credential|authorization|hash)/i;
+const reviewPoolPurpose = "有空可选的复习章节，不是待办或欠交任务；只有 selectedDate 对应当天的章节才进入当天安排，不按旧源记录的日期催办。此模块仅供读取。";
+
+function moduleData(state: Record<string, unknown>, module: WorkspaceModule) {
+  if (module !== "reviewPool") return state[module];
+  const pool = state.reviewPool;
+  return pool && typeof pool === "object" && Array.isArray((pool as Record<string, unknown>).items)
+    ? (pool as Record<string, unknown>).items : [];
+}
 
 function sanitizeWorkspaceValue(value: unknown, depth = 0): unknown {
   if (depth > 6) return "[内容层级过深，已省略]";
@@ -56,9 +66,9 @@ export async function workspaceOverview(viewerId: AccountId) {
   return Promise.all(readableWorkspaceIds(viewerId).map(async (ownerId) => {
     const account = findAccountById(ownerId)!;
     const record = await getWorkspaceRecord(ownerId);
-    const state = record?.data && typeof record.data === "object" ? record.data as Record<string, unknown> : {};
+    const state = reviewPoolReadProjection(record?.data);
     const counts = Object.fromEntries(workspaceModuleSchema.options.map((module) => {
-      const value = state[module];
+      const value = moduleData(state, module);
       if (module === "finance") {
         const entries = value && typeof value === "object" && Array.isArray((value as Record<string, unknown>).entries)
           ? (value as Record<string, unknown>).entries as unknown[]
@@ -74,6 +84,7 @@ export async function workspaceOverview(viewerId: AccountId) {
       writable: ownerId === viewerId,
       revision: record?.revision ?? 0,
       counts,
+      modulePurposes: { reviewPool: reviewPoolPurpose },
     };
   }));
 }
@@ -81,8 +92,8 @@ export async function workspaceOverview(viewerId: AccountId) {
 export async function readWorkspaceModule(viewerId: AccountId, requestedId: string, module: WorkspaceModule, offset = 0, limit = 50) {
   const account = allowedTarget(viewerId, requestedId);
   const record = await getWorkspaceRecord(account.id);
-  const state = record?.data && typeof record.data === "object" ? record.data as Record<string, unknown> : {};
-  const raw = state[module] ?? (module === "daily" ? {} : module === "finance" ? createInitialFinanceState() : []);
+  const state = reviewPoolReadProjection(record?.data);
+  const raw = moduleData(state, module) ?? (module === "daily" ? {} : module === "finance" ? createInitialFinanceState() : []);
   let totalItems = 0;
   let page: unknown;
   if (module === "finance") {
@@ -105,9 +116,10 @@ export async function readWorkspaceModule(viewerId: AccountId, requestedId: stri
     source: "untrusted_workspace_data",
     ownerId: account.id,
     displayName: account.displayName,
-    writable: account.id === viewerId,
+    writable: module !== "reviewPool" && account.id === viewerId,
     revision: record?.revision ?? 0,
     module,
+    ...(module === "reviewPool" ? { purpose: reviewPoolPurpose } : {}),
     offset,
     limit,
     totalItems,
@@ -135,9 +147,9 @@ export async function searchWorkspaces(viewerId: AccountId, query: string, modul
   for (const ownerId of readableWorkspaceIds(viewerId)) {
     const account = findAccountById(ownerId)!;
     const record = await getWorkspaceRecord(ownerId);
-    const state = record?.data && typeof record.data === "object" ? record.data as Record<string, unknown> : {};
+    const state = reviewPoolReadProjection(record?.data);
     for (const module of selected) {
-      const raw = state[module];
+      const raw = moduleData(state, module);
       const items = module === "finance" && raw && typeof raw === "object" && !Array.isArray(raw)
         ? (Array.isArray((raw as Record<string, unknown>).entries) ? (raw as Record<string, unknown>).entries as unknown[] : [])
         : Array.isArray(raw)
@@ -155,6 +167,7 @@ export async function searchWorkspaces(viewerId: AccountId, query: string, modul
             ownerId,
             displayName: account.displayName,
             module,
+            ...(module === "reviewPool" ? { purpose: reviewPoolPurpose, writable: false } : {}),
             item: sanitizeWorkspaceValue(item),
           });
         }

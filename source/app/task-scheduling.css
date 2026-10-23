@@ -1,0 +1,21 @@
+.cancelTodayButton {
+  border: 1px solid color-mix(in srgb, var(--accent) 42%, transparent);
+  border-radius: 10px;
+  padding: 9px 12px;
+  background: color-mix(in srgb, var(--accent) 9%, var(--paper, #fcfbf8));
+  color: var(--ink, #302f2b);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.cancelTodayButton:hover { background: color-mix(in srgb, var(--accent) 17%, #fff); }
+.cancelTodayButton:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.cancelTodayButton:disabled { opacity: .5; cursor: default; }
+.taskRowActions { flex-wrap: wrap; }
+.overviewSchedule .cancelledTodayLabel { color: var(--muted, #777); }
+@media (max-width: 640px) {
+  .taskRowActions:has(.cancelTodayButton) { flex-basis: 100%; justify-content: flex-end; }
+  .cancelTodayButton { min-height: 38px; }
+}

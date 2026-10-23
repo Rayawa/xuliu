@@ -96,10 +96,42 @@ const financeEntry = z.object({
   merchant: z.string().max(200).optional(),
 }).strict();
 
+const courseReviewPool = z.object({
+  version: z.literal(1),
+  items: z.array(z.object({
+    id,
+    course: shortText.min(1),
+    chapter: shortText.min(1),
+    progress: z.number().int().min(0).max(100),
+    note: text,
+    done: z.boolean(),
+    previousProgress: z.number().int().min(0).max(99).optional(),
+    selectedDate: date.optional(),
+    completedDate: date.optional(),
+    sources: z.array(z.object({ kind: z.enum(["task", "milestone"]), id }).strict()).max(2_000),
+  }).strict()).max(500),
+}).strict().superRefine((pool, context) => {
+  const ids = new Set<string>();
+  const sources = new Set<string>();
+  for (const [index, item] of pool.items.entries()) {
+    if (ids.has(item.id)) context.addIssue({ code: "custom", path: ["items", index, "id"], message: "复习章节编号不能重复" });
+    ids.add(item.id);
+    if (item.done !== (item.progress === 100)) context.addIssue({ code: "custom", path: ["items", index, "progress"], message: "复习进度与完成状态不一致" });
+    if (!item.done && item.completedDate) context.addIssue({ code: "custom", path: ["items", index, "completedDate"], message: "未完成的章节不能设置完成日期" });
+    if (!item.done && item.previousProgress !== undefined) context.addIssue({ code: "custom", path: ["items", index, "previousProgress"], message: "未完成的章节不需要保存完成前进度" });
+    for (const [sourceIndex, source] of item.sources.entries()) {
+      const key = `${source.kind}:${source.id}`;
+      if (sources.has(key)) context.addIssue({ code: "custom", path: ["items", index, "sources", sourceIndex], message: "原复习记录不能重复归入章节" });
+      sources.add(key);
+    }
+  }
+});
+
 export const workspaceStateSchema = z.object({
   version: z.literal(6),
+  reviewPool: courseReviewPool.optional(),
   tasks: z.array(z.object({
-    id, title: shortText, area, source: shortText, due: date.optional(), done: z.boolean(), completedDate: date.optional(), today: z.boolean(), elapsed: z.number().int().min(0).max(10_000_000),
+    id, title: shortText, area, source: shortText, due: date.optional(), done: z.boolean(), completedDate: date.optional(), dismissedTodayDate: date.optional(), today: z.boolean(), elapsed: z.number().int().min(0).max(10_000_000),
     parentId: id.optional(), parentMilestoneId: id.optional(), courseId: id.optional(), blocks: z.array(block).max(2000).optional(),
     requirements: text.optional(), attachments: z.array(storedAttachment).max(50).optional(), parentCandidate: z.boolean().optional(),
     mode: z.enum(["single", "multi"]).optional(), startDate: date.optional(), dueTime: time.optional(), plannedDate: date.optional(), status: taskStatus.optional(), progress: z.number().int().min(0).max(100).optional(), progressLogs: z.array(taskProgressLog).max(2_000).optional(),
@@ -107,7 +139,15 @@ export const workspaceStateSchema = z.object({
     if (task.mode === "multi" && task.startDate && task.due && task.startDate > task.due) context.addIssue({ code: "custom", message: "跨日任务开始日期不能晚于截止日期" });
     if (task.dueTime && !task.due) context.addIssue({ code: "custom", message: "设置截止时间前请先选择截止日期" });
   })).max(10_000),
-  milestones: z.array(z.object({ id, courseId: id.optional(), automationKey: shortText.optional(), title: shortText, date, time, plannedDate: date.optional(), completedDate: date.optional(), location: shortText, requirements: text, attachments: z.array(storedAttachment).max(50).optional(), outcomeText: text.optional(), outcomeAttachments: z.array(storedAttachment).max(50).optional(), blocks: z.array(block).max(2000).optional(), elapsed: z.number().int().min(0).max(10000000).optional(), mode: z.enum(["single", "multi"]).optional(), parentCandidate: z.boolean().optional(), area, done: z.boolean() }).strict()).max(10_000),
+  milestones: z.array(z.object({
+    id, courseId: id.optional(), linkedCourseId: id.optional(), courseLinkReviewed: z.boolean().optional(), assessmentType: z.enum(["exam", "quiz", "submission", "presentation"]).optional(), eventDateKind: z.enum(["occurs", "deadline"]).optional(),
+    automationKey: shortText.optional(), title: shortText, date: z.union([date, z.literal("")]), time: z.union([time, z.literal("")]), plannedDate: date.optional(), completedDate: date.optional(), dismissedTodayDate: date.optional(), location: shortText, requirements: text,
+    attachments: z.array(storedAttachment).max(50).optional(), outcomeText: text.optional(), outcomeAttachments: z.array(storedAttachment).max(50).optional(), blocks: z.array(block).max(2000).optional(), elapsed: z.number().int().min(0).max(10000000).optional(), mode: z.enum(["single", "multi"]).optional(), parentCandidate: z.boolean().optional(), area, done: z.boolean(),
+  }).strict().superRefine((node, context) => {
+    if (node.courseId && (!node.date || !node.time)) context.addIssue({ code: "custom", message: "课程任务必须设置有效日期和时间" });
+    if (node.time && !node.date) context.addIssue({ code: "custom", path: ["time"], message: "设置时间前请先选择日期" });
+    if (node.courseId && (node.linkedCourseId || node.assessmentType || node.eventDateKind)) context.addIssue({ code: "custom", message: "课程任务与课程事项的关联方式不能混用" });
+  })).max(10_000),
   courses: z.array(z.object({
     id, title: shortText, term: shortText, teacher: shortText, location: shortText, school: z.enum(["pku", "bit"]).optional(), progress: z.number().int().min(0).max(100), requirements: text,
     schedule: z.array(z.object({ id, weekday: z.number().int().min(1).max(7), start: time, end: time, location: shortText, weeks: shortText.optional(), source: z.enum(["manual", "pku", "bit", "ics"]).optional() }).strict()).max(1_000),
