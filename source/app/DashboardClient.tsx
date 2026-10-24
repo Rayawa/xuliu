@@ -1412,7 +1412,7 @@ function TaskOverviewView({ reviewPoolEntry, data, setData, setDialog, openWork,
     { id: "single", title: "短期任务", items: visible.filter((item) => item.entity === "task" && item.period !== "multi") },
     { id: "event", title: "事项", items: visible.filter((item) => item.entity === "event" && (!eventCourseFilter || (eventCourseFilter === "unlinked" ? !item.node?.linkedCourseId : item.node?.linkedCourseId === eventCourseFilter)) && (!eventAssessmentFilter || item.node?.assessmentType === eventAssessmentFilter)) },
   ];
-  const taskCount = items.filter((item) => item.entity === "task").length;
+  const taskCount = items.filter((item) => item.entity === "task" && !item.done).length;
   const eventCount = items.filter((item) => item.entity === "event").length;
   const weekCount = items.filter((item) => !item.done && taskOverlapsRange(item.task ?? { due: item.due, plannedDate: item.node?.plannedDate }, today, weekEnd)).length;
   const toggle = (item: (typeof items)[number]) => setData((current) => item.kind === "task"
