@@ -299,7 +299,7 @@ function previewEntityOperation(
 }
 
 function financeSnapshot(entry: Partial<FinanceEntry> & { time?: string }) {
-  const type = entry.type === "income" ? "收入" : "支出";
+  const type = entry.type === "income" ? "收入" : entry.type === "topup" ? "储值充值" : "支出";
   return `${type} ${formatCents(entry.amountCents)} · ${cleanText(entry.category, 40) || "未分类"} · ${cleanText(entry.date, 12) || "日期未定"} ${cleanText(entry.time, 8) || "执行时北京时间"}`;
 }
 

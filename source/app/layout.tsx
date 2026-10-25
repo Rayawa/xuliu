@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { BackgroundAppearanceProvider } from "./BackgroundAppearance";
 
 export const metadata: Metadata = {
   title: "序流 · 个人工作学习生活管理",
@@ -16,5 +17,5 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="zh-CN"><body>{children}</body></html>;
+  return <html lang="zh-CN"><body><BackgroundAppearanceProvider>{children}</BackgroundAppearanceProvider></body></html>;
 }

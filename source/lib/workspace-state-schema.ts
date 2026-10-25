@@ -82,7 +82,7 @@ const block = z.object({
 
 const financeEntry = z.object({
   id,
-  type: z.enum(["income", "expense"]),
+  type: z.enum(["income", "expense", "topup"]),
   amountCents: z.number().int().positive().max(100_000_000_00),
   category: z.string().min(1).max(40),
   date,
@@ -94,6 +94,7 @@ const financeEntry = z.object({
   updatedAt: z.string().max(80),
   origin: z.enum(["manual", "ai", "wechat"]),
   merchant: z.string().max(200).optional(),
+  storedValueAccountId: id.optional(),
 }).strict();
 
 const courseReviewPool = z.object({
@@ -204,11 +205,20 @@ export const workspaceStateSchema = z.object({
     incomeCategories: z.array(z.string().min(1).max(40)).max(200),
     merchantCategories: z.record(z.string().min(1).max(200), z.string().min(1).max(40)).optional(),
     paymentRules: z.record(z.string().min(1).max(200), z.object({ category: z.string().min(1).max(40), purpose: z.string().max(80) }).strict()).optional(),
+    storedValueAccounts: z.array(z.object({ id, name: z.string().trim().min(1).max(40), openingBalanceCents: z.number().int().nonnegative().max(100_000_000_00) }).strict()).max(100).optional(),
   }).strict(),
   themes: z.record(z.string().max(40), z.string().regex(/^#[0-9A-Fa-f]{6}$/)),
 }).strict().superRefine((state, context) => {
   const error = parentError(state.tasks, state.milestones);
   if (error) context.addIssue({ code: "custom", path: ["tasks"], message: error });
+  const accounts = state.finance.storedValueAccounts ?? [];
+  const accountIds = new Set(accounts.map((account) => account.id));
+  if (accountIds.size !== accounts.length) context.addIssue({ code: "custom", path: ["finance", "storedValueAccounts"], message: "储值项目重复" });
+  state.finance.entries.forEach((entry, index) => {
+    if ((entry.type === "topup" && !entry.storedValueAccountId) || (entry.storedValueAccountId && (!accountIds.has(entry.storedValueAccountId) || entry.type === "income"))) {
+      context.addIssue({ code: "custom", path: ["finance", "entries", index, "storedValueAccountId"], message: "请选择有效的储值项目；收入不能归入储值" });
+    }
+  });
 });
 
 export function createEmptyWorkspaceState() {

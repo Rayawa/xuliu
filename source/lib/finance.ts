@@ -1,6 +1,12 @@
 import { expenseCategoryChoices, incomeCategoryChoices, normalizeMerchantName } from "./finance-categories.ts";
 
-export type FinanceEntryType = "income" | "expense";
+export type FinanceEntryType = "income" | "expense" | "topup";
+
+export type StoredValueAccount = {
+  id: string;
+  name: string;
+  openingBalanceCents: number;
+};
 
 export type FinanceEntry = {
   id: string;
@@ -16,6 +22,7 @@ export type FinanceEntry = {
   updatedAt: string;
   origin: "manual" | "ai" | "wechat";
   merchant?: string;
+  storedValueAccountId?: string;
 };
 
 export type MonthlyBudget = {
@@ -30,6 +37,7 @@ export type FinanceState = {
   incomeCategories: string[];
   merchantCategories: Record<string, string>;
   paymentRules: Record<string, { category: string; purpose: string }>;
+  storedValueAccounts?: StoredValueAccount[];
 };
 
 export const defaultExpenseCategories = expenseCategoryChoices;
@@ -72,6 +80,7 @@ export function createInitialFinanceState(): FinanceState {
     incomeCategories: [...defaultIncomeCategories],
     merchantCategories: {},
     paymentRules: {},
+    storedValueAccounts: [],
   };
 }
 
@@ -123,7 +132,7 @@ export function normalizeFinanceState(raw: unknown): FinanceState {
   const entries = Array.isArray(saved.entries) ? saved.entries.flatMap((entry) => {
     if (!entry || typeof entry !== "object") return [];
     const candidate = entry as Partial<FinanceEntry>;
-    if (candidate.type !== "income" && candidate.type !== "expense") return [];
+    if (candidate.type !== "income" && candidate.type !== "expense" && candidate.type !== "topup") return [];
     if (!candidate.id || !isValidLocalDate(candidate.date ?? "")) return [];
     const amountCents = finiteCents(candidate.amountCents);
     if (!amountCents) return [];
@@ -133,7 +142,7 @@ export function normalizeFinanceState(raw: unknown): FinanceState {
       amountCents,
       category: candidate.type === "expense"
         ? canonicalExpenseCategory(String(candidate.category || "其他"))
-        : String(candidate.category || "其他收入"),
+        : candidate.type === "topup" ? "储值充值" : String(candidate.category || "其他收入"),
       date: String(candidate.date),
       time: isValidLocalTime(String(candidate.time ?? "")) ? String(candidate.time) : "12:00",
       note: String(candidate.note ?? ""),
@@ -143,6 +152,7 @@ export function normalizeFinanceState(raw: unknown): FinanceState {
       updatedAt: String(candidate.updatedAt ?? candidate.createdAt ?? new Date().toISOString()),
       origin: candidate.origin === "ai" || candidate.origin === "wechat" ? candidate.origin : "manual",
       ...(typeof candidate.merchant === "string" && candidate.merchant.trim() ? { merchant: candidate.merchant.trim().slice(0, 200) } : {}),
+      ...(typeof candidate.storedValueAccountId === "string" && candidate.storedValueAccountId ? { storedValueAccountId: candidate.storedValueAccountId } : {}),
     } satisfies FinanceEntry];
   }) : fallback.entries;
   const budgets = saved.budgets && typeof saved.budgets === "object"
@@ -164,6 +174,11 @@ export function normalizeFinanceState(raw: unknown): FinanceState {
     budgets,
     expenseCategories: uniqueStrings(saved.expenseCategories, defaultExpenseCategories, canonicalExpenseCategory),
     incomeCategories: uniqueStrings(saved.incomeCategories, defaultIncomeCategories),
+    storedValueAccounts: Array.isArray(saved.storedValueAccounts) ? saved.storedValueAccounts.flatMap((account) => !account || typeof account !== "object" ? [] : [{
+      id: String(account.id ?? ""),
+      name: String(account.name ?? "").trim(),
+      openingBalanceCents: finiteCents(account.openingBalanceCents),
+    }]) : [],
     merchantCategories: saved.merchantCategories && typeof saved.merchantCategories === "object"
       ? Object.fromEntries(Object.entries(saved.merchantCategories).slice(0, 500).flatMap(([merchant, category]) => {
         const key = normalizeMerchantName(merchant);
@@ -222,19 +237,41 @@ export function financeSummary(entries: FinanceEntry[], month: string) {
   return entries.reduce((summary, entry) => {
     if (!entry.date.startsWith(month)) return summary;
     if (entry.type === "income") summary.incomeCents += entry.amountCents;
-    else summary.expenseCents += entry.amountCents;
+    else if (entry.type === "expense") summary.expenseCents += entry.amountCents;
     summary.netCents = summary.incomeCents - summary.expenseCents;
     return summary;
   }, { incomeCents: 0, expenseCents: 0, netCents: 0 });
 }
 
 export function expenseByCategory(entries: FinanceEntry[], month: string) {
+  return financeByCategory(entries, month, "expense");
+}
+
+export function incomeByCategory(entries: FinanceEntry[], month: string) {
+  return financeByCategory(entries, month, "income");
+}
+
+function financeByCategory(entries: FinanceEntry[], month: string, type: "income" | "expense") {
   const totals = new Map<string, number>();
   for (const entry of entries) {
-    if (entry.type !== "expense" || !entry.date.startsWith(month)) continue;
+    if (entry.type !== type || !entry.date.startsWith(month)) continue;
     totals.set(entry.category, (totals.get(entry.category) ?? 0) + entry.amountCents);
   }
   return [...totals.entries()].map(([category, amountCents]) => ({ category, amountCents })).sort((a, b) => b.amountCents - a.amountCents);
+}
+
+export function storedValueTotals(entries: FinanceEntry[], accountId?: string) {
+  return entries.reduce((totals, entry) => {
+    if (!entry.storedValueAccountId || (accountId && entry.storedValueAccountId !== accountId)) return totals;
+    if (entry.type === "topup") totals.topupCents += entry.amountCents;
+    if (entry.type === "expense") totals.spentCents += entry.amountCents;
+    return totals;
+  }, { topupCents: 0, spentCents: 0 });
+}
+
+export function storedValueBalance(account: StoredValueAccount, entries: FinanceEntry[]) {
+  const totals = storedValueTotals(entries, account.id);
+  return account.openingBalanceCents + totals.topupCents - totals.spentCents;
 }
 
 export function recentMonthKeys(count: number, reference = new Date()) {
@@ -244,23 +281,24 @@ export function recentMonthKeys(count: number, reference = new Date()) {
   });
 }
 
-export function financeCsv(entries: FinanceEntry[]) {
+export function financeCsv(entries: FinanceEntry[], accounts: StoredValueAccount[] = []) {
   const escape = (value: string | number) => {
     const text = String(value);
     const safe = /^[=+\-@]/.test(text) ? `'${text}` : text;
     return `"${safe.replace(/"/g, '""')}"`;
   };
   const rows = [
-    ["日期", "时间", "类型", "金额（元）", "分类", "识别用途", "关联项目", "备注"],
+    ["日期", "时间", "类型", "金额（元）", "分类", "识别用途", "关联项目", "备注", "储值项目"],
     ...entries.slice().sort((a, b) => b.date.localeCompare(a.date) || b.time.localeCompare(a.time) || b.updatedAt.localeCompare(a.updatedAt)).map((entry) => [
       entry.date,
       entry.time,
-      entry.type === "income" ? "收入" : "支出",
+      entry.type === "income" ? "收入" : entry.type === "topup" ? "储值充值" : "支出",
       centsToYuanInput(entry.amountCents),
       entry.category,
       entry.purpose ?? "",
       entry.relatedProject,
       entry.note,
+      accounts.find((account) => account.id === entry.storedValueAccountId)?.name ?? entry.storedValueAccountId ?? "",
     ]),
   ];
   return `\uFEFF${rows.map((row) => row.map(escape).join(",")).join("\n")}`;

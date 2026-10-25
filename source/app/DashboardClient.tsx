@@ -2,6 +2,8 @@
 
 import Image from "next/image";
 import DailyYiyan from "./DailyYiyan";
+import { BackgroundPicker, useBackgroundAppearance } from "./BackgroundAppearance";
+import { backgroundPalette } from "@/lib/background-appearance";
 import { CourseEventDialog } from "./CourseEventDialog";
 import { assessmentTypeLabel, assessmentTypeOptions, eventCourseLabel, eventDateLabel, migrateCourseEvents } from "@/lib/course-events";
 import { CourseReviewPoolDialog, ReviewPoolEntry, ReviewPoolToday } from "./CourseReviewPool";
@@ -478,6 +480,8 @@ export default function DashboardClient({ account, visibleAccounts, onLogout, de
   const [mobileNav, setMobileNav] = useState(false);
   const [designMode, setDesignMode] = useState<DesignMode>("paper");
   const [interfaceColor, setInterfaceColor] = useState(defaultPaperTone);
+  const { preference: backgroundPreference } = useBackgroundAppearance();
+  const backgroundColors = backgroundPalette(backgroundPreference, interfaceColor);
   useEffect(() => {
     if (!loaded) return;
     try {
@@ -851,7 +855,7 @@ export default function DashboardClient({ account, visibleAccounts, onLogout, de
     }));
   }, [data.courses, setData]);
 
-  return <div className={"shell design-" + designMode} style={{ "--accent": interfaceColor } as React.CSSProperties}>
+  return <div className={"shell design-" + designMode} style={{ "--accent": interfaceColor, ...(backgroundColors ? { "--appearance-link": backgroundColors.link } : {}) } as React.CSSProperties}>
     <aside className={`sidebar ${mobileNav ? "open" : ""}`}><button className="brand" onClick={() => navigate("today")}><span className="brandMark">序</span><span>序流</span></button><DailyYiyan /><div className="navGroup">{navItems.slice(0, 5).map((item) => <NavButton key={item.id} {...item} active={active} onClick={navigate} />)}</div><div className="navCaption">我的空间</div><div className="navGroup">{navItems.slice(5).map((item) => <NavButton key={item.id} {...item} active={active} onClick={navigate} />)}</div><button className="exportButton" onClick={exportData}>导出数据备份</button><button className="refreshButton" disabled={sync === "saving"} onClick={() => void reloadForUpdate()}>{sync === "saving" ? "保存后可刷新" : "↻ 刷新应用"}</button><a className="changelogLink" href="/changelog" target="_blank" rel="noreferrer">更新日志 ↗</a>{!preview && <button className="logoutButton" onClick={onLogout}>退出登录</button>}<div className="sidebarFoot"><span className={`syncDot ${sync}`} />{sync === "saving" ? "正在保存" : sync === "readonly" ? "正在查看只读空间" : sync === "error" ? "云端连接异常" : sync === "preview" ? "本地预览 · 不会写入云端" : "已保存到云端"}</div></aside>
     <main className="main">{preview && <div className="readOnlyBanner">本地预览 · 刷新后重置</div>}<header className="mobileHeader"><button className="iconButton" aria-label="打开导航" onClick={() => setMobileNav(true)}>☰</button><strong>序流</strong><div className="mobileHeaderActions"><button className="iconButton refreshIconButton" disabled={sync === "saving"} aria-label="刷新应用" title="刷新应用" onClick={() => void reloadForUpdate()}>↻</button><span className={`syncDot ${sync}`} /></div></header>{updateAvailable && <div className="updateBanner"><span>网站已有新版本，为避免继续使用旧页面，请先刷新。</span><button disabled={sync === "saving"} onClick={() => void reloadForUpdate()}>{sync === "saving" ? "等待保存" : "立即刷新"}</button></div>}{readOnly && <div className="readOnlyBanner">正在查看 <strong>{visibleAccount.displayName}</strong> 的空间 · 只读</div>}{!loaded ? <div className="workspaceLoading">正在载入空间…</div> : <><ThemePicker color={interfaceColor} designMode={designMode} onDesignChange={chooseDesignMode} onChange={chooseInterfaceColor} />{workDetail ? <TaskDetail key={`${workspaceOwner}:${workDetail.kind}:${workDetail.id}`} target={workDetail} data={data} setData={setData} access={{ ownerId: workspaceOwner, readOnly, preview }} focus={focus} focusPanel={focusPanel} onManual={setManualTarget} onOpen={setWorkDetail} onClose={() => setWorkDetail(null)} requestDelete={requestWorkDeletion} postponeWork={postponeWork} cancelToday={cancelToday} /> : detail ? <DetailRouter target={detail} data={displayedData} setData={setData} back={() => setDetail(null)} openWork={setWorkDetail} setDialog={setDialog} deleteDialog={deleteDialog} access={{ ownerId: workspaceOwner, readOnly, preview }} /> : <>
       {active === "today" && <TodayView reviewToday={reviewToday} data={displayedData} setData={setData} tasks={todayTasks} milestones={todayCourseNodes} totalMinutes={data.timeEntries.filter((entry) => entry.date === today).reduce((sum, entry) => sum + entry.minutes, 0)} daily={daily} updateDaily={updateDaily} focusPanel={focusPanel} openWork={setWorkDetail} requestDelete={requestWorkDeletion} postponeWork={postponeWork} cancelToday={cancelToday} access={{ ownerId: workspaceOwner, readOnly, preview }} readOnly={readOnly} setPopup={setPopup} setDialog={setDialog} />}
@@ -985,6 +989,7 @@ function ThemePicker({ color, designMode, onChange, onDesignChange }: { color: s
   return <div ref={pickerRef} className="themePicker" aria-label="界面外观">
     <div className="designModeTabs" role="group" aria-label="界面风格"><button type="button" className={designMode === "classic" ? "active" : ""} aria-pressed={designMode === "classic"} onClick={() => onDesignChange("classic")}>经典</button><button type="button" className={designMode === "paper" ? "active" : ""} aria-pressed={designMode === "paper"} onClick={() => onDesignChange("paper")}>纸页</button></div>
     <span>主题色</span><div className="themeCommonColors" role="group" aria-label="常用颜色">{commonColors.map(swatch)}</div>
+    <BackgroundPicker />
     <button ref={moreRef} type="button" className="themeMoreButton" aria-expanded={open} aria-controls="theme-color-options" onClick={() => { setOpen(!open); setDraft(color); setMessage(""); }}>{open ? "收起" : "更多"}<span aria-hidden="true">{open ? "⌃" : "⌄"}</span></button>
     {open && <div id="theme-color-options" className="themeColorPanel" role="dialog" aria-label="更多主题颜色">
       <div className="themeColorSection"><h2>预设颜色</h2><div className="themeColorGrid" role="group" aria-label="预设颜色">{themePresets.map(swatch)}</div></div>

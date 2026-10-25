@@ -124,7 +124,7 @@ type LearnedPayment = { category: string; purpose: string };
 function learnedPayments(finance: FinanceState) {
   const examples = new Map<string, { categories: Set<string>; purposes: Set<string> }>();
   for (const entry of finance.entries) {
-    if (entry.origin !== "wechat" || entry.updatedAt === entry.createdAt) continue;
+    if (entry.origin !== "wechat" || entry.type === "topup" || entry.updatedAt === entry.createdAt) continue;
     const merchant = merchantFromEntry(entry.note, entry.merchant);
     if (!merchant || merchant === "微信支付") continue;
     const note = entry.note.trim();
@@ -174,6 +174,7 @@ export function mergeWeChatBillEntries(finance: FinanceState, imported: FinanceE
   const importedById = options.updateExistingCategories ? new Map(imported.map((entry) => [entry.id, entry])) : null;
   let recategorized = 0;
   const existingEntries = importedById ? finance.entries.map((entry) => {
+    if (entry.type === "topup") return entry;
     const suggested = importedById.get(entry.id);
     const payment = suggested ? suggestedPayment(suggested) : null;
     const category = payment?.category ?? entry.category;
@@ -200,7 +201,7 @@ export function recategorizeWeChatMonth(finance: FinanceState, month: string) {
   let changed = 0;
   const learned = learnedPayments(finance);
   const entries = finance.entries.map((entry) => {
-    if (entry.origin !== "wechat" || !entry.date.startsWith(month)) return entry;
+    if (entry.origin !== "wechat" || entry.type === "topup" || !entry.date.startsWith(month)) return entry;
     const merchant = merchantFromEntry(entry.note, entry.merchant);
     const inferred = classifyWeChatCategory(entry.type, { counterparty: merchant, product: entry.note, amountCents: entry.amountCents });
     const payment = resolveImportedPayment(finance, entry, inferred, learned);

@@ -439,13 +439,18 @@ function applyFinanceOperation(state: JsonObject, operation: FinanceOperation) {
   } else if (operation.kind === "finance.entry.update") {
     const current = finance.entries.find((entry) => entry.id === operation.id);
     if (!current) throw new Error("记账记录不存在或已经被移除");
+    if (current.type === "topup" && operation.values.type) throw new Error("请在记账页面修改储值记录的类型和项目");
     const next = { ...current, ...operation.values, updatedAt: new Date().toISOString(), origin: "ai" as const };
+    if (next.type === "income") delete next.storedValueAccountId;
+    if (next.type === "topup") next.category = "储值充值";
     if (!isValidLocalDate(next.date)) throw new Error("记账日期无效");
     if (!isValidLocalTime(next.time)) throw new Error("记账时间无效");
     if (!Number.isSafeInteger(next.amountCents) || next.amountCents <= 0 || next.amountCents > 100_000_000_00) throw new Error("记账金额无效");
     finance.entries = finance.entries.map((entry) => entry.id === operation.id ? next : entry);
-    const categoryKey = next.type === "income" ? "incomeCategories" : "expenseCategories";
-    finance[categoryKey] = [...new Set([...finance[categoryKey], next.category])];
+    if (next.type !== "topup") {
+      const categoryKey = next.type === "income" ? "incomeCategories" : "expenseCategories";
+      finance[categoryKey] = [...new Set([...finance[categoryKey], next.category])];
+    }
   } else if (operation.kind === "finance.entry.delete") {
     if (!finance.entries.some((entry) => entry.id === operation.id)) throw new Error("记账记录不存在或已经被移除");
     finance.entries = finance.entries.filter((entry) => entry.id !== operation.id);
