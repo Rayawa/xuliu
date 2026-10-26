@@ -31,6 +31,7 @@ import "./task-scheduling.css";
 import "./task-settings.css";
 import "./calendar-navigation.css";
 import { calendarMonthDays, isCalendarMonth, shiftCalendarMonth } from "@/lib/calendar-month";
+import { manualCalendarItems } from "@/lib/calendar-items";
 import "./document-refinement.css";
 import { withPlannedTaskStages } from "@/lib/task-stages";
 import { upcomingDeadlines } from "@/lib/upcoming-deadlines";
@@ -1537,12 +1538,24 @@ function CalendarView({ data, setData, setDialog, openWork, readOnly }: { data: 
   const currentMonth = dateKey().slice(0, 7);
   const [viewMonth, setViewMonth] = useState(currentMonth);
   const days = calendarMonthDays(viewMonth);
+  const calendarItems = manualCalendarItems(data);
   const [editingNode, setEditingNode] = useState<Milestone | null>(null);
   const [creatingEvent, setCreatingEvent] = useState(false);
   const addNode = () => setCreatingEvent(true);
   return <div className="page"><PageHead eyebrow="全局时间线" title="日历" action={<button className="primaryButton" disabled={readOnly} onClick={addNode}>＋ 新建事项</button>} /><section className="panel calendarPanel">
     <div className="calendarToolbar"><div className="calendarMonthNav" role="group" aria-label="日历月份导航"><button type="button" className="softButton" aria-label="上个月" disabled={viewMonth === "0001-01"} onClick={() => setViewMonth((value) => shiftCalendarMonth(value, -1))}>‹</button><label className="calendarMonthControl"><span>查看年月</span><input type="month" aria-label="日历年月" min="0001-01" max="9999-12" value={viewMonth} onChange={(event) => { if (isCalendarMonth(event.target.value)) setViewMonth(event.target.value); }} /></label><button type="button" className="softButton" aria-label="下个月" disabled={viewMonth === "9999-12"} onClick={() => setViewMonth((value) => shiftCalendarMonth(value, 1))}>›</button></div><button type="button" className="softButton" disabled={viewMonth === currentMonth} onClick={() => setViewMonth(currentMonth)}>回到本月</button></div>
-    <div className="calendarScroll"><div className="weekHead">{"日一二三四五六".split("").map((day) => <span key={day}>周{day}</span>)}</div><div className="calendarGrid">{days.map((date) => { const key = dateKey(date).padStart(10, "0"); const outside = key.slice(0, 7) !== viewMonth; const events = data.milestones.filter((item) => item.date === key); return <div className={"calendarCell " + (outside ? "outsideMonth " : "") + (key === today ? "today" : "")} key={key} data-date={key}><strong title={key}>{outside ? `${date.getMonth() + 1}/${date.getDate()}` : date.getDate()}</strong><div>{events.map((event) => <button type="button" key={event.id} className={"calendarEvent " + areaClass[event.area]} title={[event.courseId ? "课程任务" : "事项", eventCourseLabel(event, data.courses), assessmentTypeLabel(event.assessmentType), eventDateLabel(event), event.location].filter(Boolean).join(" · ")} onClick={() => readOnly ? openWork({ kind: "milestone", id: event.id }) : setEditingNode(event)}><small>{event.courseId ? "任务" : assessmentTypeLabel(event.assessmentType) || "事项"}</small>{event.time} {event.title}</button>)}</div></div>; })}</div></div></section>{creatingEvent && <CourseEventDialog courses={data.courses} readOnly={readOnly} onClose={() => setCreatingEvent(false)} onSave={(node) => { setData((current) => ({ ...current, milestones: [...current.milestones, node] })); setCreatingEvent(false); }} />}
+    <div className="calendarScroll"><div className="weekHead">{"日一二三四五六".split("").map((day) => <span key={day}>周{day}</span>)}</div><div className="calendarGrid">{days.map((date) => {
+      const key = dateKey(date).padStart(10, "0");
+      const outside = key.slice(0, 7) !== viewMonth;
+      const events = calendarItems.filter((entry) => entry.date === key);
+      return <div className={"calendarCell " + (outside ? "outsideMonth " : "") + (key === today ? "today" : "")} key={key} data-date={key}><strong title={key}>{outside ? `${date.getMonth() + 1}/${date.getDate()}` : date.getDate()}</strong><div>{events.map((entry) => {
+        const label = entry.kind === "task" || entry.item.courseId ? "任务" : assessmentTypeLabel(entry.item.assessmentType) || "事项";
+        const details = entry.kind === "milestone"
+          ? [eventCourseLabel(entry.item, data.courses), assessmentTypeLabel(entry.item.assessmentType), eventDateLabel(entry.item), entry.item.location]
+          : [entry.item.source, taskDeadlineLabel(entry.item), !entry.item.due && entry.item.plannedDate ? `计划推进 ${entry.item.plannedDate}` : ""];
+        return <button type="button" key={`${entry.kind}:${entry.item.id}`} className={"calendarEvent " + areaClass[entry.item.area]} title={[label, ...details, entry.item.title].filter(Boolean).join(" · ")} onClick={() => entry.kind === "task" || readOnly ? openWork({ kind: entry.kind, id: entry.item.id }) : setEditingNode(entry.item)}><small>{label}</small>{entry.time} {entry.item.title}</button>;
+      })}</div></div>;
+    })}</div></div></section>{creatingEvent && <CourseEventDialog courses={data.courses} readOnly={readOnly} onClose={() => setCreatingEvent(false)} onSave={(node) => { setData((current) => ({ ...current, milestones: [...current.milestones, node] })); setCreatingEvent(false); }} />}
     {editingNode && <MilestoneSettingsDialog courses={data.courses} node={editingNode} onClose={() => setEditingNode(null)} onSave={(node) => { setData((current) => ({ ...current, milestones: current.milestones.map((item) => item.id === node.id ? node : item) })); setEditingNode(null); }} onOpenDetail={() => { const id = editingNode.id; setEditingNode(null); openWork({ kind: "milestone", id }); }} />}</div>;
 }
 function ReviewView({ data, setData }: { data: AppState; setData: React.Dispatch<React.SetStateAction<AppState>> }) {
