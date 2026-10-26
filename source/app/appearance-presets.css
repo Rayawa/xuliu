@@ -1,0 +1,18 @@
+.themePicker.appearanceToolbar { gap: 5px; padding: 5px; }
+.appearanceToolbar .appearanceControl { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 33px; padding: 7px 10px; border: 0; border-radius: 999px; background: transparent; color: var(--text); font-size: 12px; white-space: nowrap; }
+.appearanceToolbar .appearanceControl:hover, .appearanceToolbar .appearanceControl[aria-expanded="true"] { background: var(--paper-soft); }
+.appearancePreview { display: inline-block; flex-shrink: 0; width: 16px; height: 16px; border: 1px solid var(--line-strong); border-radius: 50%; }
+.appearanceToolbar .appearanceMore { width: 33px; padding: 5px; font-size: 18px; }
+.appearancePresetList { display: grid; gap: 7px; margin-bottom: 12px; }
+.appearancePresetRow { display: flex; align-items: center; gap: 5px; min-width: 0; }
+.appearancePresetChoice { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px; color: var(--text); background: var(--paper-soft); text-align: left; font-size: 12px; }
+.appearancePresetChoice[aria-pressed="true"] { border-color: var(--accent); }
+.appearancePresetChoice > span:last-child { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.appearancePresetDots { display: flex; gap: 4px; }
+.appearancePresetRemove { flex-shrink: 0; width: 26px; min-height: 33px; padding: 0; border: 0; border-radius: 6px; color: var(--muted); background: transparent; }
+.appearancePresetForm { display: grid; gap: 9px; }
+.appearancePresetForm > label { display: grid; gap: 7px; color: var(--muted); font-size: 11px; }
+.appearancePresetForm > div { display: flex; justify-content: flex-end; gap: 7px; }
+.appearancePresetForm button { padding: 7px 10px; border: 1px solid var(--line); border-radius: 7px; color: var(--text); background: var(--paper-soft); font-size: 11px; }
+.appearanceMorePanel .appearanceStyle { padding-top: 17px; margin-top: 20px; border-top: 1px solid var(--line); }
+@media (max-width: 620px) { .themePicker.appearanceToolbar { flex-wrap: nowrap; gap: 2px; } .appearanceToolbar .appearanceControl { padding: 7px 9px; } }

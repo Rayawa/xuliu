@@ -1,0 +1,18 @@
+.shell .calendarPanel { overflow: hidden; }
+.calendarToolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+.calendarMonthNav { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.calendarMonthNav > button { flex-shrink: 0; min-width: 36px; padding: 8px; font-size: 20px; line-height: 1; }
+.calendarMonthControl { display: grid; gap: 5px; min-width: 0; }
+.calendarMonthControl > span { color: var(--muted); font-size: 11px; }
+.calendarMonthControl input { width: 180px; max-width: 100%; padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper-soft); color: var(--text); font: inherit; font-size: 14px; }
+.calendarToolbar > button { flex-shrink: 0; align-self: end; }
+.calendarScroll { overflow-x: auto; }
+.calendarCell.outsideMonth { background: var(--paper-soft); }
+.calendarCell.outsideMonth > strong { width: auto; min-width: 27px; justify-self: start; color: var(--faint); font-size: 10px; }
+.calendarCell.today > strong { color: white; }
+@media (max-width: 620px) {
+  .calendarToolbar { flex-wrap: wrap; gap: 10px; }
+  .calendarMonthControl input { width: 150px; }
+  .calendarMonthNav { gap: 5px; }
+  .calendarToolbar > button { padding: 9px 11px; font-size: 11px; }
+}

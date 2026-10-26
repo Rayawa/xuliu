@@ -103,7 +103,13 @@ export function useBackgroundAccent(color: string) {
   useLayoutEffect(() => { setAccent(color); }, [color, setAccent]);
 }
 
-export function BackgroundPicker() {
+export function useBackgroundAppearance() {
+  const preference = useContext(PreferenceContext);
+  const { choose } = useContext(ControlsContext);
+  return { preference, choose };
+}
+
+export function BackgroundPicker({ onOpen }: { onOpen?: () => void }) {
   const preference = useContext(PreferenceContext);
   const { resetPreview } = useContext(ControlsContext);
   const [open, setOpen] = useState(false);
@@ -119,7 +125,7 @@ export function BackgroundPicker() {
     return () => { document.removeEventListener("click", outside); document.removeEventListener("keydown", escape); };
   }, [open, close]);
   return <div ref={host} className="backgroundPicker">
-    <button type="button" className="themeMoreButton backgroundEntry" ref={button} aria-label="背景设置" aria-expanded={open} aria-controls="background-options" onClick={() => { if (open) close(); else { setMessage(""); setOpen(true); } }}><span aria-hidden="true">{preference.mode === "dark" ? "☾" : "◐"}</span>背景</button>
+    <button type="button" className="appearanceControl backgroundEntry" ref={button} aria-label="背景设置" aria-expanded={open} aria-controls="background-options" onClick={() => { if (open) close(); else { onOpen?.(); setMessage(""); setOpen(true); } }}><i className="appearancePreview" aria-hidden="true" style={{ backgroundColor: preference.mode === "custom" ? preference.color : preference.mode === "dark" ? "#171c20" : "var(--bg)" }} />背景色</button>
     {open && <BackgroundEditor preference={preference} onClose={close} onSaved={(saved) => { setMessage(saved ? "" : "已应用，浏览器暂时无法保存"); close(); button.current?.focus(); }} />}
     {message && <p className="backgroundSaveMessage" role="status">{message}</p>}
   </div>;

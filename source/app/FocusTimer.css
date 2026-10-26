@@ -1,0 +1,5 @@
+.pomodoroPanel h2 { margin: 0; color: inherit; font-size: 15px; }
+.pomodoroPanel .timerActions { grid-template-columns: 1fr 1fr; }
+.pomodoroPanel .timerValue { margin: 28px 0; }
+.pomodoroPanel .focusMessage { color: rgba(255,255,255,.9); }
+.miniStats.withoutTime, .reviewSummary.withoutTime { grid-template-columns: repeat(2,minmax(0,1fr)); }
