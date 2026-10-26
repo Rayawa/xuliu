@@ -1,7 +1,13 @@
 export type BackgroundMode = "light" | "dark" | "custom";
 export type BackgroundPreference = { mode: BackgroundMode; color: string };
 export const backgroundStorageKey = "xuliu-background-v1";
+export const backgroundColorsStorageKey = "xuliu-saved-background-colors-v1";
 export const defaultBackground: BackgroundPreference = { mode: "light", color: "#e9eeeb" };
+
+export function normalizeBackgroundColors(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(value.filter((color): color is string => typeof color === "string" && /^#[0-9a-f]{6}$/i.test(color.trim())).map((color) => color.trim().toLowerCase()))];
+}
 
 export function normalizeBackground(value: unknown): BackgroundPreference {
   if (!value || typeof value !== "object" || Array.isArray(value)) return { ...defaultBackground };

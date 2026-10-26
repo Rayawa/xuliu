@@ -12,6 +12,15 @@
 .backgroundFields input { min-width: 0; height: 35px; border: 1px solid var(--line); border-radius: 6px; background: var(--paper-soft); color: var(--text); }
 .backgroundFields input[type="color"] { flex: 0 0 34px; width: 34px; padding: 2px; cursor: pointer; }
 .backgroundFields input[type="text"] { flex: 1; width: 100%; padding: 6px 8px; font-size: 12px; }
+.backgroundSaveColor { flex-shrink: 0; min-height: 35px; padding: 6px 9px; border: 1px solid var(--line-strong); border-radius: 6px; color: var(--text); background: var(--paper-soft); font-size: 11px; }
+.backgroundSavedSection { margin-top: 18px; }
+.backgroundSavedSection h3 { margin: 0 0 10px; color: var(--muted); font-size: 12px; font-weight: 500; }
+.backgroundSavedColors { display: flex; flex-wrap: wrap; gap: 9px 12px; }
+.backgroundSavedColor { display: flex; align-items: center; gap: 1px; }
+.backgroundSwatch { width: 30px; height: 30px; padding: 0; border: 1px solid var(--line-strong); border-radius: 50%; }
+.backgroundSwatch[aria-pressed="true"] { outline: 2px solid var(--text); outline-offset: 2px; }
+.backgroundRemoveColor { width: 22px; height: 30px; padding: 0; border: 0; border-radius: 5px; color: var(--muted); background: transparent; font-size: 16px; }
+.backgroundRemoveColor:hover { color: var(--text); background: var(--paper-soft); }
 .backgroundActions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
 .backgroundActions button { padding: 8px 15px; border: 1px solid var(--line-strong); border-radius: 6px; color: var(--text); background: var(--paper-soft); font-size: 12px; }
 .backgroundActions button[type="submit"] { font-weight: 700; border-color: var(--text); }

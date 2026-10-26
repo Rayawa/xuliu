@@ -1,6 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { normalizeBackground, backgroundPalette, backgroundContrast, backgroundStorageKey } from '../lib/background-appearance.ts';
+import { normalizeBackground, normalizeBackgroundColors, backgroundPalette, backgroundContrast, backgroundStorageKey, backgroundColorsStorageKey } from '../lib/background-appearance.ts';
+
+test('saved backgrounds preserve valid colors and order, deduplicate case, and stay separate from current background and theme colors', () => {
+  const colors = ['#AABBCC', '#123456', '#aabbcc', null, '#abc', 'red', '#000;display:none', ' #EFEFEF '];
+  assert.deepEqual(normalizeBackgroundColors(JSON.parse(JSON.stringify(colors))), ['#aabbcc', '#123456', '#efefef']);
+  for (const value of [null, {}, '[]', 5]) assert.deepEqual(normalizeBackgroundColors(value), []);
+  assert.notEqual(backgroundColorsStorageKey, backgroundStorageKey);
+  assert.notEqual(backgroundColorsStorageKey, 'xuliu-saved-interface-colors-v1');
+});
 
 test('background preferences reject malformed colors without changing the existing theme keys', () => {
   assert.deepEqual(normalizeBackground({ mode: 'custom', color: '#AABBCC' }), { mode: 'custom', color: '#aabbcc' });

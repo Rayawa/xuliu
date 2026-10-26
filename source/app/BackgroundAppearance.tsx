@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { backgroundPalette, backgroundStorageKey, defaultBackground, normalizeBackground, type BackgroundPreference } from "@/lib/background-appearance";
+import { backgroundColorsStorageKey, backgroundPalette, backgroundStorageKey, defaultBackground, normalizeBackground, normalizeBackgroundColors, type BackgroundPreference } from "@/lib/background-appearance";
 import "./background-appearance.css";
 import { submitFormOnEnter } from "./form-keyboard";
 
@@ -15,6 +15,10 @@ const PreferenceContext = createContext(defaultBackground);
 const ControlsContext = createContext<BackgroundControls>({ choose: () => false, preview: () => {}, resetPreview: () => {}, setAccent: () => {} });
 const propertyNames = ["bg", "surface", "soft", "sidebar", "text", "muted", "faint", "line", "line-strong", "danger", "income", "expense", "link"];
 const validColor = (color: string) => /^#[0-9a-f]{6}$/i.test(color);
+
+function readBackgroundColors() {
+  return normalizeBackgroundColors(JSON.parse(localStorage.getItem(backgroundColorsStorageKey) ?? "[]"));
+}
 
 function applyBackground(value: BackgroundPreference, accent: string) {
   const root = document.documentElement;
@@ -109,7 +113,7 @@ export function BackgroundPicker() {
   const close = useCallback(() => { resetPreview(); setOpen(false); }, [resetPreview]);
   useEffect(() => {
     if (!open) return;
-    const outside = (event: MouseEvent) => { if (event.target instanceof Node && !host.current?.contains(event.target)) close(); };
+    const outside = (event: MouseEvent) => { if (event.target instanceof Node && host.current && !event.composedPath().includes(host.current)) close(); };
     const escape = (event: KeyboardEvent) => { if (event.key === "Escape") { close(); button.current?.focus(); } };
     document.addEventListener("click", outside); document.addEventListener("keydown", escape);
     return () => { document.removeEventListener("click", outside); document.removeEventListener("keydown", escape); };
@@ -126,13 +130,38 @@ function BackgroundEditor({ preference, onClose, onSaved }: { preference: Backgr
   const [mode, setMode] = useState(preference.mode);
   const [draft, setDraft] = useState(preference.color);
   const [message, setMessage] = useState("");
+  const [savedColors, setSavedColors] = useState<string[]>([]);
+  const [colorMessage, setColorMessage] = useState("");
   const color = useRef(preference.color);
   const colorInput = useRef<HTMLInputElement>(null);
   useEffect(() => resetPreview, [resetPreview]);
+  useEffect(() => {
+    const restore = () => { try { setSavedColors(readBackgroundColors()); } catch { /* Existing colors stay visible if storage is temporarily unavailable. */ } };
+    restore();
+    const sync = (event: StorageEvent) => { if (event.key === backgroundColorsStorageKey || event.key === null) restore(); };
+    window.addEventListener("storage", sync);
+    return () => window.removeEventListener("storage", sync);
+  }, []);
+  const storeColors = (update: (current: string[]) => string[], success: string) => {
+    try {
+      let current = savedColors;
+      try { current = readBackgroundColors(); } catch { /* Repair malformed saved data with the valid colors already displayed. */ }
+      const next = update(current);
+      localStorage.setItem(backgroundColorsStorageKey, JSON.stringify(next));
+      setSavedColors(next);
+      setColorMessage(success);
+    } catch { setColorMessage("浏览器暂时无法保存颜色，请重试"); }
+  };
+  const saveColor = () => {
+    setMessage("");
+    if (!validColor(draft)) { setColorMessage(""); setMessage("请输入六位颜色值，例如 #e9eeeb"); return; }
+    storeColors((current) => [...new Set([...current, draft.toLowerCase()])], "已保存颜色");
+  };
   const updateColor = (value: string) => {
     setDraft(value);
     setMode("custom");
     setMessage("");
+    setColorMessage("");
     if (!validColor(value)) return;
     color.current = value.toLowerCase();
     // Leave the native picker uncontrolled so dragging is not interrupted by React writing its value back.
@@ -147,10 +176,12 @@ function BackgroundEditor({ preference, onClose, onSaved }: { preference: Backgr
       if (mode === "custom" && !validColor(draft)) { setMessage("请输入六位颜色值，例如 #e9eeeb"); return; }
       onSaved(choose({ mode, color: color.current }));
     }}>
-      <div className="backgroundModes" role="group" aria-label="背景模式">{([{ mode: "light", label: "浅色" }, { mode: "dark", label: "深色" }, { mode: "custom", label: "自定义" }] as const).map(({ mode: nextMode, label }) => <button type="button" key={nextMode} aria-pressed={mode === nextMode} onClick={() => { setMode(nextMode); setMessage(""); preview({ mode: nextMode, color: color.current }); }}>{label}</button>)}</div>
+      <div className="backgroundModes" role="group" aria-label="背景模式">{([{ mode: "light", label: "浅色" }, { mode: "dark", label: "深色" }, { mode: "custom", label: "自定义" }] as const).map(({ mode: nextMode, label }) => <button type="button" key={nextMode} aria-pressed={mode === nextMode} onClick={() => { setMode(nextMode); setMessage(""); setColorMessage(""); preview({ mode: nextMode, color: color.current }); }}>{label}</button>)}</div>
       <label htmlFor="background-hex">自定义背景色</label>
-      <div className="backgroundFields"><input ref={colorInput} type="color" aria-label="选择背景颜色" defaultValue={preference.color} onInput={(event) => updateColor(event.currentTarget.value)} /><input id="background-hex" type="text" aria-label="背景颜色值" maxLength={7} spellCheck={false} autoComplete="off" value={draft} onChange={(event) => updateColor(event.target.value)} /></div>
+      <div className="backgroundFields"><input ref={colorInput} type="color" aria-label="选择背景颜色" defaultValue={preference.color} onInput={(event) => updateColor(event.currentTarget.value)} /><input id="background-hex" type="text" aria-label="背景颜色值" maxLength={7} spellCheck={false} autoComplete="off" value={draft} onChange={(event) => updateColor(event.target.value)} /><button type="button" className="backgroundSaveColor" onClick={saveColor}>保存颜色</button></div>
+      {savedColors.length > 0 && <section className="backgroundSavedSection"><h3>我的背景色</h3><div className="backgroundSavedColors" role="group" aria-label="保存的背景颜色">{savedColors.map((tone) => <div className="backgroundSavedColor" key={tone}><button type="button" className="backgroundSwatch" style={{ backgroundColor: tone }} title={tone} aria-label={`预览背景色 ${tone}`} aria-pressed={mode === "custom" && draft.toLowerCase() === tone} onClick={() => updateColor(tone)} /><button type="button" className="backgroundRemoveColor" title={`移除 ${tone}`} aria-label={`移除保存的背景色 ${tone}`} onClick={() => storeColors((current) => current.filter((value) => value !== tone), "已移除保存的颜色")}>×</button></div>)}</div></section>}
       {message && <p role="alert">{message}</p>}
+      {colorMessage && <p role="status">{colorMessage}</p>}
       <div className="backgroundActions"><button type="button" onClick={onClose}>取消</button><button type="submit">应用</button></div>
     </form>
   </div>;
