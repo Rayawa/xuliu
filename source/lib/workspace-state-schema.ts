@@ -95,7 +95,12 @@ const financeEntry = z.object({
   origin: z.enum(["manual", "ai", "wechat"]),
   merchant: z.string().max(200).optional(),
   storedValueAccountId: id.optional(),
-}).strict();
+  bonusCents: z.number().int().nonnegative().max(100_000_000_00).optional(),
+}).strict().superRefine((entry, context) => {
+  if (entry.bonusCents !== undefined && (entry.type !== "topup" || entry.bonusCents > entry.amountCents)) {
+    context.addIssue({ code: "custom", path: ["bonusCents"], message: "赠送金额仅用于储值充值，且不能超过到账金额" });
+  }
+});
 
 const courseReviewPool = z.object({
   version: z.literal(1),

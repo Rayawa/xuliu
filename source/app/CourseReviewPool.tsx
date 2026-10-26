@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useId, useRef, useState, type ReactNode, type RefObject } from "react";
-import { reviewPoolItemVisibleOnDate, type ReviewPoolItem } from "../lib/course-review-pool";
+import { createReviewPoolItem, reviewPoolItemVisibleOnDate, type ReviewPoolItem } from "../lib/course-review-pool";
+import { submitFormOnEnter } from "./form-keyboard";
 import "./course-review-pool.css";
 
-type ReviewPoolChange = (id: string, patch: Partial<Pick<ReviewPoolItem, "progress" | "note" | "done" | "selectedDate">>) => void;
+type ReviewPoolChange = (id: string, patch: Partial<Pick<ReviewPoolItem, "note" | "done" | "selectedDate">>) => void;
 
 type ReviewPoolProps = {
   items: ReviewPoolItem[];
@@ -48,7 +49,7 @@ function ReviewPoolRow({ item, today, readOnly, onChange, expanded, onToggle, in
       <button type="button" className="reviewPoolChapter" aria-expanded={expanded} aria-controls={expanded ? detailId : undefined}
         aria-label={`${item.course} ${item.chapter}，${expanded ? "收起" : "展开"}详情`} ref={initialFocusRef} onClick={onToggle}>
         <span>{item.chapter}</span>
-        {item.done ? <span className="reviewPoolProgressLabel">已完成</span> : item.progress > 0 ? <span className="reviewPoolProgressLabel">{item.progress}%</span> : null}
+        {item.done && <span className="reviewPoolProgressLabel">已完成</span>}
         <span className={`reviewPoolDisclosure${expanded ? " reviewPoolDisclosureOpen" : ""}`} aria-hidden="true">›</span>
       </button>
       {selectedToday ? <button type="button" className="softButton reviewPoolChoose reviewPoolSelected" disabled={readOnly}
@@ -57,11 +58,6 @@ function ReviewPoolRow({ item, today, readOnly, onChange, expanded, onToggle, in
           aria-label={`今天学：${item.course} ${item.chapter}`} onClick={() => onChange(item.id, { selectedDate: today })}>今天学</button> : null}
     </div>
     {expanded && <div className="reviewPoolDetails" id={detailId}>
-      <label className="reviewPoolProgressInput"><span>进度 <output>{item.progress}%</output></span>
-        <input type="range" min="0" max="100" step="1" value={item.progress} disabled={readOnly}
-          aria-label={`${item.course} ${item.chapter} 进度`}
-          onChange={(event) => onChange(item.id, { progress: Number(event.target.value) })} />
-      </label>
       <label className="reviewPoolNote"><span>备注</span>
         <textarea value={item.note} readOnly={readOnly} maxLength={4000} rows={3}
           aria-label={`${item.course} ${item.chapter} 备注`} onChange={(event) => onChange(item.id, { note: event.target.value })} />
@@ -71,7 +67,9 @@ function ReviewPoolRow({ item, today, readOnly, onChange, expanded, onToggle, in
   </li>;
 }
 
-export function CourseReviewPoolDialog({ items, today, readOnly, onChange, onClose, renderSources, initialItemId }: ReviewPoolProps & {
+export function CourseReviewPoolDialog({ items, today, readOnly, onChange, onCreate, courseNames, onClose, renderSources, initialItemId }: ReviewPoolProps & {
+  onCreate: (item: ReviewPoolItem) => void;
+  courseNames: string[];
   onClose: () => void;
   renderSources?: (item: ReviewPoolItem) => ReactNode;
   initialItemId?: string;
@@ -79,6 +77,11 @@ export function CourseReviewPoolDialog({ items, today, readOnly, onChange, onClo
   const dialogRef = useRef<HTMLDialogElement>(null);
   const initialFocusRef = useRef<HTMLButtonElement>(null);
   const titleId = useId();
+  const courseListId = useId();
+  const createButton = useRef<HTMLButtonElement>(null);
+  const [adding, setAdding] = useState(false);
+  const [draft, setDraft] = useState({ course: items[0]?.course ?? "", chapter: "", note: "" });
+  const [error, setError] = useState("");
   const [expanded, setExpanded] = useState(() => new Set(initialItemId ? [initialItemId] : []));
   const courses = new Map<string, ReviewPoolItem[]>();
   for (const item of items) {
@@ -101,10 +104,28 @@ export function CourseReviewPoolDialog({ items, today, readOnly, onChange, onClo
 
   return <dialog className="reviewPoolDialog" ref={dialogRef} aria-labelledby={titleId}
     onCancel={(event) => { event.preventDefault(); onClose(); }}>
-    <header className="reviewPoolHead"><h2 id={titleId}>课程复习池</h2>
-      <button type="button" className="reviewPoolClose" aria-label="关闭课程复习池" onClick={onClose}>×</button>
+    <header className="reviewPoolHead"><h2 id={titleId}>课程复习池</h2><div className="reviewPoolHeadActions">
+      {!readOnly && <button type="button" ref={createButton} className="softButton reviewPoolAddButton" disabled={items.length >= 500} aria-expanded={adding} onClick={() => { setAdding(!adding); setError(""); }}>＋ 新增项目</button>}
+      <button type="button" className="reviewPoolClose" aria-label="关闭课程复习池" onClick={onClose}>×</button></div>
     </header>
     <div className="reviewPoolContents">
+      {adding && !readOnly && <form className="reviewPoolAddForm" onKeyDown={submitFormOnEnter} onSubmit={(event) => {
+        event.preventDefault();
+        try {
+          const item = createReviewPoolItem(items, draft, crypto.randomUUID());
+          onCreate(item);
+          setDraft({ course: item.course, chapter: "", note: "" });
+          setAdding(false);
+          setError("");
+          createButton.current?.focus();
+        } catch (cause) { setError(cause instanceof Error ? cause.message : "暂时无法添加"); }
+      }}>
+        <label><span>课程</span><input autoFocus list={courseListId} aria-label="复习课程" required maxLength={500} value={draft.course} onChange={(event) => { setDraft({ ...draft, course: event.target.value }); setError(""); }} /><datalist id={courseListId}>{[...new Set([...courses.keys(), ...courseNames])].map((name) => <option key={name} value={name} />)}</datalist></label>
+        <label><span>复习项目</span><input aria-label="复习项目" required maxLength={500} placeholder="章节或学习内容" value={draft.chapter} onChange={(event) => { setDraft({ ...draft, chapter: event.target.value }); setError(""); }} /></label>
+        <label className="reviewPoolAddNote"><span>备注（可选）</span><textarea aria-label="新复习项目备注" rows={2} maxLength={4000} value={draft.note} onChange={(event) => setDraft({ ...draft, note: event.target.value })} /></label>
+        {error && <p role="alert">{error}</p>}
+        <div className="reviewPoolAddActions"><button type="button" className="textButton" onClick={() => { setAdding(false); createButton.current?.focus(); }}>取消</button><button type="submit" className="primaryButton">加入复习池</button></div>
+      </form>}
       {[...courses].map(([course, courseItems]) => <section className="reviewPoolCourse" key={course} aria-label={course}>
         <h3>{course}</h3>
         <ul className="reviewPoolList">{courseItems.map((item) => <ReviewPoolRow key={item.id} item={item} today={today} readOnly={readOnly} onChange={onChange}
@@ -124,7 +145,7 @@ export function ReviewPoolToday({ items, today, readOnly, onChange, onOpenItem }
       <ReviewPoolCheck item={item} readOnly={readOnly} onChange={onChange} />
       <button type="button" className="reviewPoolTodayTitle" aria-haspopup="dialog" onClick={() => onOpenItem(item.id)}>
         <span>{item.course} · {item.chapter}</span>
-        {item.done ? <span className="reviewPoolProgressLabel">已完成</span> : item.progress > 0 ? <span className="reviewPoolProgressLabel">{item.progress}%</span> : null}
+        {item.done && <span className="reviewPoolProgressLabel">已完成</span>}
       </button>
       <button type="button" className="reviewPoolTodayCancel" disabled={readOnly} aria-label={`取消今天学习：${item.course} ${item.chapter}`}
         onClick={() => onChange(item.id, { selectedDate: undefined })}>取消今天</button>

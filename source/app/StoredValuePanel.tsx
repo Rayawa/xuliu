@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { centsToYuanInput, formatCny, formatSignedCny, storedValueBalance, storedValueTotals, yuanToCents, type FinanceEntry, type StoredValueAccount } from "@/lib/finance";
+import { submitFormOnEnter } from "./form-keyboard";
 
 export function StoredValuePanel({ accounts, entries, month, readOnly, panelRef, onCreate, onEdit, onRecord, renderEntry }: {
   accounts: StoredValueAccount[];
@@ -18,7 +19,7 @@ export function StoredValuePanel({ accounts, entries, month, readOnly, panelRef,
   const monthly = storedValueTotals(monthEntries);
   const balance = accounts.reduce((sum, account) => sum + storedValueBalance(account, entries), 0);
   return <details className="panel storedValuePanel" ref={panelRef}>
-    <summary className="financeSectionTitle"><div><h2>储值</h2><span>{accounts.length} 个项目 · 本月充值 {formatCny(monthly.topupCents)}</span></div><b>{balance < 0 ? formatSignedCny(balance) : formatCny(balance)}<small>总余额</small></b><i aria-hidden="true">⌄</i></summary>
+    <summary className="financeSectionTitle"><div><h2>储值</h2><span>{accounts.length} 个项目 · 本月实付 {formatCny(monthly.paidCents)} · 赠送 {formatCny(monthly.bonusCents)}</span></div><b>{balance < 0 ? formatSignedCny(balance) : formatCny(balance)}<small>总余额</small></b><i aria-hidden="true">⌄</i></summary>
     <div className="storedValueBody">
       <div className="storedValueToolbar"><p>充值不计入收支，实际消费时记支出。</p>{!readOnly && <button type="button" className="softButton" disabled={accounts.length >= 100} onClick={onCreate}>＋ 新建储值项目</button>}</div>
       {accounts.length ? <div className="storedValueAccounts">{accounts.map((account) => {
@@ -28,7 +29,7 @@ export function StoredValuePanel({ accounts, entries, month, readOnly, panelRef,
         return <article className="storedValueAccount" key={account.id}>
           <div className="storedValueAccountHead"><h3>{account.name}</h3>{!readOnly && <button type="button" className="textButton" aria-label={`编辑储值项目${account.name}`} onClick={() => onEdit(account)}>编辑</button>}</div>
           <strong className={accountBalance < 0 ? "dangerText" : ""}>{accountBalance < 0 ? formatSignedCny(accountBalance) : formatCny(accountBalance)}</strong><small>余额{accountBalance < 0 ? " · 请核对充值或起始余额" : ""}</small>
-          <p>本月充值 {formatCny(monthlyTotals.topupCents)} · 已消费 {formatCny(monthlyTotals.spentCents)}</p>
+          <p>本月实付 {formatCny(monthlyTotals.paidCents)} · 赠送 {formatCny(monthlyTotals.bonusCents)}<br />已消费 {formatCny(monthlyTotals.spentCents)}</p>
           {!readOnly && <div className="storedValueActions"><button type="button" className="softButton" onClick={() => onRecord("topup", account.id)}>充值</button><button type="button" className="softButton" onClick={() => onRecord("expense", account.id)}>记消费</button></div>}
           {records.length > 0 && <details className="storedValueRecords"><summary>本月记录 · {records.length} 笔 <span>⌄</span></summary>{records.map((entry) => renderEntry(entry, true))}</details>}
         </article>;
@@ -49,7 +50,7 @@ export function StoredValueEditor({ account, existingNames, onSave, onClose }: {
   const [error, setError] = useState("");
   useEffect(() => { const node = dialog.current; node?.showModal(); return () => node?.close(); }, []);
   return <dialog ref={dialog} className="financeModal storedValueDialog" onCancel={(event) => { event.preventDefault(); onClose(); }} aria-labelledby="stored-value-title">
-    <form onSubmit={(event) => {
+    <form onKeyDown={submitFormOnEnter} onSubmit={(event) => {
       event.preventDefault();
       const trimmed = name.trim();
       if (!trimmed) { setError("请填写项目名称"); return; }

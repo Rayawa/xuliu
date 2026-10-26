@@ -1,18 +1,22 @@
 .backgroundPicker { position: relative; }
 .backgroundEntry { border-left: 1px solid var(--line); }
 .backgroundOptions { position: absolute; top: calc(100% + 16px); right: 0; width: min(290px, calc(100vw - 32px)); max-height: 70dvh; overflow: auto; padding: 18px; border: 1px solid var(--line); border-radius: 13px; color: var(--text); background: var(--paper); box-shadow: var(--shadow); }
-.backgroundOptions h2 { margin: 0 0 14px; font-size: 14px; }
+.backgroundOptionsHead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.backgroundOptions h2 { margin: 0; font-size: 14px; }
+.backgroundOptionsHead span { color: var(--muted); font-size: 11px; }
 .backgroundModes { display: flex; gap: 5px; padding: 3px; border-radius: 8px; background: var(--paper-soft); }
 .backgroundModes button { flex: 1; padding: 8px 5px; border: 1px solid transparent; border-radius: 6px; color: var(--muted); background: transparent; font-size: 12px; }
 .backgroundModes button[aria-pressed="true"] { color: var(--text); border-color: var(--line-strong); background: var(--paper); }
-.backgroundOptions form { margin-top: 18px; }
-.backgroundOptions label { display: block; margin-bottom: 9px; color: var(--muted); font-size: 12px; }
+.backgroundOptions label { display: block; margin: 18px 0 9px; color: var(--muted); font-size: 12px; }
 .backgroundFields { display: flex; align-items: center; gap: 7px; }
 .backgroundFields input { min-width: 0; height: 35px; border: 1px solid var(--line); border-radius: 6px; background: var(--paper-soft); color: var(--text); }
 .backgroundFields input[type="color"] { flex: 0 0 34px; width: 34px; padding: 2px; cursor: pointer; }
 .backgroundFields input[type="text"] { flex: 1; width: 100%; padding: 6px 8px; font-size: 12px; }
-.backgroundFields button { padding: 8px 10px; border: 1px solid var(--line-strong); border-radius: 6px; color: var(--text); background: var(--paper-soft); font-size: 12px; }
+.backgroundActions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+.backgroundActions button { padding: 8px 15px; border: 1px solid var(--line-strong); border-radius: 6px; color: var(--text); background: var(--paper-soft); font-size: 12px; }
+.backgroundActions button[type="submit"] { font-weight: 700; border-color: var(--text); }
 .backgroundOptions p { margin: 10px 0 0; color: var(--muted); font-size: 11px; }
+.backgroundSaveMessage { position: absolute; right: 0; width: 200px; padding: 10px; border: 1px solid var(--line); border-radius: 8px; color: var(--text); background: var(--paper); font-size: 12px; }
 :root[data-background] { --bg: var(--appearance-bg); --paper: var(--appearance-surface); --paper-soft: var(--appearance-soft); --text: var(--appearance-text); --ink: var(--appearance-text); --muted: var(--appearance-muted); --faint: var(--appearance-faint); --line: var(--appearance-line); --line-strong: var(--appearance-line-strong); --shadow: 0 10px 32px #0002; }
 :root[data-background] :is(body, .shell, .shell .main) { color: var(--text); background: var(--appearance-bg); }
 :root[data-background] .shell.design-paper { --bg: var(--appearance-bg); --paper: var(--appearance-surface); --paper-soft: var(--appearance-soft); --text: var(--appearance-text); --muted: var(--appearance-muted); --faint: var(--appearance-faint); --line: var(--appearance-line); --line-strong: var(--appearance-line-strong); --shadow: 0 5px 18px #0002; }

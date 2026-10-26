@@ -15,6 +15,19 @@ export type ReviewPoolItem = {
   sources: ReviewPoolSource[];
 };
 export type CourseReviewPool = { version: 1; items: ReviewPoolItem[] };
+export type ReviewPoolDraft = Pick<ReviewPoolItem, "course" | "chapter" | "note">;
+
+export function createReviewPoolItem(items: ReviewPoolItem[], draft: ReviewPoolDraft, id: string): ReviewPoolItem {
+  const course = draft.course.trim();
+  const chapter = draft.chapter.trim();
+  const note = draft.note.trim();
+  if (!course || !chapter) throw new Error("请填写课程和复习项目");
+  if (course.length > 500 || chapter.length > 500 || note.length > 4000) throw new Error("课程或项目最多 500 字，备注最多 4000 字");
+  if (items.length >= 500) throw new Error("复习池最多保存 500 个项目");
+  const normalize = (value: string) => value.normalize("NFKC").toLowerCase().replace(/\s+/g, "");
+  if (items.some((item) => item.id === id || normalize(item.course) === normalize(course) && normalize(item.chapter) === normalize(chapter))) throw new Error("池中已有这个复习项目");
+  return { id, course, chapter, note, progress: 0, done: false, sources: [] };
+}
 
 type SourceRecord = TaskScheduleLike & {
   id: string;

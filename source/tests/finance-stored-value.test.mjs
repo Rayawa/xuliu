@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createInitialFinanceState, expenseByCategory, financeCsv, financeSummary, incomeByCategory, normalizeFinanceState, storedValueBalance, storedValueTotals } from "../lib/finance.ts";
+import { createInitialFinanceState, expenseByCategory, financeCsv, financeSummary, incomeByCategory, normalizeFinanceState, parseStoredValueTopup, storedValueBalance, storedValuePaidCents, storedValueTotals } from "../lib/finance.ts";
 import { createEmptyWorkspaceState, workspaceStateSchema } from "../lib/workspace-state-schema.ts";
 import { mergeWeChatBillEntries, recategorizeWeChatMonth } from "../lib/wechat-bill-import.ts";
 
@@ -34,7 +34,7 @@ test("top-ups and opening balance are excluded from monthly income, expense, cat
   assert.deepEqual(financeSummary(finance.entries, "2026-10"), { incomeCents: 30000, expenseCents: 4750, netCents: 25250 });
   assert.deepEqual(expenseByCategory(finance.entries, "2026-10"), [{ category: "餐饮", amountCents: 3500 }, { category: "交通", amountCents: 1250 }]);
   assert.deepEqual(incomeByCategory(finance.entries, "2026-10"), [{ category: "兼职", amountCents: 30000 }]);
-  assert.deepEqual(storedValueTotals(finance.entries.filter((entry) => entry.date.startsWith("2026-10"))), { topupCents: 20000, spentCents: 3500 });
+  assert.deepEqual(storedValueTotals(finance.entries.filter((entry) => entry.date.startsWith("2026-10"))), { topupCents: 20000, paidCents: 20000, bonusCents: 0, spentCents: 3500 });
   assert.equal(storedValueBalance(account, finance.entries), 31500);
   assert.deepEqual(incomeByCategory(finance.entries, "2026-09"), []);
   assert.equal(financeSummary(finance.entries, "2026-09").expenseCents, 0);
@@ -65,7 +65,7 @@ test("workspace save and JSON round trip retain stored-value projects and links;
 
 test("reimport and automatic WeChat categorization preserve manually reclassified top-ups and original import identity", () => {
   const imported = record("wechat-topup", "expense", 20000, { category: "校园卡充值", merchant: "学校", note: "学校 · 校园卡充值", origin: "wechat" });
-  const stored = { ...imported, type: "topup", category: "储值充值", storedValueAccountId: account.id, updatedAt: "2026-10-25T05:00:00.000Z" };
+  const stored = { ...imported, type: "topup", category: "储值充值", storedValueAccountId: account.id, bonusCents: 2000, updatedAt: "2026-10-25T05:00:00.000Z" };
   const finance = { ...createInitialFinanceState(), storedValueAccounts: [account], entries: [stored] };
   const merged = mergeWeChatBillEntries(finance, [imported], { updateExistingCategories: true });
   assert.equal(merged.added, 0);
@@ -83,5 +83,34 @@ test("CSV separates top-ups and names the stored-value project for both top-ups 
   assert.match(csv, /"储值项目"/);
   assert.match(csv, /"储值充值","200\.00"/);
   assert.match(csv, /"支出","35\.00"/);
-  assert.equal(csv.split("\n").filter((row) => row.endsWith('"校园卡"')).length, 3);
+  assert.equal(csv.split("\n").filter((row) => row.includes(',"校园卡",')).length, 3);
+});
+
+test("paid and bonus amounts are recorded separately while only the combined credit increases balance", () => {
+  assert.deepEqual(parseStoredValueTopup("100", "20"), { amountCents: 12000, bonusCents: 2000 });
+  assert.deepEqual(parseStoredValueTopup("0", "20"), { amountCents: 2000, bonusCents: 2000 });
+  assert.deepEqual(parseStoredValueTopup("100", ""), { amountCents: 10000, bonusCents: 0 });
+  for (const [paid, bonus] of [["0", "0"], ["100", "-1"], ["abc", "20"], ["10.999", "0"], ["100000000", "1"]]) assert.equal(parseStoredValueTopup(paid, bonus), null);
+  const topup = record("gifted", "topup", 12000, { bonusCents: 2000, storedValueAccountId: account.id });
+  const expense = record("used", "expense", 2500, { storedValueAccountId: account.id });
+  const entries = [topup, expense];
+  assert.equal(storedValuePaidCents(topup), 10000);
+  assert.equal(storedValueBalance({ ...account, openingBalanceCents: 0 }, entries), 9500);
+  assert.deepEqual(storedValueTotals(entries), { topupCents: 12000, paidCents: 10000, bonusCents: 2000, spentCents: 2500 });
+  assert.deepEqual(financeSummary(entries, "2026-10"), { incomeCents: 0, expenseCents: 2500, netCents: -2500 });
+  assert.equal(storedValueBalance(account, [expense]), 7500);
+});
+
+test("bonus survives workspace and CSV export; historical credits default to fully paid and invalid splits are rejected", () => {
+  const topup = record("gifted", "topup", 12000, { bonusCents: 2000, storedValueAccountId: account.id });
+  const finance = { ...fixture(), entries: [topup, record("old-credit", "topup", 5000, { storedValueAccountId: account.id })] };
+  const restored = normalizeFinanceState(JSON.parse(JSON.stringify(finance)));
+  const state = { ...createEmptyWorkspaceState(), finance: restored };
+  assert.deepEqual(workspaceStateSchema.parse(JSON.parse(JSON.stringify(state))), state);
+  assert.equal(restored.entries[0].bonusCents, 2000);
+  assert.equal(storedValuePaidCents(restored.entries[1]), 5000);
+  assert.match(financeCsv(restored.entries, restored.storedValueAccounts), /"校园卡","100\.00","20\.00"/);
+  for (const patch of [{ bonusCents: -1 }, { bonusCents: 12001 }, { bonusCents: 1.5 }, { type: "expense" }, { type: "income", storedValueAccountId: undefined }]) {
+    assert.equal(workspaceStateSchema.safeParse({ ...state, finance: { ...restored, entries: [{ ...topup, ...patch }] } }).success, false);
+  }
 });

@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import { assessmentTypeOptions, type AssessmentType, type EventDateKind } from "@/lib/course-events";
+import { assessmentTypeOptions, eventCourseChoices, type AssessmentType, type EventDateKind } from "@/lib/course-events";
+import { submitFormOnEnter } from "./form-keyboard";
 import { isValidLocalDate, isValidLocalTime } from "@/lib/finance";
 import type { CourseNode } from "./CourseNodes";
 import "./course-events.css";
@@ -24,6 +25,7 @@ export function CourseEventDialog({ node, courses, readOnly, onSave, onClose }: 
     eventDateKind: node ? node.eventDateKind ?? "" : "occurs", plannedDate: node?.plannedDate ?? "",
   }));
   const [error, setError] = useState("");
+  const courseChoices = eventCourseChoices(courses);
   const patch = (field: keyof typeof form, value: string) => setForm((current) => ({ ...current, [field]: value }));
 
   useEffect(() => {
@@ -41,7 +43,7 @@ export function CourseEventDialog({ node, courses, readOnly, onSave, onClose }: 
     if (!form.title.trim()) { setError("请填写事项名称"); titleRef.current?.focus(); return; }
     if (form.date && !isValidLocalDate(form.date) || form.plannedDate && !isValidLocalDate(form.plannedDate)) { setError("请选择有效日期"); return; }
     if (form.time && (!form.date || !isValidLocalTime(form.time))) { setError("填写时间前请先选择日期"); return; }
-    if (form.linkedCourseId && form.linkedCourseId !== node?.linkedCourseId && !courses.some((course) => course.id === form.linkedCourseId)) { setError("关联课程已不存在，请重新选择"); return; }
+    if (form.linkedCourseId && form.linkedCourseId !== node?.linkedCourseId && !courseChoices.some((course) => course.id === form.linkedCourseId)) { setError("请选择有效的课程"); return; }
     const saved: CourseNode = {
       ...(node ?? { id: crypto.randomUUID(), done: false }),
       title: form.title.trim(), date: form.date, time: form.time, location: form.location, requirements: form.requirements,
@@ -64,13 +66,13 @@ export function CourseEventDialog({ node, courses, readOnly, onSave, onClose }: 
 
   return <dialog className="courseEventDialog" ref={dialogRef} aria-labelledby={titleId} onCancel={(event) => { event.preventDefault(); onClose(); }}>
     <header className="courseEventDialogHead"><h2 id={titleId}>{node ? "事项设置" : "新增事项"}</h2><button type="button" className="courseEventClose" aria-label="关闭事项设置" onClick={onClose}>×</button></header>
-    <form onSubmit={save} aria-describedby={error ? errorId : undefined}>
+    <form onSubmit={save} onKeyDown={submitFormOnEnter} aria-describedby={error ? errorId : undefined}>
       <fieldset disabled={readOnly} className="courseEventFields">
         <label className="courseEventWide"><span>事项名称</span><input ref={titleRef} value={form.title} maxLength={500} required onChange={(event) => patch("title", event.target.value)} /></label>
         <label><span>关联课程</span><select value={form.linkedCourseId} onChange={(event) => { const value = event.target.value; setForm((current) => ({ ...current, linkedCourseId: value, ...(value ? { area: "课内" as const } : {}) })); }}>
           <option value="">不关联课程</option>
-          {form.linkedCourseId && !courses.some((course) => course.id === form.linkedCourseId) && <option value={form.linkedCourseId}>课程已移除</option>}
-          {courses.map((course) => <option key={course.id} value={course.id}>{course.title}</option>)}
+          {form.linkedCourseId && !courseChoices.some((course) => course.id === form.linkedCourseId) && <option value={form.linkedCourseId} disabled>{courses.some((course) => course.id === form.linkedCourseId) ? "原关联不是课程，请重新选择" : "课程已移除"}</option>}
+          {courseChoices.map((course) => <option key={course.id} value={course.id}>{course.title}</option>)}
         </select></label>
         <label><span>考核类型</span><select value={form.assessmentType} onChange={(event) => patch("assessmentType", event.target.value)}><option value="">未设置</option>{assessmentTypeOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
         <label className="courseEventWide"><span>日期含义</span><select value={form.eventDateKind} onChange={(event) => patch("eventDateKind", event.target.value)}><option value="">未区分</option><option value="occurs">发生时间</option><option value="deadline">提交截止</option></select></label>

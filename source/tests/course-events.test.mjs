@@ -1,12 +1,23 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { assessmentTypeLabel, eventCourseLabel, eventDateLabel, migrateCourseEvents } from '../lib/course-events.ts';
+import { assessmentTypeLabel, eventCourseChoices, eventCourseLabel, eventDateLabel, migrateCourseEvents } from '../lib/course-events.ts';
 import { createEmptyWorkspaceState, workspaceStateSchema } from '../lib/workspace-state-schema.ts';
 import { aiCourseContextFromWorkspace } from '../lib/ai-course-context.ts';
 
 const course = (id, title) => ({ id, title, term: '', teacher: '', location: '', progress: 0, requirements: '', schedule: [], blocks: [] });
 const event = (id, title, patch = {}) => ({ id, title, date: '2026-10-26', time: '00:00', location: '', requirements: '', area: '课内', done: false, ...patch });
 const stateFor = (milestones, courses = [course('probability', '概率论与数理统计')]) => ({ ...createEmptyWorkspaceState(), milestones, courses });
+
+test('course choices and automatic links ignore imported period headings without deleting the original course records', () => {
+  const originals = [course('period1', '第1节-第2节'), course('period2', '第3节-第5节'), course('period3', '第6节-第7节'), course('time', '08:00—09:35'), course('heading', '上午'), course('data', '大数据分析（全英文）'), course('policy', '形势与政策Ⅲ')];
+  assert.deepEqual(eventCourseChoices(originals).map(item => item.id), ['data', 'policy']);
+  assert.equal(originals.length, 7);
+  const state = stateFor([event('heading-event', '第1节-第2节安排'), event('real-event', '大数据分析（全英文）考试')], originals);
+  const migrated = migrateCourseEvents(state);
+  assert.equal(migrated.milestones[0].linkedCourseId, undefined);
+  assert.equal(migrated.milestones[1].linkedCourseId, 'data');
+  assert.equal(migrated.courses, originals);
+});
 
 test('legacy events and course tasks retain existing midnight times and all old fields on schema roundtrip', () => {
   const state = stateFor([

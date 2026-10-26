@@ -1,7 +1,13 @@
+import { isCourseTitleCandidate } from "./timetable.ts";
+
 export type AssessmentType = "exam" | "quiz" | "submission" | "presentation";
 export type EventDateKind = "occurs" | "deadline";
 export type CourseEventFields = { linkedCourseId?: string; assessmentType?: AssessmentType; eventDateKind?: EventDateKind; courseLinkReviewed?: boolean };
 type CourseIdentity = { id: string; title: string };
+
+export function eventCourseChoices<T extends CourseIdentity>(courses: T[]) {
+  return courses.filter((course) => isCourseTitleCandidate(course.title));
+}
 type EventLike = CourseEventFields & { courseId?: string; title: string; date: string; time: string };
 
 export const assessmentTypeOptions: { value: AssessmentType; label: string }[] = [
@@ -31,7 +37,7 @@ const normalizedTitle = (value: string) => value.normalize("NFKC").toLowerCase()
 
 export function migrateCourseEvents<T extends { courses: CourseIdentity[]; milestones: EventLike[] }>(state: T): T {
   let changed = false;
-  const courses = state.courses.map((course) => ({ ...course, name: normalizedTitle(course.title) })).filter((course) => course.name);
+  const courses = eventCourseChoices(state.courses).map((course) => ({ ...course, name: normalizedTitle(course.title) }));
   const milestones = state.milestones.map((node) => {
     if (node.courseId || node.linkedCourseId || node.courseLinkReviewed) return node;
     const title = normalizedTitle(node.title);

@@ -1,16 +1,24 @@
 "use client";
 
-import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { backgroundPalette, backgroundStorageKey, defaultBackground, normalizeBackground, type BackgroundPreference } from "@/lib/background-appearance";
 import "./background-appearance.css";
+import { submitFormOnEnter } from "./form-keyboard";
 
-const BackgroundContext = createContext<{ preference: BackgroundPreference; choose: (value: BackgroundPreference) => boolean }>({ preference: defaultBackground, choose: () => true });
-export const useBackgroundAppearance = () => useContext(BackgroundContext);
+type BackgroundControls = {
+  choose: (value: BackgroundPreference) => boolean;
+  preview: (value: BackgroundPreference) => void;
+  resetPreview: () => void;
+  setAccent: (color: string) => void;
+};
+const PreferenceContext = createContext(defaultBackground);
+const ControlsContext = createContext<BackgroundControls>({ choose: () => false, preview: () => {}, resetPreview: () => {}, setAccent: () => {} });
 const propertyNames = ["bg", "surface", "soft", "sidebar", "text", "muted", "faint", "line", "line-strong", "danger", "income", "expense", "link"];
+const validColor = (color: string) => /^#[0-9a-f]{6}$/i.test(color);
 
-function applyBackground(value: BackgroundPreference) {
+function applyBackground(value: BackgroundPreference, accent: string) {
   const root = document.documentElement;
-  const palette = backgroundPalette(value);
+  const palette = backgroundPalette(value, accent);
   if (!palette) {
     delete root.dataset.background;
     root.style.removeProperty("color-scheme");
@@ -26,51 +34,124 @@ function applyBackground(value: BackgroundPreference) {
 
 export function BackgroundAppearanceProvider({ children }: { children: React.ReactNode }) {
   const [preference, setPreference] = useState<BackgroundPreference>(defaultBackground);
-  const [ready, setReady] = useState(false);
-  useLayoutEffect(() => {
-    let saved = defaultBackground;
-    try { saved = normalizeBackground(JSON.parse(localStorage.getItem(backgroundStorageKey) ?? "null")); } catch { /* Use the existing appearance if storage is unavailable. */ }
-    setPreference(saved);
-    setReady(true);
-    applyBackground(saved);
-    const sync = (event: StorageEvent) => {
-      if (event.key !== backgroundStorageKey) return;
-      try { setPreference(normalizeBackground(JSON.parse(event.newValue ?? "null"))); } catch { setPreference(defaultBackground); }
-    };
-    window.addEventListener("storage", sync);
-    return () => window.removeEventListener("storage", sync);
+  const saved = useRef(defaultBackground);
+  const previewValue = useRef<BackgroundPreference | null>(null);
+  const frame = useRef<number | null>(null);
+  const accent = useRef("#718c7c");
+  const applied = useRef("");
+  const apply = useCallback((value: BackgroundPreference) => {
+    const key = `${value.mode}:${value.color}:${accent.current}`;
+    if (applied.current === key) return;
+    applyBackground(value, accent.current);
+    applied.current = key;
   }, []);
-  useLayoutEffect(() => { if (ready) applyBackground(preference); }, [preference, ready]);
-  const choose = (value: BackgroundPreference) => {
+  const cancelFrame = useCallback(() => {
+    if (frame.current !== null) cancelAnimationFrame(frame.current);
+    frame.current = null;
+  }, []);
+  const resetPreview = useCallback(() => {
+    cancelFrame();
+    previewValue.current = null;
+    apply(saved.current);
+  }, [apply, cancelFrame]);
+  const preview = useCallback((value: BackgroundPreference) => {
+    previewValue.current = normalizeBackground(value);
+    // Color dragging only repaints the latest value once per frame; it does not update the workspace or storage.
+    if (frame.current === null) frame.current = requestAnimationFrame(() => {
+      frame.current = null;
+      apply(previewValue.current ?? saved.current);
+    });
+  }, [apply]);
+  const choose = useCallback((value: BackgroundPreference) => {
+    cancelFrame();
     const next = normalizeBackground(value);
+    saved.current = next;
+    previewValue.current = null;
+    apply(next);
     setPreference(next);
     try { localStorage.setItem(backgroundStorageKey, JSON.stringify(next)); return true; } catch { return false; }
-  };
-  return <BackgroundContext.Provider value={{ preference, choose }}>{children}</BackgroundContext.Provider>;
+  }, [apply, cancelFrame]);
+  const setAccent = useCallback((color: string) => {
+    accent.current = color;
+    apply(previewValue.current ?? saved.current);
+  }, [apply]);
+  const controls = useMemo(() => ({ choose, preview, resetPreview, setAccent }), [choose, preview, resetPreview, setAccent]);
+  useLayoutEffect(() => {
+    const restore = (raw: string | null) => {
+      let next = defaultBackground;
+      try { next = normalizeBackground(JSON.parse(raw ?? "null")); } catch { /* Keep the default when storage is invalid. */ }
+      saved.current = next;
+      setPreference(next);
+      if (!previewValue.current) apply(next);
+    };
+    try { restore(localStorage.getItem(backgroundStorageKey)); } catch { apply(saved.current); }
+    const sync = (event: StorageEvent) => {
+      if (event.key === backgroundStorageKey || event.key === null) restore(event.newValue);
+    };
+    window.addEventListener("storage", sync);
+    return () => { window.removeEventListener("storage", sync); cancelFrame(); };
+  }, [apply, cancelFrame]);
+  return <ControlsContext.Provider value={controls}><PreferenceContext.Provider value={preference}>{children}</PreferenceContext.Provider></ControlsContext.Provider>;
+}
+
+export function useBackgroundAccent(color: string) {
+  const { setAccent } = useContext(ControlsContext);
+  useLayoutEffect(() => { setAccent(color); }, [color, setAccent]);
 }
 
 export function BackgroundPicker() {
-  const { preference, choose } = useBackgroundAppearance();
+  const preference = useContext(PreferenceContext);
+  const { resetPreview } = useContext(ControlsContext);
   const [open, setOpen] = useState(false);
-  const [draft, setDraft] = useState(preference.color);
   const [message, setMessage] = useState("");
   const host = useRef<HTMLDivElement>(null);
   const button = useRef<HTMLButtonElement>(null);
+  const close = useCallback(() => { resetPreview(); setOpen(false); }, [resetPreview]);
   useEffect(() => {
     if (!open) return;
-    const outside = (event: MouseEvent) => { if (event.target instanceof Node && !host.current?.contains(event.target)) setOpen(false); };
-    const escape = (event: KeyboardEvent) => { if (event.key === "Escape") { setOpen(false); button.current?.focus(); } };
+    const outside = (event: MouseEvent) => { if (event.target instanceof Node && !host.current?.contains(event.target)) close(); };
+    const escape = (event: KeyboardEvent) => { if (event.key === "Escape") { close(); button.current?.focus(); } };
     document.addEventListener("click", outside); document.addEventListener("keydown", escape);
     return () => { document.removeEventListener("click", outside); document.removeEventListener("keydown", escape); };
-  }, [open]);
-  const select = (value: BackgroundPreference) => setMessage(choose(value) ? "" : "已应用，浏览器暂时无法保存");
+  }, [open, close]);
   return <div ref={host} className="backgroundPicker">
-    <button type="button" className="themeMoreButton backgroundEntry" ref={button} aria-label="背景设置" aria-expanded={open} aria-controls="background-options" onClick={() => { setDraft(preference.color); setMessage(""); setOpen(!open); }}><span aria-hidden="true">{preference.mode === "dark" ? "☾" : "◐"}</span>背景</button>
-    {open && <div id="background-options" className="backgroundOptions" role="dialog" aria-label="背景设置">
-      <h2>背景</h2><div className="backgroundModes" role="group" aria-label="背景模式">{([{ mode: "light", label: "浅色" }, { mode: "dark", label: "深色" }, { mode: "custom", label: "自定义" }] as const).map(({ mode, label }) => <button type="button" key={mode} aria-pressed={preference.mode === mode} onClick={() => select({ ...preference, mode })}>{label}</button>)}</div>
-      <form onSubmit={(event) => { event.preventDefault(); if (!/^#[0-9a-f]{6}$/i.test(draft)) { setMessage("请输入六位颜色值，例如 #e9eeeb"); return; } select({ mode: "custom", color: draft }); }}>
-        <label htmlFor="background-hex">自定义背景色</label><div className="backgroundFields"><input type="color" aria-label="选择背景颜色" value={/^#[0-9a-f]{6}$/i.test(draft) ? draft : preference.color} onChange={(event) => { setDraft(event.target.value); setMessage(""); }} /><input id="background-hex" type="text" aria-label="背景颜色值" maxLength={7} spellCheck={false} autoComplete="off" value={draft} onChange={(event) => { setDraft(event.target.value); setMessage(""); }} /><button type="submit">应用</button></div>
-      </form>{message && <p role="status">{message}</p>}
-    </div>}
+    <button type="button" className="themeMoreButton backgroundEntry" ref={button} aria-label="背景设置" aria-expanded={open} aria-controls="background-options" onClick={() => { if (open) close(); else { setMessage(""); setOpen(true); } }}><span aria-hidden="true">{preference.mode === "dark" ? "☾" : "◐"}</span>背景</button>
+    {open && <BackgroundEditor preference={preference} onClose={close} onSaved={(saved) => { setMessage(saved ? "" : "已应用，浏览器暂时无法保存"); close(); button.current?.focus(); }} />}
+    {message && <p className="backgroundSaveMessage" role="status">{message}</p>}
+  </div>;
+}
+
+function BackgroundEditor({ preference, onClose, onSaved }: { preference: BackgroundPreference; onClose: () => void; onSaved: (saved: boolean) => void }) {
+  const { choose, preview, resetPreview } = useContext(ControlsContext);
+  const [mode, setMode] = useState(preference.mode);
+  const [draft, setDraft] = useState(preference.color);
+  const [message, setMessage] = useState("");
+  const color = useRef(preference.color);
+  const colorInput = useRef<HTMLInputElement>(null);
+  useEffect(() => resetPreview, [resetPreview]);
+  const updateColor = (value: string) => {
+    setDraft(value);
+    setMode("custom");
+    setMessage("");
+    if (!validColor(value)) return;
+    color.current = value.toLowerCase();
+    // Leave the native picker uncontrolled so dragging is not interrupted by React writing its value back.
+    if (colorInput.current && colorInput.current.value !== color.current) colorInput.current.value = color.current;
+    preview({ mode: "custom", color: color.current });
+  };
+  const changed = mode !== preference.mode || (mode === "custom" && draft.toLowerCase() !== preference.color);
+  return <div id="background-options" className="backgroundOptions" role="dialog" aria-label="背景设置">
+    <div className="backgroundOptionsHead"><h2>背景</h2>{changed && <span>预览中</span>}</div>
+    <form onKeyDown={submitFormOnEnter} onSubmit={(event) => {
+      event.preventDefault();
+      if (mode === "custom" && !validColor(draft)) { setMessage("请输入六位颜色值，例如 #e9eeeb"); return; }
+      onSaved(choose({ mode, color: color.current }));
+    }}>
+      <div className="backgroundModes" role="group" aria-label="背景模式">{([{ mode: "light", label: "浅色" }, { mode: "dark", label: "深色" }, { mode: "custom", label: "自定义" }] as const).map(({ mode: nextMode, label }) => <button type="button" key={nextMode} aria-pressed={mode === nextMode} onClick={() => { setMode(nextMode); setMessage(""); preview({ mode: nextMode, color: color.current }); }}>{label}</button>)}</div>
+      <label htmlFor="background-hex">自定义背景色</label>
+      <div className="backgroundFields"><input ref={colorInput} type="color" aria-label="选择背景颜色" defaultValue={preference.color} onInput={(event) => updateColor(event.currentTarget.value)} /><input id="background-hex" type="text" aria-label="背景颜色值" maxLength={7} spellCheck={false} autoComplete="off" value={draft} onChange={(event) => updateColor(event.target.value)} /></div>
+      {message && <p role="alert">{message}</p>}
+      <div className="backgroundActions"><button type="button" onClick={onClose}>取消</button><button type="submit">应用</button></div>
+    </form>
   </div>;
 }

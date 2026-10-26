@@ -23,6 +23,7 @@ export type FinanceEntry = {
   origin: "manual" | "ai" | "wechat";
   merchant?: string;
   storedValueAccountId?: string;
+  bonusCents?: number;
 };
 
 export type MonthlyBudget = {
@@ -140,6 +141,7 @@ export function normalizeFinanceState(raw: unknown): FinanceState {
       id: String(candidate.id),
       type: candidate.type,
       amountCents,
+      ...(candidate.type === "topup" && candidate.bonusCents !== undefined ? { bonusCents: Math.min(amountCents, finiteCents(candidate.bonusCents)) } : {}),
       category: candidate.type === "expense"
         ? canonicalExpenseCategory(String(candidate.category || "其他"))
         : candidate.type === "topup" ? "储值充值" : String(candidate.category || "其他收入"),
@@ -222,6 +224,19 @@ export function centsToYuanInput(value: number) {
   return (finiteCents(value) / 100).toFixed(2);
 }
 
+export function parseStoredValueTopup(paid: string, bonus: string) {
+  const parse = (value: string) => !value.trim() || /^0(?:\.0{1,2})?$/.test(value.trim()) ? 0 : yuanToCents(value) || null;
+  const paidCents = parse(paid);
+  const bonusCents = parse(bonus);
+  if (paidCents === null || bonusCents === null) return null;
+  const amountCents = paidCents + bonusCents;
+  return amountCents > 0 && amountCents <= 100_000_000_00 ? { amountCents, bonusCents } : null;
+}
+
+export function storedValuePaidCents(entry: Pick<FinanceEntry, "amountCents" | "bonusCents">) {
+  return entry.amountCents - (entry.bonusCents ?? 0);
+}
+
 export function formatCny(value: number, sign = false) {
   const formatted = new Intl.NumberFormat("zh-CN", { style: "currency", currency: "CNY", minimumFractionDigits: 2 }).format(finiteCents(Math.abs(value)) / 100);
   if (!sign || value === 0) return formatted;
@@ -263,10 +278,14 @@ function financeByCategory(entries: FinanceEntry[], month: string, type: "income
 export function storedValueTotals(entries: FinanceEntry[], accountId?: string) {
   return entries.reduce((totals, entry) => {
     if (!entry.storedValueAccountId || (accountId && entry.storedValueAccountId !== accountId)) return totals;
-    if (entry.type === "topup") totals.topupCents += entry.amountCents;
+    if (entry.type === "topup") {
+      totals.topupCents += entry.amountCents;
+      totals.paidCents += storedValuePaidCents(entry);
+      totals.bonusCents += entry.bonusCents ?? 0;
+    }
     if (entry.type === "expense") totals.spentCents += entry.amountCents;
     return totals;
-  }, { topupCents: 0, spentCents: 0 });
+  }, { topupCents: 0, paidCents: 0, bonusCents: 0, spentCents: 0 });
 }
 
 export function storedValueBalance(account: StoredValueAccount, entries: FinanceEntry[]) {
@@ -288,7 +307,7 @@ export function financeCsv(entries: FinanceEntry[], accounts: StoredValueAccount
     return `"${safe.replace(/"/g, '""')}"`;
   };
   const rows = [
-    ["日期", "时间", "类型", "金额（元）", "分类", "识别用途", "关联项目", "备注", "储值项目"],
+    ["日期", "时间", "类型", "金额（元）", "分类", "识别用途", "关联项目", "备注", "储值项目", "储值实付（元）", "储值赠送（元）"],
     ...entries.slice().sort((a, b) => b.date.localeCompare(a.date) || b.time.localeCompare(a.time) || b.updatedAt.localeCompare(a.updatedAt)).map((entry) => [
       entry.date,
       entry.time,
@@ -299,6 +318,8 @@ export function financeCsv(entries: FinanceEntry[], accounts: StoredValueAccount
       entry.relatedProject,
       entry.note,
       accounts.find((account) => account.id === entry.storedValueAccountId)?.name ?? entry.storedValueAccountId ?? "",
+      entry.type === "topup" ? centsToYuanInput(storedValuePaidCents(entry)) : "",
+      entry.type === "topup" ? centsToYuanInput(entry.bonusCents ?? 0) : "",
     ]),
   ];
   return `\uFEFF${rows.map((row) => row.map(escape).join(",")).join("\n")}`;

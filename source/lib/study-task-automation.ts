@@ -135,7 +135,7 @@ function dailyStudyKey(date: string, courseId: string) {
 
 function isExcludedStudyCourse(title: string) {
   const normalized = normalizedTitle(title);
-  return ["跆拳道", "气候与社会"].some((course) => normalized.includes(course));
+  return ["跆拳道", "气候与社会", "形势与政策", "形策"].some((course) => normalized.includes(course));
 }
 
 export function courseUsesAutomatedStudyPlan(title: string) {

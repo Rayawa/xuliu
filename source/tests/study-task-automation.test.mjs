@@ -174,9 +174,25 @@ test("an explicit study plan date survives migration without overwriting its ori
   assert.equal(studyTaskVisibleOnDate({ ...moved, automationKey: undefined }, today), true);
 });
 
-test("taekwondo and climate courses do not generate daily self-study, including course-name variants", () => {
-  const courses = [course(), course("accounting", "会计学基础"), course("sport", "体育/跆拳道"), course("sport-alias", "跆 拳 道"), course("climate", "气候与社会"), course("climate-alias", "气候 与 社会")];
+test("excluded courses do not generate daily self-study, including policy course names and aliases", () => {
+  const courses = [course(), course("accounting", "会计学基础"), course("sport", "体育/跆拳道"), course("sport-alias", "跆 拳 道"), course("climate", "气候与社会"), course("climate-alias", "气候 与 社会"), course("policy", "形势与政策"), course("policy-alias", "形 策"), course("policy-term", "形势与政策（七）")];
   assert.deepEqual(createDailyStudyTaskPlan(courses, today, termStartDate).map((draft) => draft.courseId), ["linear", "accounting"]);
+});
+
+test("policy self-study is removed without changing the timetable, formal homework, notes or completed history", () => {
+  const policy = course("policy", "形势与政策（七）");
+  const automatic = { ...node("policy-study", "review"), courseId: policy.id, automationKey: `study:${today}:review:${policy.id}:${today}`, requirements: DAILY_STUDY_DURATION };
+  const completed = { ...automatic, id: "policy-done", done: true };
+  const homework = { ...automatic, id: "policy-homework", automationKey: undefined, title: "形策论文", requirements: "提交论文", date: "2026-11-01" };
+  const notes = { ...automatic, id: "policy-notes", blocks: [{ id: "my-note", type: "text", text: "已有笔记" }], elapsed: 5 };
+  const original = { ...stateFor(), courses: [policy], milestones: [automatic, homework, completed, notes] };
+  const result = migrateDailyStudyTasks(original, today);
+  assert.deepEqual(result.courses, original.courses);
+  assert.deepEqual(result.milestones.slice(0, 2), [homework, completed]);
+  assert.equal(result.milestones[2].id, notes.id);
+  assert.equal(result.milestones[2].automationKey, undefined);
+  assert.deepEqual(result.milestones[2].blocks, notes.blocks);
+  assert.equal(migrateDailyStudyTasks(result, today), result);
 });
 
 test("excluded subjects lose pending automatic stages and daily items while manual tasks and history remain", () => {

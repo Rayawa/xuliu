@@ -15,6 +15,8 @@ import {
   localDateKey,
   localTimeKey,
   monthKey,
+  parseStoredValueTopup,
+  storedValuePaidCents,
   yuanToCents,
   defaultExpenseCategories,
   defaultIncomeCategories,
@@ -87,6 +89,7 @@ export default function FinanceView({ finance, readOnly, projectOptions, onChang
   const [editor, setEditor] = useState<EditorState | null>(null);
   const [accountEditor, setAccountEditor] = useState<StoredValueAccount | null>(null);
   const [amountInput, setAmountInput] = useState("");
+  const [bonusInput, setBonusInput] = useState("");
   const [pendingDelete, setPendingDelete] = useState<FinanceEntry | null>(null);
   const [pendingRecategorize, setPendingRecategorize] = useState<{ month: string; count: number } | null>(null);
   const [formError, setFormError] = useState("");
@@ -130,12 +133,14 @@ export default function FinanceView({ finance, readOnly, projectOptions, onChang
     const entry = { ...blankEntry(type), date, ...(storedValueAccountId ? { storedValueAccountId } : {}) };
     setEditor({ mode: "create", entry });
     setAmountInput("");
+    setBonusInput("");
     setFormError("");
   };
 
   const openEdit = (entry: FinanceEntry) => {
     setEditor({ mode: "edit", entry: { ...entry } });
-    setAmountInput(centsToYuanInput(entry.amountCents));
+    setAmountInput(centsToYuanInput(entry.type === "topup" ? storedValuePaidCents(entry) : entry.amountCents));
+    setBonusInput(centsToYuanInput(entry.bonusCents ?? 0));
     setFormError("");
   };
 
@@ -145,6 +150,7 @@ export default function FinanceView({ finance, readOnly, projectOptions, onChang
 
   const changeEntryType = (type: FinanceEntryType) => {
     if (!editor || editor.entry.type === type) return;
+    if (type !== "topup") setBonusInput("");
     patchEditor({ type, category: type === "topup" ? "储值充值" : type === "income" ? finance.incomeCategories[0] || "其他收入" : finance.expenseCategories[0] || "其他", storedValueAccountId: type === "income" ? undefined : editor.entry.storedValueAccountId || (type === "topup" ? accounts[0]?.id : undefined) });
   };
 
@@ -164,9 +170,10 @@ export default function FinanceView({ finance, readOnly, projectOptions, onChang
 
   const saveEntry = () => {
     if (!editor || readOnly) return;
-    const amountCents = yuanToCents(amountInput);
+    const topup = editor.entry.type === "topup" ? parseStoredValueTopup(amountInput, bonusInput) : null;
+    const amountCents = editor.entry.type === "topup" ? topup?.amountCents : yuanToCents(amountInput);
     if (!amountCents) {
-      setFormError("请输入大于 0 的金额");
+      setFormError(editor.entry.type === "topup" ? "实付和赠送应为有效金额，合计须大于 0" : "请输入大于 0 的金额");
       return;
     }
     const category = editor.entry.type === "topup" ? "储值充值" : editor.entry.category.trim();
@@ -196,6 +203,8 @@ export default function FinanceView({ finance, readOnly, projectOptions, onChang
     const learnMerchant = Boolean(original && merchant && original.category !== category && merchant !== "微信支付");
     const learnPayment = Boolean(original && merchant && (original.category !== category || (original.purpose || "") !== purpose) && merchant !== "微信支付");
     const nextEntry: FinanceEntry = { ...editor.entry, amountCents, category, purpose: purpose || undefined, updatedAt: new Date().toISOString(), ...(merchant ? { merchant } : {}) };
+    if (topup?.bonusCents) nextEntry.bonusCents = topup.bonusCents;
+    else delete nextEntry.bonusCents;
     if (nextEntry.type === "income") delete nextEntry.storedValueAccountId;
     onChange((current) => {
       const exists = current.entries.some((entry) => entry.id === nextEntry.id);
@@ -305,7 +314,7 @@ export default function FinanceView({ finance, readOnly, projectOptions, onChang
 
   const renderEntry = (entry: FinanceEntry, showDate = false) => <article className="ledgerRow" key={entry.id}>
     <span className={`ledgerType ${entry.type}`}>{entry.type === "topup" ? "储" : categoryGlyphs[entry.category] || (entry.type === "income" ? "收" : "记")}</span>
-    <div className="ledgerMain"><strong>{entry.purpose || entry.note || entry.category}</strong><span>{showDate ? `${entry.date} · ` : ""}{entry.category}{entry.storedValueAccountId ? ` · ${accounts.find((account) => account.id === entry.storedValueAccountId)?.name || "储值"}${entry.type === "expense" ? "支付" : ""}` : ""}{entry.purpose && entry.note ? ` · ${entry.note}` : ""}{entry.relatedProject ? ` · ${entry.relatedProject}` : ""}{entry.origin === "wechat" ? " · 微信" : ""}</span></div>
+    <div className="ledgerMain"><strong>{entry.purpose || entry.note || entry.category}</strong><span>{showDate ? `${entry.date} · ` : ""}{entry.category}{entry.storedValueAccountId ? ` · ${accounts.find((account) => account.id === entry.storedValueAccountId)?.name || "储值"}${entry.type === "expense" ? "支付" : ""}` : ""}{entry.purpose && entry.note ? ` · ${entry.note}` : ""}{entry.relatedProject ? ` · ${entry.relatedProject}` : ""}{entry.origin === "wechat" ? " · 微信" : ""}</span>{entry.type === "topup" && <small className="storedValueSplit">实付 {formatCny(storedValuePaidCents(entry))} · 赠送 {formatCny(entry.bonusCents ?? 0)}</small>}</div>
     <time>{entry.time}</time>
     <b className={entry.type === "income" ? "incomeText" : entry.type === "topup" ? "storedValueText" : "expenseText"}>{entry.type === "income" ? "+" : entry.type === "expense" ? "−" : ""}{formatCny(entry.amountCents)}</b>
     {!readOnly && <div className="ledgerActions"><button onClick={() => openEdit(entry)} aria-label={`编辑${entry.note || entry.category}`}>编辑</button><button className="dangerText" onClick={() => setPendingDelete(entry)} aria-label={`删除${entry.note || entry.category}`}>删除</button></div>}
@@ -412,7 +421,8 @@ export default function FinanceView({ finance, readOnly, projectOptions, onChang
     {editor && <div className="financeModalScrim" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target) setEditor(null); }}><section className="financeModal" role="dialog" aria-modal="true" aria-labelledby="finance-editor-title" onKeyDown={(event) => { if (event.key === "Enter" && !event.nativeEvent.isComposing && event.target instanceof HTMLInputElement && event.target.type === "text") { event.preventDefault(); saveEntry(); } }}>
       <div className="financeModalHead"><div><span>{editor.entry.type === "income" ? "INCOME" : editor.entry.type === "topup" ? "STORED VALUE" : "EXPENSE"}</span><h2 id="finance-editor-title">{editor.mode === "edit" ? "编辑记录" : editor.entry.type === "income" ? "记录一笔收入" : editor.entry.type === "topup" ? "记录储值充值" : "记录一笔支出"}</h2></div><button aria-label="关闭" onClick={() => setEditor(null)}>×</button></div>
       <div className="entryTypeSwitch">{([{ type: "expense", label: "支出" }, { type: "income", label: "收入" }, { type: "topup", label: "储值" }] as const).map(({ type, label }) => <button key={type} type="button" className={editor.entry.type === type ? `active ${type}` : ""} aria-pressed={editor.entry.type === type} onClick={() => changeEntryType(type)}>{label}</button>)}</div>
-      <label className="amountField"><span>金额</span><div><b>¥</b><input autoFocus inputMode="decimal" value={amountInput} placeholder="0.00" onChange={(event) => setAmountInput(event.target.value)} /></div></label>
+      <div className={editor.entry.type === "topup" ? "storedValueAmountFields" : undefined}><label className="amountField"><span>{editor.entry.type === "topup" ? "实付金额" : "金额"}</span><div><b>¥</b><input autoFocus inputMode="decimal" aria-label={editor.entry.type === "topup" ? "实付金额" : "金额"} value={amountInput} placeholder="0.00" onChange={(event) => setAmountInput(event.target.value)} /></div></label>{editor.entry.type === "topup" && <label className="amountField"><span>赠送金额</span><div><b>¥</b><input inputMode="decimal" aria-label="赠送金额" value={bonusInput} placeholder="0.00" onChange={(event) => setBonusInput(event.target.value)} /></div></label>}</div>
+      {editor.entry.type === "topup" && <p className="storedValueCredit">到账余额 <strong>{formatCny(parseStoredValueTopup(amountInput, bonusInput)?.amountCents ?? 0)}</strong></p>}
       {editor.entry.type !== "topup" && <div className="financeCategorySection"><span>分类</span><div className="financeCategoryChoices" role="group" aria-label="选择分类">{categoryChoices.map((category) => <button key={category} type="button" className={editor.entry.category === category ? "active" : ""} aria-pressed={editor.entry.category === category} onClick={() => patchEditor({ category })}><i>{categoryGlyphs[category] || "记"}</i>{category}</button>)}</div><label>自定义分类<input value={editor.entry.category} maxLength={40} onChange={(event) => patchEditor({ category: event.target.value })} placeholder="输入或点选上方分类" /></label></div>}
       {editor.entry.type !== "income" && <div className="financePaymentField"><label><span>{editor.entry.type === "topup" ? "储值项目" : "付款方式"}</span><select aria-label={editor.entry.type === "topup" ? "储值项目" : "付款方式"} value={editor.entry.storedValueAccountId || ""} onChange={(event) => { patchEditor({ storedValueAccountId: event.target.value || undefined }); setFormError(""); }}><option value="">{editor.entry.type === "topup" ? "请选择储值项目" : "直接支付"}</option>{accounts.map((account) => <option key={account.id} value={account.id}>{account.name}</option>)}</select></label><button type="button" className="softButton" disabled={accounts.length >= 100} onClick={newAccount}>新建储值项目</button>{editor.entry.type === "topup" && <small>充值只增加储值余额，不计入本月消费。</small>}</div>}
       <div className="financeFormGrid">

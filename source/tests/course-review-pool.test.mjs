@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { chooseReviewPoolItem, initializeCourseReviewPool, reviewPoolItemVisibleOnDate, reviewPoolReadProjection, updateReviewPoolItem, withoutReviewPoolSources } from '../lib/course-review-pool.ts';
+import { chooseReviewPoolItem, createReviewPoolItem, initializeCourseReviewPool, reviewPoolItemVisibleOnDate, reviewPoolReadProjection, updateReviewPoolItem, withoutReviewPoolSources } from '../lib/course-review-pool.ts';
 import { aiCourseContextFromWorkspace } from '../lib/ai-course-context.ts';
 import { createEmptyWorkspaceState, workspaceStateSchema } from '../lib/workspace-state-schema.ts';
 import { withPlannedTaskStages } from '../lib/task-stages.ts';
@@ -8,6 +8,37 @@ import { upcomingDeadlines } from '../lib/upcoming-deadlines.ts';
 
 const today = '2026-10-23';
 const tomorrow = '2026-10-24';
+
+test('adding within the pool creates an undated checklist item and preserves other work', () => {
+  const original = initializeCourseReviewPool(stateFor([task('formal', '线代作业week3', { due: tomorrow })]));
+  const before = JSON.stringify(original);
+  const item = createReviewPoolItem(original.reviewPool.items, { course: ' 经济学基础 ', chapter: ' L5 ', note: ' 看到第二节，下次继续例题 ' }, 'review-added');
+  assert.equal(JSON.stringify(original), before);
+  assert.equal(item.course, '经济学基础');
+  assert.equal(item.chapter, 'L5');
+  assert.equal(item.note, '看到第二节，下次继续例题');
+  assert.equal(item.done, false);
+  for (const key of ['selectedDate', 'plannedDate', 'due', 'date']) assert.equal(key in item, false);
+  let state = { ...original, reviewPool: { ...original.reviewPool, items: [...original.reviewPool.items, item] } };
+  assert.equal(reviewPoolItemVisibleOnDate(item, today), false);
+  state = chooseReviewPoolItem(state, item.id, today);
+  assert.equal(reviewPoolItemVisibleOnDate(itemById(state, item.id), today), true);
+  state = updateReviewPoolItem(state, item.id, { done: true }, today);
+  state = updateReviewPoolItem(state, item.id, { done: false, selectedDate: undefined }, today);
+  assert.equal(itemById(state, item.id).note, item.note);
+  assert.equal(reviewPoolItemVisibleOnDate(itemById(state, item.id), tomorrow), false);
+  assert.equal(state.tasks, original.tasks);
+  assert.deepEqual(workspaceStateSchema.parse(JSON.parse(JSON.stringify(state))), state);
+});
+
+test('pool additions reject duplicate chapters, missing names and invalid sizes', () => {
+  const items = initializeCourseReviewPool(stateFor()).reviewPool.items;
+  assert.throws(() => createReviewPoolItem(items, { course: '经济学基础', chapter: 'ｌ １', note: '' }, 'unique'));
+  assert.throws(() => createReviewPoolItem(items, { course: ' ', chapter: 'L5', note: '' }, 'unique'));
+  assert.throws(() => createReviewPoolItem(items, { course: '经济学基础', chapter: ' ', note: '' }, 'unique'));
+  assert.throws(() => createReviewPoolItem(items, { course: '经济学基础', chapter: 'L5', note: '' }, items[0].id));
+  assert.throws(() => createReviewPoolItem(items, { course: '经济学基础', chapter: 'L5', note: '长'.repeat(4001) }, 'unique'));
+});
 const task = (id, title, extra = {}) => ({ id, title, area: '课内', source: '', done: false, today: false, elapsed: 0, ...extra });
 const milestone = (id, title, extra = {}) => ({ id, title, area: '课内', courseId: 'linear', date: today, time: '20:00', location: '', requirements: '', done: false, ...extra });
 const stateFor = (tasks = [], milestones = []) => ({ ...createEmptyWorkspaceState(), tasks, milestones });
