@@ -1,6 +1,6 @@
 import type { z } from "zod";
 import type { workspaceStateSchema } from "./workspace-state-schema.ts";
-import { reviewPoolSourceKeys, studyCoveredByReviewPool } from "./course-review-pool.ts";
+import { reviewPoolSourceKeys } from "./course-review-pool.ts";
 import { createDailyStudyTaskPlan, studyTaskVisibleOnDate } from "./study-task-automation.ts";
 
 type Workspace = z.infer<typeof workspaceStateSchema>;
@@ -17,10 +17,6 @@ export function rescheduleDailyStudy<T extends StudyResetState>(state: T, date: 
   let restored = 0;
   let preserved = 0;
   for (const draft of planned) {
-    if (studyCoveredByReviewPool(state, { ...draft, id: "" }, date)) {
-      preserved++;
-      continue;
-    }
     const candidates = milestones.filter((node) => node.courseId === draft.courseId
       && node.automationKey?.startsWith("study:") && node.automationKey.split(":")[2] === "review"
       && !poolSources.has(`milestone:${node.id}`));

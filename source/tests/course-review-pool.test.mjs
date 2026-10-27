@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { chooseReviewPoolItem, createReviewPoolItem, deferStudyToReviewPool, deleteReviewPoolItem, editedStudyToReviewPool, initializeCourseReviewPool, restoreReviewPoolItem, reviewPoolItemVisibleOnDate, reviewPoolReadProjection, sameReviewCourse, studyCoveredByReviewPool, updateReviewPoolItem, withoutReviewPoolSources } from '../lib/course-review-pool.ts';
-import { personalStudyRequirements } from '../lib/study-task-automation.ts';
+import { chooseReviewPoolItem, createReviewPoolItem, deferStudyToReviewPool, deleteReviewPoolItem, editedStudyToReviewPool, initializeCourseReviewPool, restoreReviewPoolItem, reviewPoolItemVisibleOnDate, reviewPoolReadProjection, sameReviewCourse, updateReviewPoolItem, withoutReviewPoolSources } from '../lib/course-review-pool.ts';
+import { personalStudyRequirements, studyTaskVisibleOnDate } from '../lib/study-task-automation.ts';
 import { aiCourseContextFromWorkspace } from '../lib/ai-course-context.ts';
 import { createEmptyWorkspaceState, workspaceStateSchema } from '../lib/workspace-state-schema.ts';
 import { withPlannedTaskStages } from '../lib/task-stages.ts';
@@ -138,7 +138,7 @@ test('later study reuses an existing chapter across course aliases, preserving n
   assert.deepEqual(withoutReviewPoolSources(deleted).milestones.map((node) => node.id), ['formal-linear']);
 });
 
-test('later study can create an undated chapter, while choosing it today replaces only that course automatic study display', () => {
+test('later study creates an undated chapter and choosing it does not hide a separate same-course task', () => {
   const original = studyState();
   const next = deferStudyToReviewPool(original, 'auto-linear', { chapter: '第3章', note: '之后学' }, 'new-chapter');
   const item = itemById(next, 'new-chapter');
@@ -148,12 +148,11 @@ test('later study can create an undated chapter, while choosing it today replace
   assert.equal(reviewPoolItemVisibleOnDate(item, today), false);
   assert.equal(reviewPoolItemVisibleOnDate(item, tomorrow), false);
   const futureAuto = { ...original.milestones[0], id: 'future-auto', date: tomorrow };
-  assert.equal(studyCoveredByReviewPool(next, futureAuto, tomorrow), false);
   const chosen = chooseReviewPoolItem(next, item.id, tomorrow);
-  assert.equal(studyCoveredByReviewPool(chosen, futureAuto, tomorrow), true);
-  assert.equal(studyCoveredByReviewPool(chosen, futureAuto, today), false);
-  assert.equal(studyCoveredByReviewPool(chosen, original.milestones[1], tomorrow), false);
-  assert.equal(studyCoveredByReviewPool(chosen, { ...futureAuto, courseId: 'other' }, tomorrow), false);
+  assert.equal(reviewPoolItemVisibleOnDate(itemById(chosen, item.id), tomorrow), true);
+  const combined = { ...chosen, milestones: [...chosen.milestones, futureAuto] };
+  const visible = withoutReviewPoolSources(combined).milestones.filter((node) => studyTaskVisibleOnDate(node, tomorrow));
+  assert.deepEqual(visible.map((node) => node.id), ['formal-linear', 'future-auto']);
   assert.deepEqual(next.milestones, original.milestones);
   assert.deepEqual(initializeCourseReviewPool(workspaceStateSchema.parse(next)), next);
 });

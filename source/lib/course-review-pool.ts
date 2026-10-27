@@ -71,12 +71,6 @@ export function sameReviewCourse(left: string, right: string) {
   return reviewCourseKey(left) === reviewCourseKey(right);
 }
 
-export function studyCoveredByReviewPool(state: PoolState, node: SourceRecord, date: string) {
-  if (!node.automationKey?.startsWith("study:") || !node.courseId) return false;
-  const course = state.courses?.find((course) => course.id === node.courseId);
-  return Boolean(course && state.reviewPool?.items.some((item) => reviewPoolItemVisibleOnDate(item, date) && sameReviewCourse(item.course, course.title)));
-}
-
 export function deferStudyToReviewPool<T extends PoolState>(state: T, sourceId: string, draft: Pick<ReviewPoolDraft, "chapter" | "note">, id: string): T {
   const pool = state.reviewPool;
   const source = state.milestones.find((node) => node.id === sourceId);

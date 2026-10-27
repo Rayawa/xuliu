@@ -105,17 +105,45 @@ test("review pool source records stay protected when today's plan is regenerated
   }
 });
 
-test("a selected pool chapter and an earlier-day task moved into today each prevent duplicates", () => {
+test("a selected pool chapter does not prevent a same-course daily task; existing daily tasks are not duplicated", () => {
   const selected = chooseReviewPoolItem(initializeCourseReviewPool(stateFor(), today), "review:linear-algebra:2", today);
-  const result = rescheduleDailyStudy(selected, today, doNotCreate);
-  assert.equal(result.added, 0);
-  assert.equal(result.state.milestones.length, 0);
+  const result = rescheduleDailyStudy(selected, today, () => "new-auto");
+  assert.equal(result.added, 1);
+  assert.equal(result.state.milestones.length, 1);
+  assert.equal(studyTaskVisibleOnDate(result.state.milestones[0], today), true);
   assert.deepEqual(result.state.reviewPool, selected.reviewPool);
+  assert.equal(rescheduleDailyStudy(result.state, today, doNotCreate).added, 0);
   const moved = { ...automatic, automationKey: "study:2026-10-13:review:linear:2026-10-13", date: "2026-10-13", plannedDate: today };
   const state = stateFor([moved]);
   const again = rescheduleDailyStudy(state, today, doNotCreate);
   assert.equal(again.added, 0);
   assert.equal(again.state.milestones[0], moved);
+});
+
+test("selected chapters in three courses coexist with their daily tasks without restoring a pooled source", () => {
+  const courses = [course, { ...course, id: "tax", title: "税收理论与实务" }, { ...course, id: "economics", title: "经济学基础（全英文）" }];
+  const drafts = createDailyStudyTaskPlan(courses, today, "2026-08-31");
+  const nodes = drafts.map((item, index) => ({ ...item, id: `auto-${index}`, area: "课内", mode: "single", parentCandidate: false, done: false }));
+  const original = { ...stateFor(nodes), courses };
+  let selected = initializeCourseReviewPool(original, today);
+  selected = deferStudyToReviewPool(selected, "auto-1", { chapter: "第1章", note: "保留笔记" }, "unused");
+  selected = chooseReviewPoolItem(selected, "review:tax:1", today);
+  selected = chooseReviewPoolItem(selected, "review:linear-algebra:2", today);
+  selected = chooseReviewPoolItem(selected, "review:economics:L1", today);
+  const before = structuredClone(selected);
+  assert.equal(withoutReviewPoolSources(selected).milestones.filter((node) => studyTaskVisibleOnDate(node, today)).length, 2);
+  const result = rescheduleDailyStudy(selected, today, () => "new-tax");
+  assert.equal(result.added, 1);
+  assert.deepEqual(selected, before);
+  assert.deepEqual(result.state.reviewPool, selected.reviewPool);
+  assert.equal(result.state.milestones.find((node) => node.id === "auto-1"), nodes[1]);
+  const visible = withoutReviewPoolSources(result.state).milestones.filter((node) => studyTaskVisibleOnDate(node, today));
+  assert.deepEqual(visible.map((node) => node.courseId).sort(), ["economics", "linear", "tax"]);
+  assert.equal(result.state.reviewPool.items.filter((item) => item.selectedDate === today).length, 3);
+  const saved = workspaceStateSchema.parse(JSON.parse(JSON.stringify(result.state)));
+  const loaded = migrateDailyStudyTasks(saved, today);
+  assert.equal(withoutReviewPoolSources(loaded).milestones.filter((node) => studyTaskVisibleOnDate(node, today)).length, 3);
+  assert.equal(rescheduleDailyStudy(loaded, today, doNotCreate).added, 0);
 });
 
 test("a day without classes does not touch independent work or old markers", () => {

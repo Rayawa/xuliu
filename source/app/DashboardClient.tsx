@@ -8,7 +8,7 @@ import { CourseEventDialog } from "./CourseEventDialog";
 import { assessmentTypeLabel, assessmentTypeOptions, eventCourseChoices, eventCourseLabel, eventDateLabel, migrateCourseEvents } from "@/lib/course-events";
 import { isFormSaveEnter as isDialogSaveEnter, submitFormOnEnter } from "./form-keyboard";
 import { CourseReviewPoolDialog, DeferStudyDialog, ReviewPoolEntry, ReviewPoolToday } from "./CourseReviewPool";
-import { editedStudyToReviewPool, deleteReviewPoolItem, initializeCourseReviewPool, restoreReviewPoolItem, reviewPoolItemVisibleOnDate, studyCoveredByReviewPool, updateReviewPoolItem, withoutReviewPoolSources, type CourseReviewPool, type ReviewPoolItem } from "@/lib/course-review-pool";
+import { editedStudyToReviewPool, deleteReviewPoolItem, initializeCourseReviewPool, restoreReviewPoolItem, reviewPoolItemVisibleOnDate, updateReviewPoolItem, withoutReviewPoolSources, type CourseReviewPool, type ReviewPoolItem } from "@/lib/course-review-pool";
 import FocusTimer, { usePomodoroTimer } from "./FocusTimer";
 import { defaultFocusSettings, descendantTasks, detachRemovedParents, entryMatches, parentError, type FocusSettings, type TimeEntry, type WorkTarget } from "@/lib/task-time";
 import { upload as uploadBlob } from "@vercel/blob/client";
@@ -781,7 +781,7 @@ export default function DashboardClient({ account, visibleAccounts, onLogout, de
   const reviewToday = <ReviewPoolToday items={data.reviewPool?.items ?? []} today={reviewDate} readOnly={readOnly} onChange={changeReviewItem} onOpenItem={setReviewPoolOpen} />;
   const reviewEntry = data.reviewPool ? <ReviewPoolEntry onOpen={() => setReviewPoolOpen("")} /> : null;
   const todayTasks = displayedData.tasks.filter((task) => taskVisibleToday(task, today));
-  const todayCourseNodes = displayedData.milestones.filter((node) => studyTaskVisibleOnDate(node, today) && !studyCoveredByReviewPool(data, node, reviewDate));
+  const todayCourseNodes = displayedData.milestones.filter((node) => studyTaskVisibleOnDate(node, today));
   const resetStudyPlan = () => {
     if (readOnly) return;
     const date = dateKey();
