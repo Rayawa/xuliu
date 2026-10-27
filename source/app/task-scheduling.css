@@ -15,6 +15,9 @@
 .cancelTodayButton:disabled { opacity: .5; cursor: default; }
 .taskRowActions { flex-wrap: wrap; }
 .overviewSchedule .cancelledTodayLabel { color: var(--muted, #777); }
+.automaticStudyMore > summary { min-width: 30px; justify-content: center; }
+.automaticStudyMore > summary::after { content: none; }
+.studyPlanFeedback { margin-bottom: 0; color: var(--muted); font-size: 13px; line-height: 1.6; }
 @media (max-width: 640px) {
   .taskRowActions:has(.cancelTodayButton) { flex-basis: 100%; justify-content: flex-end; }
   .cancelTodayButton { min-height: 38px; }

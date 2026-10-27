@@ -239,3 +239,39 @@ test('cancelling manual course work is date scoped and survives workspace save a
   assert.equal(taskVisibleToday(saved.tasks[0], plannedTask.due), true);
   assert.equal(workspaceStateSchema.safeParse({ ...state, tasks: [{ ...state.tasks[0], dismissedTodayDate: '2026-02-30' }] }).success, false);
 });
+
+test('cancelled manual short plans fall back to two days before the deadline without rewriting saved dates', () => {
+  const today = '2026-10-27';
+  const ordinary = { ...plannedTask, plannedDate: today, due: '2026-11-01', progressLogs: [] };
+  const manualCourse = { id: 'course-review', courseId: 'course', title: '课程作业', date: '2026-11-01', time: '12:00', location: '', requirements: '保留要求', plannedDate: today, area: '课内', done: false };
+  const state = { ...createEmptyWorkspaceState(), tasks: [cancelWorkForDate(ordinary, today)], milestones: [cancelWorkForDate(manualCourse, today)] };
+  const saved = workspaceStateSchema.parse(JSON.parse(JSON.stringify(state)));
+  assert.deepEqual(saved, state);
+  for (const task of [...saved.tasks, ...saved.milestones]) {
+    assert.equal(task.plannedDate, today);
+    assert.equal(defaultTaskPlannedDate(task), '2026-10-30');
+    assert.equal(defaultTaskPlannedDate(planTaskForDate(task, '2026-10-29')), '2026-10-29');
+  }
+  assert.match(taskScheduleSummary(saved.tasks[0], today), /^2026-10-30 计划推进/);
+  assert.equal(taskVisibleToday(saved.tasks[0], today), false);
+  assert.equal(taskVisibleToday(saved.tasks[0], '2026-10-30'), true);
+  assert.equal(taskOverlapsRange(saved.tasks[0], today, today), false);
+  assert.equal(taskOverlapsRange(saved.tasks[0], '2026-10-30', '2026-10-30'), true);
+  assert.equal(courseNodeVisibleToday(saved.milestones[0], today), false);
+  assert.equal(courseNodeVisibleToday(saved.milestones[0], '2026-10-30'), true);
+  assert.equal(saved.tasks[0].due, ordinary.due);
+  assert.equal(saved.milestones[0].date, manualCourse.date);
+});
+
+test('cancellation does not replace other explicit plans, long-task schedules or automatic dates', () => {
+  const today = '2026-10-27';
+  assert.equal(defaultTaskPlannedDate(cancelWorkForDate({ due: '2026-11-01', plannedDate: '2026-10-29' }, today)), '2026-10-29');
+  assert.equal(defaultTaskPlannedDate(cancelWorkForDate({ due: '2026-11-01', plannedDate: today, mode: 'multi' }, today)), today);
+  assert.equal(defaultTaskPlannedDate(cancelWorkForDate({ due: '2026-11-01', plannedDate: today, automationKey: 'study:automatic' }, today)), today);
+  assert.equal(defaultTaskPlannedDate(cancelWorkForDate({ plannedDate: today }, today)), today);
+  const onDefaultDay = cancelWorkForDate({ due: '2026-10-29', done: false }, today);
+  assert.equal(defaultTaskPlannedDate(onDefaultDay), today);
+  assert.equal(taskVisibleToday(onDefaultDay, today), false);
+  assert.equal(taskVisibleToday(onDefaultDay, '2026-10-28'), false);
+  assert.equal(taskVisibleToday(onDefaultDay, '2026-10-29'), true);
+});

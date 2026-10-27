@@ -2,6 +2,7 @@ export type TaskMode = "single" | "multi";
 export type TaskProgressStatus = "未开始" | "进行中" | "已暂停" | "已完成";
 
 export type TaskScheduleLike = {
+  id?: string;
   due?: string;
   dueTime?: string;
   plannedDate?: string;
@@ -22,9 +23,10 @@ export type TaskScheduleLike = {
 export const taskStatusOptions: TaskProgressStatus[] = ["未开始", "进行中", "已暂停", "已完成"];
 
 export function defaultTaskPlannedDate(task: TaskScheduleLike) {
-  if (task.plannedDate) return task.plannedDate;
-  if (taskModeOf(task) === "multi" || task.automationKey) return undefined;
   const deadline = task.due || (task.courseId ? task.date : undefined);
+  const cancelledManualPlan = deadline && task.plannedDate === task.dismissedTodayDate && !task.automationKey && !task.id?.startsWith("stage:") && taskModeOf(task) === "single";
+  if (task.plannedDate && !cancelledManualPlan) return task.plannedDate;
+  if (taskModeOf(task) === "multi" || task.automationKey) return undefined;
   if (!deadline || !/^\d{4}-\d{2}-\d{2}$/.test(deadline)) return undefined;
   const [year, month, day] = deadline.split("-").map(Number);
   const date = new Date(0);
@@ -110,7 +112,7 @@ export function taskVisibleToday(task: TaskScheduleLike, targetDate: string) {
 export function taskOverlapsRange(task: TaskScheduleLike, rangeStart: string, rangeEnd: string) {
   const plannedDate = defaultTaskPlannedDate(task);
   if (plannedDate && plannedDate >= rangeStart && plannedDate <= rangeEnd) return true;
-  if (taskModeOf(task) === "single") return [task.due, task.plannedDate].some((date) => Boolean(date && date >= rangeStart && date <= rangeEnd));
+  if (taskModeOf(task) === "single") return [task.due, plannedDate].some((date) => Boolean(date && date >= rangeStart && date <= rangeEnd));
   const start = task.startDate || task.due || rangeStart;
   const due = task.due || "9999-12-31";
   return start <= rangeEnd && due >= rangeStart;
