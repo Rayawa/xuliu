@@ -59,12 +59,13 @@ function ReviewPoolPicker({ options, value, onChange, label, placeholder, listLa
   </div>;
 }
 
-export function DeferStudyDialog({ course, items, onSave, onClose }: {
+export function DeferStudyDialog({ course, items, onSave, onClose, title = "以后再学", initialDraft }: {
   course: string; items: ReviewPoolItem[]; onSave: (draft: { chapter: string; note: string }) => void; onClose: () => void;
+  title?: string; initialDraft?: { chapter: string; note: string };
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
-  const [draft, setDraft] = useState({ chapter: "", note: "" });
+  const [draft, setDraft] = useState(() => initialDraft ?? { chapter: "", note: "" });
   const [error, setError] = useState("");
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -74,7 +75,7 @@ export function DeferStudyDialog({ course, items, onSave, onClose }: {
     return () => { dialog?.close(); if (previousFocus?.isConnected) previousFocus.focus(); };
   }, []);
   return <dialog ref={dialogRef} className="reviewPoolDialog reviewPoolDeferDialog" aria-labelledby={titleId} onCancel={(event) => { event.preventDefault(); onClose(); }}>
-    <header className="reviewPoolHead"><h2 id={titleId}>以后再学</h2><button type="button" className="reviewPoolClose" aria-label="关闭以后再学" onClick={onClose}>×</button></header>
+    <header className="reviewPoolHead"><h2 id={titleId}>{title}</h2><button type="button" className="reviewPoolClose" aria-label={`关闭${title}`} onClick={onClose}>×</button></header>
     <div className="reviewPoolContents"><form className="reviewPoolAddForm" onKeyDown={submitFormOnEnter} onSubmit={(event) => {
       event.preventDefault();
       try { onSave(draft); } catch (cause) { setError(cause instanceof Error ? cause.message : "暂时无法放入复习池"); }

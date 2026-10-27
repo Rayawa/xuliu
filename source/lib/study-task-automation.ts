@@ -212,7 +212,7 @@ export function studyTaskVisibleOnDate(node: Pick<StudyNode, "automationKey" | "
   return node.automationKey?.split(":")[2] === "review" && node.plannedDate ? node.plannedDate === date : courseNodeVisibleToday(node, date);
 }
 
-function personalRequirements(requirements: string) {
+export function personalStudyRequirements(requirements: string) {
   return requirements.split("\n").filter((line) => line !== automaticStudySource && line !== DAILY_STUDY_DURATION
     && !generatedMethodLines.has(line) && !/^对应课程：\d{4}-\d{2}-\d{2} \d{2}:\d{2}-\d{2}:\d{2}/.test(line)).join("\n").trim();
 }
@@ -224,7 +224,7 @@ export function migrateDailyStudyTasks<T extends StudyState>(state: T, currentDa
     ...state.tasks.map((task) => task.parentMilestoneId).filter(Boolean),
     ...state.timeEntries.filter((entry) => entry.targetKind === "milestone").map((entry) => entry.taskId),
   ]);
-  const hasRecords = (node: StudyNode) => Boolean(personalRequirements(node.requirements) || node.attachments?.length || node.outcomeText || node.outcomeAttachments?.length || node.blocks?.length || node.elapsed || referencedIds.has(node.id) || node.mode === "multi");
+  const hasRecords = (node: StudyNode) => Boolean(personalStudyRequirements(node.requirements) || node.attachments?.length || node.outcomeText || node.outcomeAttachments?.length || node.blocks?.length || node.elapsed || referencedIds.has(node.id) || node.mode === "multi");
   const groups = new Map<string, { date: string; courseId: string; nodes: StudyNode[]; postponed: boolean }>();
   const removals = new Set<string>();
   const replacements = new Map<string, StudyNode>();
@@ -232,7 +232,7 @@ export function migrateDailyStudyTasks<T extends StudyState>(state: T, currentDa
   for (const node of state.milestones) {
     const course = node.courseId ? courses.get(node.courseId) : undefined;
     if (!node.done && course && node.automationKey?.startsWith("study:") && isExcludedStudyCourse(course.title)) {
-      if (hasRecords(node)) replacements.set(node.id, { ...node, automationKey: undefined, title: `学习资料 · ${course.title}`.slice(0, 500), requirements: personalRequirements(node.requirements) });
+      if (hasRecords(node)) replacements.set(node.id, { ...node, automationKey: undefined, title: `学习资料 · ${course.title}`.slice(0, 500), requirements: personalStudyRequirements(node.requirements) });
       else removals.add(node.id);
       continue;
     }
@@ -254,7 +254,7 @@ export function migrateDailyStudyTasks<T extends StudyState>(state: T, currentDa
     const records = nodes.filter(hasRecords);
     if (!existing && !records.length && !group.postponed && (group.date !== currentDate || !todayCourseIds.has(group.courseId))) continue;
     const keeper = existing ?? nodes.find((node) => node.plannedDate) ?? records[0] ?? nodes.find((node) => node.automationKey?.includes(":after:")) ?? nodes[0];
-    const requirements = [DAILY_STUDY_DURATION, ...nodes.map((node) => personalRequirements(node.requirements)).filter(Boolean)].join("\n");
+    const requirements = [DAILY_STUDY_DURATION, ...nodes.map((node) => personalStudyRequirements(node.requirements)).filter(Boolean)].join("\n");
     const attachments = nodes.flatMap((node) => node.attachments ?? []);
     const outcomeAttachments = nodes.flatMap((node) => node.outcomeAttachments ?? []);
     const blocks = nodes.flatMap((node) => node.blocks ?? []);
@@ -262,7 +262,7 @@ export function migrateDailyStudyTasks<T extends StudyState>(state: T, currentDa
     const elapsed = nodes.reduce((sum, node) => sum + (node.elapsed ?? 0), 0);
     // Keep separate records if merging would exceed the existing storage limits.
     if (requirements.length > 4000 || outcomeText.length > 4000 || attachments.length > 50 || outcomeAttachments.length > 50 || blocks.length > 2000 || elapsed > 10_000_000) {
-      for (const node of group.nodes.filter(hasRecords)) replacements.set(node.id, { ...node, automationKey: undefined, title: `学习资料 · ${courses.get(group.courseId)!.title}`.slice(0, 500), requirements: personalRequirements(node.requirements) });
+      for (const node of group.nodes.filter(hasRecords)) replacements.set(node.id, { ...node, automationKey: undefined, title: `学习资料 · ${courses.get(group.courseId)!.title}`.slice(0, 500), requirements: personalStudyRequirements(node.requirements) });
       continue;
     }
     const merged: StudyNode = {

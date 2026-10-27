@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { chooseReviewPoolItem, createReviewPoolItem, deferStudyToReviewPool, deleteReviewPoolItem, initializeCourseReviewPool, restoreReviewPoolItem, reviewPoolItemVisibleOnDate, reviewPoolReadProjection, sameReviewCourse, studyCoveredByReviewPool, updateReviewPoolItem, withoutReviewPoolSources } from '../lib/course-review-pool.ts';
+import { chooseReviewPoolItem, createReviewPoolItem, deferStudyToReviewPool, deleteReviewPoolItem, editedStudyToReviewPool, initializeCourseReviewPool, restoreReviewPoolItem, reviewPoolItemVisibleOnDate, reviewPoolReadProjection, sameReviewCourse, studyCoveredByReviewPool, updateReviewPoolItem, withoutReviewPoolSources } from '../lib/course-review-pool.ts';
+import { personalStudyRequirements } from '../lib/study-task-automation.ts';
 import { aiCourseContextFromWorkspace } from '../lib/ai-course-context.ts';
 import { createEmptyWorkspaceState, workspaceStateSchema } from '../lib/workspace-state-schema.ts';
 import { withPlannedTaskStages } from '../lib/task-stages.ts';
@@ -62,6 +63,59 @@ const studyState = () => {
   state.courses = [{ id: 'linear', title: '线性代数B', term: '', teacher: '', location: '', progress: 0, requirements: '', schedule: [], blocks: [] }];
   return initializeCourseReviewPool(state);
 };
+
+test('edited automatic study saves the requested fields and pool link together without overwriting newer attachments or notes', () => {
+  const original = studyState();
+  const source = original.milestones[0];
+  const edited = { ...source, title: '第3章 矩阵例题', requirements: '先做例题3，再看自己的笔记', date: tomorrow, time: '18:30', location: '图书馆', courseId: 'changed-course', automationKey: '', blocks: [], attachments: [] };
+  const attachment = { id: 'kept-file', url: 'https://example.com/notes.html', fileName: '笔记.html', fileSize: 12, mimeType: 'text/html', uploadedAt: '2026-10-23T00:00:00Z' };
+  const current = { ...original, milestones: original.milestones.map((node) => node.id === source.id ? { ...node, attachments: [attachment], blocks: [{ id: 'kept-note', type: 'text', text: '刚刚补的笔记' }], outcomeText: '已有成果', elapsed: 30 } : node) };
+  const before = structuredClone(current);
+  const next = editedStudyToReviewPool(current, edited, { chapter: edited.title, note: edited.requirements }, 'edited-chapter');
+  const saved = next.milestones[0];
+  assert.equal(saved.title, edited.title);
+  assert.equal(saved.requirements, edited.requirements);
+  assert.equal(saved.date, tomorrow);
+  assert.equal(saved.time, '18:30');
+  assert.equal(saved.location, '图书馆');
+  assert.equal(saved.courseId, source.courseId);
+  assert.equal(saved.automationKey, source.automationKey);
+  assert.deepEqual(saved.attachments, [attachment]);
+  assert.deepEqual(saved.blocks, current.milestones[0].blocks);
+  assert.equal(saved.outcomeText, '已有成果');
+  assert.equal(saved.elapsed, 30);
+  assert.deepEqual(itemById(next, 'edited-chapter').sources, [{ kind: 'milestone', id: source.id }]);
+  assert.equal(itemById(next, 'edited-chapter').selectedDate, undefined);
+  assert.equal(next.tasks, current.tasks);
+  assert.deepEqual(current, before);
+  assert.deepEqual(workspaceStateSchema.parse(JSON.parse(JSON.stringify(next))), next);
+});
+
+test('edited study reuses an existing chapter, while a rejected transfer does not save any pending edits', () => {
+  const original = studyState();
+  const source = original.milestones[0];
+  const edited = { ...source, title: '我的矩阵复习', requirements: '先看第2章' };
+  const next = editedStudyToReviewPool(original, edited, { chapter: '第2章', note: '先看第2章' }, 'unused');
+  assert.equal(next.reviewPool.items.length, 17);
+  assert.equal(itemById(next, 'review:linear-algebra:2').note, '先看第2章');
+  assert.equal(next.milestones[0].title, edited.title);
+  assert.deepEqual(withoutReviewPoolSources(next).milestones.map((node) => node.id), ['formal-linear']);
+  const completed = updateReviewPoolItem(original, 'review:linear-algebra:2', { done: true }, today);
+  const before = structuredClone(completed);
+  assert.throws(() => editedStudyToReviewPool(completed, edited, { chapter: '第2章', note: '先看第2章' }, 'unused'), /已完成/);
+  assert.deepEqual(completed, before);
+  assert.equal(completed.milestones[0].title, source.title);
+});
+
+test('only unfinished automatic study can be edited into the pool; system duration text is not copied into personal notes', () => {
+  const original = studyState();
+  assert.equal(editedStudyToReviewPool(original, { ...original.milestones[1], title: '改动正式作业' }, { chapter: '第2章', note: '' }, 'unused'), original);
+  const finished = { ...original, milestones: original.milestones.map((node) => ({ ...node, done: true })) };
+  assert.equal(editedStudyToReviewPool(finished, { ...finished.milestones[0], title: '不应改写' }, { chapter: '第2章', note: '' }, 'unused'), finished);
+  assert.throws(() => editedStudyToReviewPool(original, { ...original.milestones[0], title: ' ' }, { chapter: '第2章', note: '' }, 'unused'));
+  assert.equal(personalStudyRequirements('10–20 分钟\n我的例题和笔记\n对应课程：2026-10-23 09:00-10:00'), '我的例题和笔记');
+  assert.equal(personalStudyRequirements('我的 10–20 分钟复习记录'), '我的 10–20 分钟复习记录');
+});
 
 test('later study reuses an existing chapter across course aliases, preserving notes, progress and all original records', () => {
   let original = studyState();

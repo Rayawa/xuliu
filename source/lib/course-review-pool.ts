@@ -36,6 +36,9 @@ type SourceRecord = TaskScheduleLike & {
   courseId?: string;
   source?: string;
   requirements?: string;
+  time?: string;
+  location?: string;
+  parentCandidate?: boolean;
   automationKey?: string;
   parentId?: string;
   parentMilestoneId?: string;
@@ -90,6 +93,21 @@ export function deferStudyToReviewPool<T extends PoolState>(state: T, sourceId: 
   const item: ReviewPoolItem = { ...(existing ?? created), note: combinedNote, sources: [...(existing?.sources ?? []), { kind: "milestone", id: sourceId }] };
   delete item.selectedDate;
   return { ...state, reviewPool: { ...pool, items: existing ? pool.items.map((current) => current.id === existing.id ? item : current) : [...pool.items, item] } };
+}
+
+export function editedStudyToReviewPool<T extends PoolState>(state: T, edited: SourceRecord, draft: Pick<ReviewPoolDraft, "chapter" | "note">, id: string): T {
+  const original = state.milestones.find((node) => node.id === edited.id);
+  if (!original || !original.automationKey?.startsWith("study:") || original.done || reviewPoolSourceKeys(state).has(`milestone:${edited.id}`)) return state;
+  const title = edited.title.trim();
+  if (!title || title.length > 500 || (edited.requirements?.length ?? 0) > 4000) throw new Error("请填写有效的任务名称和具体要求");
+  const node = { ...original, title, requirements: edited.requirements ?? original.requirements, date: edited.date ?? original.date, time: edited.time ?? original.time, location: edited.location ?? original.location };
+  for (const key of ["mode", "parentCandidate", "plannedDate", "dismissedTodayDate"] as const) {
+    if (edited[key] === undefined) delete node[key];
+    else Object.assign(node, { [key]: edited[key] });
+  }
+  const withEdits = { ...state, milestones: state.milestones.map((current) => current.id === original.id ? node : current) };
+  const result = deferStudyToReviewPool(withEdits, original.id, draft, id);
+  return result === withEdits ? state : result;
 }
 
 function isFormalWork(record: SourceRecord) {
