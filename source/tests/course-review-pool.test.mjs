@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { chooseReviewPoolItem, createReviewPoolItem, initializeCourseReviewPool, reviewPoolItemVisibleOnDate, reviewPoolReadProjection, updateReviewPoolItem, withoutReviewPoolSources } from '../lib/course-review-pool.ts';
+import { chooseReviewPoolItem, createReviewPoolItem, deferStudyToReviewPool, deleteReviewPoolItem, initializeCourseReviewPool, restoreReviewPoolItem, reviewPoolItemVisibleOnDate, reviewPoolReadProjection, sameReviewCourse, studyCoveredByReviewPool, updateReviewPoolItem, withoutReviewPoolSources } from '../lib/course-review-pool.ts';
 import { aiCourseContextFromWorkspace } from '../lib/ai-course-context.ts';
 import { createEmptyWorkspaceState, workspaceStateSchema } from '../lib/workspace-state-schema.ts';
 import { withPlannedTaskStages } from '../lib/task-stages.ts';
@@ -39,11 +39,145 @@ test('pool additions reject duplicate chapters, missing names and invalid sizes'
   assert.throws(() => createReviewPoolItem(items, { course: '经济学基础', chapter: 'L5', note: '' }, items[0].id));
   assert.throws(() => createReviewPoolItem(items, { course: '经济学基础', chapter: 'L5', note: '长'.repeat(4001) }, 'unique'));
 });
+
+test('normal course names reuse existing pool groups and reject aliases of an existing chapter', () => {
+  const items = initializeCourseReviewPool(stateFor()).reviewPool.items;
+  assert.throws(() => createReviewPoolItem(items, { course: '线性代数B', chapter: '第1章', note: '' }, 'duplicate'));
+  assert.throws(() => createReviewPoolItem(items, { course: '会计学基础（全英文）', chapter: 'L1', note: '' }, 'duplicate'));
+  const added = createReviewPoolItem(items, { course: '线性代数B', chapter: '第3章', note: '' }, 'new-linear');
+  assert.equal(added.course, '线性代数');
+  assert.equal(added.chapter, '第3章');
+});
 const task = (id, title, extra = {}) => ({ id, title, area: '课内', source: '', done: false, today: false, elapsed: 0, ...extra });
 const milestone = (id, title, extra = {}) => ({ id, title, area: '课内', courseId: 'linear', date: today, time: '20:00', location: '', requirements: '', done: false, ...extra });
 const stateFor = (tasks = [], milestones = []) => ({ ...createEmptyWorkspaceState(), tasks, milestones });
 const itemById = (state, id) => state.reviewPool.items.find(item => item.id === id);
 const economicsId = 'review:economics:L1';
+
+const studyState = () => {
+  const state = stateFor([], [
+    milestone('auto-linear', '自学 · 线性代数B', { automationKey: `study:${today}:review:linear:${today}` }),
+    milestone('formal-linear', '线代作业week3', { date: tomorrow }),
+  ]);
+  state.courses = [{ id: 'linear', title: '线性代数B', term: '', teacher: '', location: '', progress: 0, requirements: '', schedule: [], blocks: [] }];
+  return initializeCourseReviewPool(state);
+};
+
+test('later study reuses an existing chapter across course aliases, preserving notes, progress and all original records', () => {
+  let original = studyState();
+  original = updateReviewPoolItem(original, 'review:linear-algebra:2', { progress: 45, selectedDate: today, note: '已有备注' }, today);
+  const before = structuredClone(original);
+  const next = deferStudyToReviewPool(original, 'auto-linear', { chapter: ' 第2章 ', note: '下次看例题' }, 'must-not-create');
+  assert.equal(next.reviewPool.items.length, 17);
+  const item = itemById(next, 'review:linear-algebra:2');
+  assert.equal(item.progress, 45);
+  assert.equal(item.note, '已有备注\n\n下次看例题');
+  assert.equal(item.selectedDate, undefined);
+  assert.deepEqual(item.sources, [{ kind: 'milestone', id: 'auto-linear' }]);
+  assert.equal(next.milestones, original.milestones);
+  assert.equal(next.tasks, original.tasks);
+  assert.deepEqual(original, before);
+  assert.deepEqual(withoutReviewPoolSources(next).milestones.map((node) => node.id), ['formal-linear']);
+  assert.deepEqual(workspaceStateSchema.parse(JSON.parse(JSON.stringify(next))), next);
+  assert.equal(deferStudyToReviewPool(next, 'auto-linear', { chapter: '第3章', note: '' }, 'duplicate'), next);
+  const deleted = deleteReviewPoolItem(next, item.id);
+  assert.deepEqual(withoutReviewPoolSources(deleted).milestones.map((node) => node.id), ['formal-linear']);
+});
+
+test('later study can create an undated chapter, while choosing it today replaces only that course automatic study display', () => {
+  const original = studyState();
+  const next = deferStudyToReviewPool(original, 'auto-linear', { chapter: '第3章', note: '之后学' }, 'new-chapter');
+  const item = itemById(next, 'new-chapter');
+  assert.equal(next.reviewPool.items.length, 18);
+  assert.equal(item.course, '线性代数');
+  for (const key of ['selectedDate', 'plannedDate', 'due', 'date']) assert.equal(key in item, false);
+  assert.equal(reviewPoolItemVisibleOnDate(item, today), false);
+  assert.equal(reviewPoolItemVisibleOnDate(item, tomorrow), false);
+  const futureAuto = { ...original.milestones[0], id: 'future-auto', date: tomorrow };
+  assert.equal(studyCoveredByReviewPool(next, futureAuto, tomorrow), false);
+  const chosen = chooseReviewPoolItem(next, item.id, tomorrow);
+  assert.equal(studyCoveredByReviewPool(chosen, futureAuto, tomorrow), true);
+  assert.equal(studyCoveredByReviewPool(chosen, futureAuto, today), false);
+  assert.equal(studyCoveredByReviewPool(chosen, original.milestones[1], tomorrow), false);
+  assert.equal(studyCoveredByReviewPool(chosen, { ...futureAuto, courseId: 'other' }, tomorrow), false);
+  assert.deepEqual(next.milestones, original.milestones);
+  assert.deepEqual(initializeCourseReviewPool(workspaceStateSchema.parse(next)), next);
+});
+
+test('later study does not absorb formal work or reopen completed chapters, and validates content before changing anything', () => {
+  const original = studyState();
+  assert.equal(sameReviewCourse('线代', '线性代数B'), true);
+  assert.equal(sameReviewCourse('会计学基础', '会计学基础（全英文）'), true);
+  assert.equal(sameReviewCourse('概率论', '线性代数B'), false);
+  assert.equal(deferStudyToReviewPool(original, 'formal-linear', { chapter: '第2章', note: '' }, 'new'), original);
+  assert.equal(deferStudyToReviewPool(original, 'missing', { chapter: '第2章', note: '' }, 'new'), original);
+  for (const draft of [{ chapter: '', note: '' }, { chapter: '第3章', note: '长'.repeat(4001) }]) {
+    assert.throws(() => deferStudyToReviewPool(original, 'auto-linear', draft, 'new'));
+  }
+  const completed = updateReviewPoolItem(original, 'review:linear-algebra:2', { done: true }, today);
+  assert.throws(() => deferStudyToReviewPool(completed, 'auto-linear', { chapter: '第2章', note: '' }, 'new'), /已完成/);
+  assert.equal(itemById(completed, 'review:linear-algebra:2').done, true);
+});
+
+test('deleting a pool item hides its selection and keeps merged originals out of work lists after reload', () => {
+  const original = initializeCourseReviewPool(stateFor([
+    task('review', '线代第二章rev', { requirements: '原备注', due: today, plannedDate: today, progress: 45 }),
+    task('stage:review', '阶段推进', { parentId: 'review', plannedDate: today }),
+    task('homework', '线代作业week3', { parentId: 'review', due: tomorrow }),
+  ], [milestone('tax-review', '税务第一章rev', { courseId: undefined })]));
+  const selected = updateReviewPoolItem(original, 'review:linear-algebra:2', { selectedDate: today, note: '我的复习备注' }, today);
+  const before = structuredClone(selected);
+  const deleted = deleteReviewPoolItem(selected, 'review:linear-algebra:2');
+  assert.equal(deleted.reviewPool.items.length, 16);
+  assert.equal(deleted.reviewPool.items.some((item) => item.id === 'review:linear-algebra:2'), false);
+  assert.equal(deleted.tasks, selected.tasks);
+  assert.equal(deleted.milestones, selected.milestones);
+  assert.deepEqual(selected, before);
+  const saved = workspaceStateSchema.parse(JSON.parse(JSON.stringify(deleted)));
+  assert.deepEqual(initializeCourseReviewPool(saved), saved);
+  assert.deepEqual(withoutReviewPoolSources(saved).tasks.map((item) => item.id), ['homework']);
+  assert.deepEqual(reviewPoolReadProjection(saved).tasks.map((item) => item.id), ['homework']);
+  assert.deepEqual(reviewPoolReadProjection(saved).milestones, []);
+  assert.deepEqual(upcomingDeadlines(withoutReviewPoolSources(saved).tasks, [], today).map((item) => item.id), ['homework']);
+  assert.equal(deleteReviewPoolItem(saved, 'missing'), saved);
+});
+
+test('undo restores the exact item, notes, history and ordering without overwriting newly created entries', () => {
+  let original = initializeCourseReviewPool(stateFor([task('review', '线代第二章rev', { progress: 45 })]));
+  original = updateReviewPoolItem(original, 'review:linear-algebra:2', { note: '保留我的备注', done: true, selectedDate: today }, today);
+  const index = original.reviewPool.items.findIndex((item) => item.id === 'review:linear-algebra:2');
+  const item = original.reviewPool.items[index];
+  const deleted = deleteReviewPoolItem(original, item.id);
+  const restored = restoreReviewPoolItem(deleted, item, index);
+  assert.deepEqual(restored, original);
+  assert.equal(restoreReviewPoolItem(restored, item, index), restored);
+  const added = createReviewPoolItem(deleted.reviewPool.items, { course: '马克思主义基本原理', chapter: '第1章', note: '' }, 'new');
+  const withNew = { ...deleted, reviewPool: { ...deleted.reviewPool, items: [...deleted.reviewPool.items, added] } };
+  const undo = restoreReviewPoolItem(withNew, item, index);
+  assert.deepEqual(undo.reviewPool.items[index], item);
+  assert.equal(undo.reviewPool.items.at(-1), added);
+  assert.deepEqual(workspaceStateSchema.parse(JSON.parse(JSON.stringify(undo))), undo);
+  const duplicate = createReviewPoolItem(deleted.reviewPool.items, item, 'same-chapter');
+  const conflict = { ...deleted, reviewPool: { ...deleted.reviewPool, items: [...deleted.reviewPool.items, duplicate] } };
+  assert.equal(restoreReviewPoolItem(conflict, item, index), conflict);
+});
+
+test('removed source references survive multiple deletions and reject malformed or overlapping references', () => {
+  const original = initializeCourseReviewPool(stateFor([task('linear', '线代第二章rev'), task('tax', '税务第一章rev')]));
+  const deleted = deleteReviewPoolItem(deleteReviewPoolItem(original, 'review:linear-algebra:2'), 'review:tax:1');
+  assert.deepEqual(withoutReviewPoolSources(workspaceStateSchema.parse(deleted)).tasks, []);
+  for (const removedSources of [
+    [{ kind: 'event', id: 'linear' }],
+    [{ kind: 'task', id: 'linear' }, { kind: 'task', id: 'linear' }],
+    [{ kind: 'task', id: '' }],
+  ]) {
+    const invalid = { ...deleted, reviewPool: { ...deleted.reviewPool, removedSources } };
+    assert.equal(workspaceStateSchema.safeParse(invalid).success, false);
+    assert.equal(reviewPoolReadProjection(invalid), invalid);
+  }
+  const overlapping = { ...original, reviewPool: { ...original.reviewPool, removedSources: [{ kind: 'task', id: 'linear' }] } };
+  assert.equal(workspaceStateSchema.safeParse(overlapping).success, false);
+});
 
 test('initializes seventeen internal chapters with only economics L1 chosen on the fixed request date', () => {
   const original = stateFor();

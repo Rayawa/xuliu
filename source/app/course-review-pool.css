@@ -10,15 +10,30 @@
 .reviewPoolHeadActions { display: flex; align-items: center; gap: 12px; }
 .reviewPoolAddButton { padding: 8px 11px; font-size: 12px; white-space: nowrap; }
 .reviewPoolAddForm { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 15px; margin: 19px 0 4px; padding: 18px; border: 1px solid var(--line); border-radius: 11px; background: var(--paper-soft); }
-.reviewPoolAddForm label { display: grid; gap: 8px; min-width: 0; font-size: 12px; color: var(--muted); }
-.reviewPoolAddForm :is(input, textarea) { min-width: 0; width: 100%; padding: 10px; border: 1px solid var(--line); border-radius: 7px; background: var(--paper); color: var(--text); font: inherit; }
+.reviewPoolAddForm :is(label, .reviewPoolCourseField) { display: grid; gap: 8px; min-width: 0; font-size: 12px; color: var(--muted); }
+.reviewPoolAddForm :is(input, select, textarea) { min-width: 0; width: 100%; padding: 10px; border: 1px solid var(--line); border-radius: 7px; background: var(--paper); color: var(--text); font: inherit; }
 .reviewPoolAddForm textarea { resize: vertical; }
+.reviewPoolCoursePicker { position: relative; min-width: 0; }
+.reviewPoolCourseInput { display: flex; min-width: 0; }
+.reviewPoolCourseInput input { flex: 1; border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.reviewPoolCourseInput .reviewPoolAllCourses { flex: 0 0 34px; margin-left: -1px; padding: 0; border: 1px solid var(--line); border-radius: 0 7px 7px 0; color: var(--muted); background: var(--paper); }
+.reviewPoolCourseOptions { position: absolute; z-index: 3; top: calc(100% + 5px); left: 0; width: 100%; max-height: 220px; overflow-y: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); box-shadow: 0 10px 28px #0002; }
+.reviewPoolCourseOptions button { display: block; width: 100%; padding: 10px; border: 0; color: var(--text); background: transparent; font: inherit; line-height: 1.5; text-align: left; }
+.reviewPoolCourseOptions button:is(:hover, [aria-selected="true"]) { background: var(--paper-soft); color: var(--accent); }
+.reviewPoolCourseOptions > span { display: block; padding: 10px; color: var(--muted); }
+.reviewPoolDeferCourse { display: flex; align-items: center; min-height: 38px; color: var(--text); font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
+.reviewPoolDeferDialog .reviewPoolContents { max-height: calc(100dvh - 145px); overflow-y: auto; }
 .reviewPoolAddForm :is(.reviewPoolAddNote, .reviewPoolAddActions, p) { grid-column: 1 / -1; }
 .reviewPoolAddForm p { margin: 0; color: var(--appearance-danger, #a7443c); font-size: 12px; }
 .reviewPoolAddActions { display: flex; justify-content: flex-end; gap: 9px; }
 .reviewPoolAddActions button { padding: 8px 12px; font-size: 12px; }
 .reviewPoolClose { display: grid; place-items: center; flex: 0 0 34px; height: 34px; padding: 0; border: 1px solid var(--line); border-radius: 50%; color: var(--muted); background: var(--paper-soft); font-size: 22px; }
 .reviewPoolContents { padding: 7px 26px 25px; }
+.reviewPoolUndo { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: 14px; padding: 12px 14px; border-radius: 8px; background: var(--paper-soft); font-size: 12px; }
+.reviewPoolUndo > span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.reviewPoolUndo button { padding: 5px; white-space: nowrap; }
+.reviewPoolUndo p { flex-basis: 100%; margin: 0; color: var(--appearance-danger, #a7443c); }
+.reviewPoolDelete { justify-self: end; padding: 6px 0; border: 0; color: var(--appearance-danger, #a7443c); background: transparent; font-size: 12px; }
 .reviewPoolCourse { padding-top: 22px; }
 .reviewPoolCourse + .reviewPoolCourse { margin-top: 8px; border-top: 1px solid var(--line); }
 .reviewPoolCourse h3 { margin: 0 0 8px; color: var(--text); font-size: 15px; font-weight: 650; }

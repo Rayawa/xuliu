@@ -14,7 +14,7 @@ export type ReviewPoolItem = {
   completedDate?: string;
   sources: ReviewPoolSource[];
 };
-export type CourseReviewPool = { version: 1; items: ReviewPoolItem[] };
+export type CourseReviewPool = { version: 1; items: ReviewPoolItem[]; removedSources?: ReviewPoolSource[] };
 export type ReviewPoolDraft = Pick<ReviewPoolItem, "course" | "chapter" | "note">;
 
 export function createReviewPoolItem(items: ReviewPoolItem[], draft: ReviewPoolDraft, id: string): ReviewPoolItem {
@@ -25,8 +25,9 @@ export function createReviewPoolItem(items: ReviewPoolItem[], draft: ReviewPoolD
   if (course.length > 500 || chapter.length > 500 || note.length > 4000) throw new Error("课程或项目最多 500 字，备注最多 4000 字");
   if (items.length >= 500) throw new Error("复习池最多保存 500 个项目");
   const normalize = (value: string) => value.normalize("NFKC").toLowerCase().replace(/\s+/g, "");
-  if (items.some((item) => item.id === id || normalize(item.course) === normalize(course) && normalize(item.chapter) === normalize(chapter))) throw new Error("池中已有这个复习项目");
-  return { id, course, chapter, note, progress: 0, done: false, sources: [] };
+  if (items.some((item) => item.id === id || sameReviewCourse(item.course, course) && normalize(item.chapter) === normalize(chapter))) throw new Error("池中已有这个复习项目");
+  const courseName = items.find((item) => sameReviewCourse(item.course, course))?.course ?? course;
+  return { id, course: courseName, chapter, note, progress: 0, done: false, sources: [] };
 }
 
 type SourceRecord = TaskScheduleLike & {
@@ -57,6 +58,39 @@ const courses = [
 const formalWork = /作业|提交|考试|测验|测试|论文|报告|交付|答辩|quiz|homework|assignment|exam|deadline|\bddl\b/i;
 const compact = (value: string) => value.normalize("NFKC").toLowerCase().replace(/\s+/g, "");
 const sourceKey = (source: ReviewPoolSource) => `${source.kind}:${source.id}`;
+
+function reviewCourseKey(title: string) {
+  const name = compact(title);
+  return courses.find((course) => course.aliases.some((alias) => name.includes(alias)))?.key ?? name;
+}
+
+export function sameReviewCourse(left: string, right: string) {
+  return reviewCourseKey(left) === reviewCourseKey(right);
+}
+
+export function studyCoveredByReviewPool(state: PoolState, node: SourceRecord, date: string) {
+  if (!node.automationKey?.startsWith("study:") || !node.courseId) return false;
+  const course = state.courses?.find((course) => course.id === node.courseId);
+  return Boolean(course && state.reviewPool?.items.some((item) => reviewPoolItemVisibleOnDate(item, date) && sameReviewCourse(item.course, course.title)));
+}
+
+export function deferStudyToReviewPool<T extends PoolState>(state: T, sourceId: string, draft: Pick<ReviewPoolDraft, "chapter" | "note">, id: string): T {
+  const pool = state.reviewPool;
+  const source = state.milestones.find((node) => node.id === sourceId);
+  const course = state.courses?.find((course) => course.id === source?.courseId);
+  if (!pool || !source || !course || source.done || !source.automationKey?.startsWith("study:") || reviewPoolSourceKeys(state).has(`milestone:${sourceId}`)) return state;
+  const chapter = draft.chapter.trim();
+  const existing = pool.items.find((item) => sameReviewCourse(item.course, course.title) && compact(item.chapter) === compact(chapter));
+  if (existing?.done) throw new Error("这个项目已完成，请先在复习池中标记未完成");
+  if (existing && existing.sources.length >= 2_000) throw new Error("此项目的关联记录已达上限");
+  const note = draft.note.trim();
+  const combinedNote = existing && note && !existing.note.split("\n\n").includes(note) ? [existing.note, note].filter(Boolean).join("\n\n") : existing?.note ?? note;
+  const courseName = existing?.course ?? pool.items.find((item) => sameReviewCourse(item.course, course.title))?.course ?? course.title;
+  const created = createReviewPoolItem(existing ? pool.items.filter((item) => item.id !== existing.id) : pool.items, { course: courseName, chapter, note: combinedNote }, existing?.id ?? id);
+  const item: ReviewPoolItem = { ...(existing ?? created), note: combinedNote, sources: [...(existing?.sources ?? []), { kind: "milestone", id: sourceId }] };
+  delete item.selectedDate;
+  return { ...state, reviewPool: { ...pool, items: existing ? pool.items.map((current) => current.id === existing.id ? item : current) : [...pool.items, item] } };
+}
 
 function isFormalWork(record: SourceRecord) {
   return formalWork.test(record.title) || formalWork.test(record.requirements ?? "");
@@ -90,7 +124,10 @@ function matchReview(record: SourceRecord, state: PoolState): string | undefined
 }
 
 export function reviewPoolSourceKeys(state: Pick<PoolState, "tasks" | "reviewPool">): Set<string> {
-  const keys = new Set(state.reviewPool?.items.flatMap((item) => item.sources.map(sourceKey)) ?? []);
+  const keys = new Set([
+    ...(state.reviewPool?.items.flatMap((item) => item.sources.map(sourceKey)) ?? []),
+    ...(state.reviewPool?.removedSources?.map(sourceKey) ?? []),
+  ]);
   let changed = true;
   while (changed) {
     changed = false;
@@ -153,6 +190,25 @@ export function reviewPoolItemVisibleOnDate(item: ReviewPoolItem, date: string) 
   return item.selectedDate === date && (!item.done || item.completedDate === date);
 }
 
+export function deleteReviewPoolItem<T extends { reviewPool?: CourseReviewPool }>(state: T, id: string): T {
+  const pool = state.reviewPool;
+  const item = pool?.items.find((item) => item.id === id);
+  if (!pool || !item) return state;
+  const removedSources = [...new Map([...(pool.removedSources ?? []), ...item.sources].map((source) => [sourceKey(source), source])).values()];
+  return { ...state, reviewPool: { ...pool, items: pool.items.filter((item) => item.id !== id), ...(removedSources.length ? { removedSources } : {}) } };
+}
+
+export function restoreReviewPoolItem<T extends { reviewPool?: CourseReviewPool }>(state: T, item: ReviewPoolItem, index: number): T {
+  const pool = state.reviewPool;
+  if (!pool || pool.items.length >= 500 || pool.items.some((current) => current.id === item.id || sameReviewCourse(current.course, item.course) && compact(current.chapter) === compact(item.chapter))) return state;
+  const keys = new Set(item.sources.map(sourceKey));
+  const { removedSources: previousSources, ...rest } = pool;
+  const removedSources = previousSources?.filter((source) => !keys.has(sourceKey(source)));
+  const items = [...pool.items];
+  items.splice(Math.max(0, Math.min(items.length, index)), 0, item);
+  return { ...state, reviewPool: { ...rest, items, ...(removedSources?.length ? { removedSources } : {}) } };
+}
+
 export function updateReviewPoolItem<T extends { reviewPool?: CourseReviewPool }>(state: T, id: string, patch: Partial<Pick<ReviewPoolItem, "progress" | "note" | "done" | "selectedDate">>, currentDate: string): T {
   if (!state.reviewPool) return state;
   if (!isValidLocalDate(currentDate) || patch.selectedDate !== undefined && !isValidLocalDate(patch.selectedDate)) throw new Error("请选择有效日期");
@@ -198,6 +254,16 @@ function readablePool(value: unknown): value is CourseReviewPool {
       || item.previousProgress !== undefined && (!item.done || typeof item.previousProgress !== "number" || !Number.isInteger(item.previousProgress) || item.previousProgress < 0 || item.previousProgress > 99)) return false;
     ids.add(item.id);
     for (const value of item.sources) {
+      const source = recordOf(value);
+      if (!source || source.kind !== "task" && source.kind !== "milestone" || typeof source.id !== "string" || !source.id || source.id.length > 120) return false;
+      const key = `${source.kind}:${source.id}`;
+      if (sources.has(key)) return false;
+      sources.add(key);
+    }
+  }
+  if (pool.removedSources !== undefined) {
+    if (!Array.isArray(pool.removedSources) || pool.removedSources.length > 30_000) return false;
+    for (const value of pool.removedSources) {
       const source = recordOf(value);
       if (!source || source.kind !== "task" && source.kind !== "milestone" || typeof source.id !== "string" || !source.id || source.id.length > 120) return false;
       const key = `${source.kind}:${source.id}`;

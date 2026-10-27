@@ -116,6 +116,7 @@ const courseReviewPool = z.object({
     completedDate: date.optional(),
     sources: z.array(z.object({ kind: z.enum(["task", "milestone"]), id }).strict()).max(2_000),
   }).strict()).max(500),
+  removedSources: z.array(z.object({ kind: z.enum(["task", "milestone"]), id }).strict()).max(30_000).optional(),
 }).strict().superRefine((pool, context) => {
   const ids = new Set<string>();
   const sources = new Set<string>();
@@ -130,6 +131,11 @@ const courseReviewPool = z.object({
       if (sources.has(key)) context.addIssue({ code: "custom", path: ["items", index, "sources", sourceIndex], message: "原复习记录不能重复归入章节" });
       sources.add(key);
     }
+  }
+  for (const [index, source] of (pool.removedSources ?? []).entries()) {
+    const key = `${source.kind}:${source.id}`;
+    if (sources.has(key)) context.addIssue({ code: "custom", path: ["removedSources", index], message: "原复习记录不能重复保留" });
+    sources.add(key);
   }
 });
 
