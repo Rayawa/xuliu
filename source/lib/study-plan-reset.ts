@@ -17,22 +17,29 @@ export function rescheduleDailyStudy<T extends StudyResetState>(state: T, date: 
   let restored = 0;
   let preserved = 0;
   for (const draft of planned) {
-    const existing = milestones.find((node) => node.automationKey === draft.automationKey)
-      ?? milestones.find((node) => node.courseId === draft.courseId && node.automationKey?.startsWith("study:")
-        && node.automationKey.split(":")[2] === "review" && (node.plannedDate || node.date) === date);
-    if (studyCoveredByReviewPool(state, { ...draft, id: "" }, date) || existing && poolSources.has(`milestone:${existing.id}`)) {
+    if (studyCoveredByReviewPool(state, { ...draft, id: "" }, date)) {
       preserved++;
       continue;
     }
-    if (existing) {
-      if (!existing.done && existing.dismissedTodayDate === date && studyTaskVisibleOnDate({ ...existing, dismissedTodayDate: undefined }, date)) {
-        const { dismissedTodayDate: _dismissed, ...resumed } = existing;
-        milestones = milestones.map((node) => node.id === existing.id ? resumed : node);
-        restored++;
-      } else preserved++;
+    const candidates = milestones.filter((node) => node.courseId === draft.courseId
+      && node.automationKey?.startsWith("study:") && node.automationKey.split(":")[2] === "review"
+      && !poolSources.has(`milestone:${node.id}`));
+    if (candidates.some((node) => studyTaskVisibleOnDate(node, date))) {
+      preserved++;
       continue;
     }
-    milestones = [...milestones, { ...draft, id: createId(draft.automationKey), mode: "single", parentCandidate: false, area: "课内", done: false }];
+    const cancelled = candidates.find((node) => !node.done && node.dismissedTodayDate === date
+      && studyTaskVisibleOnDate({ ...node, dismissedTodayDate: undefined }, date));
+    if (cancelled) {
+      const { dismissedTodayDate: _dismissed, ...resumed } = cancelled;
+      milestones = milestones.map((node) => node.id === cancelled.id ? resumed : node);
+      restored++;
+      continue;
+    }
+    const id = createId(draft.automationKey);
+    const automationKey = milestones.some((node) => node.automationKey === draft.automationKey)
+      ? `${draft.automationKey}:reset:${id}` : draft.automationKey;
+    milestones = [...milestones, { ...draft, automationKey, id, mode: "single", parentCandidate: false, area: "课内", done: false }];
     added++;
   }
   const processedKeys = [...new Set([...state.studyAutomation.processedKeys, ...planned.map((draft) => draft.automationKey)])].slice(-20_000);
@@ -42,10 +49,4 @@ export function rescheduleDailyStudy<T extends StudyResetState>(state: T, date: 
     state: changed ? { ...state, milestones, studyAutomation: { ...state.studyAutomation, enabled: true, processedKeys } } : state,
     added, restored, preserved, planned: planned.length,
   };
-}
-
-export function studyPlanResetMessage(result: { added: number; restored: number; planned: number }) {
-  if (!result.planned) return "今天没有需要自动安排的课程。";
-  const changes = [result.added ? `已补回 ${result.added} 项` : "", result.restored ? `恢复 ${result.restored} 项` : ""].filter(Boolean);
-  return changes.length ? `${changes.join("，")}。` : "已保留现有安排；已完成、改期或放入复习池的内容不重建。";
 }

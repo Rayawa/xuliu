@@ -1,8 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { rescheduleDailyStudy, studyPlanResetMessage } from "../lib/study-plan-reset.ts";
-import { createDailyStudyTaskPlan, STUDY_AUTOMATION_RULE_VERSION, studyTaskVisibleOnDate } from "../lib/study-task-automation.ts";
-import { chooseReviewPoolItem, deferStudyToReviewPool, deleteReviewPoolItem, initializeCourseReviewPool } from "../lib/course-review-pool.ts";
+import { rescheduleDailyStudy } from "../lib/study-plan-reset.ts";
+import { createDailyStudyTaskPlan, migrateDailyStudyTasks, STUDY_AUTOMATION_RULE_VERSION, studyTaskVisibleOnDate } from "../lib/study-task-automation.ts";
+import { chooseReviewPoolItem, deferStudyToReviewPool, deleteReviewPoolItem, initializeCourseReviewPool, withoutReviewPoolSources } from "../lib/course-review-pool.ts";
 import { createEmptyWorkspaceState, workspaceStateSchema } from "../lib/workspace-state-schema.ts";
 
 const today = "2026-10-14";
@@ -26,8 +26,6 @@ test("rescheduling recreates a deleted current-day task once despite its process
   const again = rescheduleDailyStudy(result.state, today, doNotCreate);
   assert.equal(again.state, result.state);
   assert.equal(again.added, 0);
-  assert.equal(studyPlanResetMessage(result), "已补回 1 项。");
-  assert.match(studyPlanResetMessage(again), /已保留现有安排/);
 });
 
 test("rescheduling resumes cancellation without replacing personal edits, files or records", () => {
@@ -43,27 +41,67 @@ test("rescheduling resumes cancellation without replacing personal edits, files 
   assert.deepEqual(workspaceStateSchema.parse(JSON.parse(JSON.stringify(result.state))), result.state);
 });
 
-test("completed tasks and manual date changes remain intact during a reset", () => {
-  for (const patch of [{ done: true, completedDate: today }, { plannedDate: "2026-10-15", dismissedTodayDate: today }, { date: "2026-10-16" }]) {
-    const state = stateFor([{ ...automatic, ...patch }]);
-    const result = rescheduleDailyStudy(state, today, doNotCreate);
-    assert.equal(result.state, state);
-    assert.equal(result.restored, 0);
-    assert.equal(result.added, 0);
+test("a task already completed today remains completed and does not produce another item", () => {
+  const state = stateFor([{ ...automatic, done: true, completedDate: today }]);
+  const result = rescheduleDailyStudy(state, today, doNotCreate);
+  assert.equal(result.state, state);
+  assert.equal(result.restored, 0);
+  assert.equal(result.added, 0);
+});
+
+test("old postponed or completed records do not block today's plan and keep their content", () => {
+  for (const patch of [
+    { plannedDate: "2026-10-15", dismissedTodayDate: today },
+    { date: "2026-10-16" },
+    { done: true, completedDate: "2026-10-13" },
+    { done: true, completedDate: undefined },
+  ]) {
+    const previous = { ...automatic, title: "保留原有记录", requirements: "自己的笔记", ...patch };
+    const state = stateFor([previous]);
+    assert.equal(studyTaskVisibleOnDate(previous, today), false);
+    const result = rescheduleDailyStudy(state, today, () => "new-auto");
+    assert.equal(result.added, 1);
+    assert.equal(result.state.milestones[0], previous);
+    assert.deepEqual(result.state.milestones[1], { ...automatic, id: "new-auto", automationKey: `${draft.automationKey}:reset:new-auto` });
+    const saved = workspaceStateSchema.parse(JSON.parse(JSON.stringify(result.state)));
+    const loaded = migrateDailyStudyTasks(saved, today);
+    assert.equal(loaded.milestones.length, 2);
+    assert.equal(loaded.milestones.filter((node) => studyTaskVisibleOnDate(node, today)).length, 1);
+    assert.equal(rescheduleDailyStudy(loaded, today, doNotCreate).added, 0);
   }
 });
 
-test("review pool source records stay protected even after their pool item was deleted", () => {
+test("rearranging after all today's automatic tasks were postponed works without a review pool", () => {
+  const courses = [course, { ...course, id: "tax", title: "税收理论与实务" }, { ...course, id: "economics", title: "经济学基础" }];
+  const drafts = createDailyStudyTaskPlan(courses, today, "2026-08-31");
+  const previous = drafts.map((item, index) => ({ ...item, id: `old-${index}`, date: "2026-10-15", requirements: `保留要求${index}`, area: "课内", mode: "single", done: false }));
+  const state = { ...stateFor(previous), courses };
+  assert.equal(state.reviewPool, undefined);
+  assert.equal(state.milestones.filter((node) => studyTaskVisibleOnDate(node, today)).length, 0);
+  const result = rescheduleDailyStudy(state, today, (key) => `new-${drafts.findIndex((item) => item.automationKey === key)}`);
+  assert.equal(result.added, 3);
+  assert.deepEqual(result.state.milestones.slice(0, 3), previous);
+  assert.equal(result.state.milestones.filter((node) => studyTaskVisibleOnDate(node, today)).length, 3);
+  assert.equal(new Set(result.state.milestones.map((node) => node.automationKey)).size, 6);
+  const saved = workspaceStateSchema.parse(JSON.parse(JSON.stringify(result.state)));
+  const loaded = migrateDailyStudyTasks(saved, today);
+  assert.equal(loaded.milestones.filter((node) => studyTaskVisibleOnDate(node, today)).length, 3);
+  assert.equal(rescheduleDailyStudy(loaded, today, doNotCreate).added, 0);
+});
+
+test("review pool source records stay protected when today's plan is regenerated", () => {
   const initial = initializeCourseReviewPool(stateFor([automatic]), today);
   const pooled = deferStudyToReviewPool(initial, automatic.id, { chapter: "第2章", note: "以后复习" }, "unused");
   const removed = deleteReviewPoolItem(pooled, "review:linear-algebra:2");
   for (const state of [pooled, removed]) {
     const before = structuredClone(state);
-    const result = rescheduleDailyStudy(state, today, doNotCreate);
-    assert.equal(result.state, state);
-    assert.deepEqual(result.state, before);
-    assert.equal(result.added, 0);
+    const result = rescheduleDailyStudy(state, today, () => "new-auto");
+    assert.deepEqual(state, before);
+    assert.equal(result.added, 1);
     assert.equal(result.state.milestones[0], automatic);
+    assert.deepEqual(result.state.reviewPool, state.reviewPool);
+    assert.deepEqual(withoutReviewPoolSources(result.state).milestones.map((item) => item.id), ["new-auto"]);
+    assert.equal(rescheduleDailyStudy(result.state, today, doNotCreate).added, 0);
   }
 });
 
@@ -80,12 +118,11 @@ test("a selected pool chapter and an earlier-day task moved into today each prev
   assert.equal(again.state.milestones[0], moved);
 });
 
-test("a day without classes gives feedback and does not touch independent work or old markers", () => {
+test("a day without classes does not touch independent work or old markers", () => {
   const state = stateFor([{ ...automatic, automationKey: undefined, id: "homework", title: "正式作业" }]);
   const result = rescheduleDailyStudy(state, "2026-10-15", doNotCreate);
   assert.equal(result.state, state);
   assert.equal(result.planned, 0);
-  assert.equal(studyPlanResetMessage(result), "今天没有需要自动安排的课程。");
   const added = rescheduleDailyStudy(state, today, () => "study-new");
   assert.equal(added.added, 1);
   assert.equal(added.state.milestones[0], state.milestones[0]);
