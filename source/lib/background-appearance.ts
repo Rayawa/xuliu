@@ -2,11 +2,21 @@ export type BackgroundMode = "light" | "dark" | "custom";
 export type BackgroundPreference = { mode: BackgroundMode; color: string };
 export const backgroundStorageKey = "xuliu-background-v1";
 export const backgroundColorsStorageKey = "xuliu-saved-background-colors-v1";
+const backgroundColorDefaultsKey = "xuliu-background-color-defaults-v1";
 export const defaultBackground: BackgroundPreference = { mode: "light", color: "#e9eeeb" };
 
 export function normalizeBackgroundColors(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
   return [...new Set(value.filter((color): color is string => typeof color === "string" && /^#[0-9a-f]{6}$/i.test(color.trim())).map((color) => color.trim().toLowerCase()))];
+}
+
+export function loadSavedBackgroundColors(storage: Pick<Storage, "getItem" | "setItem">): string[] {
+  const colors = normalizeBackgroundColors(JSON.parse(storage.getItem(backgroundColorsStorageKey) ?? "[]"));
+  if (storage.getItem(backgroundColorDefaultsKey) === "1") return colors;
+  const next = normalizeBackgroundColors([...colors, "#1a2122"]);
+  storage.setItem(backgroundColorsStorageKey, JSON.stringify(next));
+  storage.setItem(backgroundColorDefaultsKey, "1");
+  return next;
 }
 
 export function normalizeBackground(value: unknown): BackgroundPreference {

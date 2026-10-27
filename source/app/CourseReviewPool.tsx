@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState, type ReactNode, type RefObject } from "react";
 import { createReviewPoolItem, reviewPoolItemVisibleOnDate, sameReviewCourse, type ReviewPoolItem } from "../lib/course-review-pool";
+import { reviewChapterKey } from "../lib/review-chapter";
 import { submitFormOnEnter } from "./form-keyboard";
 import "./course-review-pool.css";
 
@@ -14,9 +15,12 @@ type ReviewPoolProps = {
   onChange: ReviewPoolChange;
 };
 
-function ReviewPoolPicker({ options, value, onChange, label, placeholder, listLabel, expandLabel }: {
+const courseSearchKey = (value: string) => value.normalize("NFKC").toLowerCase().replace(/\s+/g, "");
+
+function ReviewPoolPicker({ options, value, onChange, label, placeholder, listLabel, expandLabel, searchKey = courseSearchKey }: {
   options: string[]; value: string; onChange: (value: string) => void;
   label: string; placeholder: string; listLabel: string; expandLabel: string;
+  searchKey?: (value: string) => string;
 }) {
   const listId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -24,11 +28,11 @@ function ReviewPoolPicker({ options, value, onChange, label, placeholder, listLa
   const [open, setOpen] = useState(false);
   const [showAll, setShowAll] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
-  const query = value.normalize("NFKC").toLowerCase().replace(/\s+/g, "");
+  const query = searchKey(value);
   const choices = [...new Set(options)].filter((name) => {
     if (showAll || !query) return true;
     let index = 0;
-    for (const letter of name.normalize("NFKC").toLowerCase()) if (letter === query[index]) index++;
+    for (const letter of searchKey(name)) if (letter === query[index]) index++;
     return index === query.length;
   });
   const active = Math.min(activeIndex, choices.length - 1);
@@ -82,7 +86,7 @@ export function DeferStudyDialog({ course, items, onSave, onClose, title = "以�
     }}>
       <div className="reviewPoolCourseField"><span>课程</span><strong className="reviewPoolDeferCourse">{course}</strong></div>
       <div className="reviewPoolCourseField"><span>复习项目</span><ReviewPoolPicker options={items.filter((item) => !item.done && sameReviewCourse(item.course, course)).map((item) => item.chapter)} value={draft.chapter}
-        label="以后再学的章节" placeholder="选择或填写章节" listLabel="已有复习项目" expandLabel="展开已有复习项目" onChange={(chapter) => { setDraft({ ...draft, chapter }); setError(""); }} /></div>
+        label="以后再学的章节" placeholder="选择或填写章节" listLabel="已有复习项目" expandLabel="展开已有复习项目" searchKey={reviewChapterKey} onChange={(chapter) => { setDraft({ ...draft, chapter }); setError(""); }} /></div>
       <label className="reviewPoolAddNote"><span>备注（可选）</span><textarea aria-label="以后再学备注" rows={2} maxLength={4000} value={draft.note} onChange={(event) => setDraft({ ...draft, note: event.target.value })} /></label>
       {error && <p role="alert">{error}</p>}
       <div className="reviewPoolAddActions"><button type="button" className="textButton" onClick={onClose}>取消</button><button type="submit" className="primaryButton">放入复习池</button></div>

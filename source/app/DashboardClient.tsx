@@ -1321,8 +1321,8 @@ function TaskOverviewView({ reviewPoolEntry, data, setData, setDialog, openWork,
     return !item.done;
   });
   const sections = [
-    { id: "multi", title: "长期任务", items: visible.filter((item) => item.entity === "task" && item.period === "multi") },
     { id: "single", title: "短期任务", items: visible.filter((item) => item.entity === "task" && item.period !== "multi") },
+    { id: "multi", title: "长期任务", items: visible.filter((item) => item.entity === "task" && item.period === "multi") },
     { id: "event", title: "事项", items: visible.filter((item) => item.entity === "event" && (!eventCourseFilter || (eventCourseFilter === "unlinked" ? !item.node?.linkedCourseId : item.node?.linkedCourseId === eventCourseFilter)) && (!eventAssessmentFilter || item.node?.assessmentType === eventAssessmentFilter)) },
   ];
   const taskCount = items.filter((item) => item.entity === "task" && !item.done).length;

@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { backgroundColorsStorageKey, backgroundPalette, backgroundStorageKey, defaultBackground, normalizeBackground, normalizeBackgroundColors, type BackgroundPreference } from "@/lib/background-appearance";
+import { backgroundColorsStorageKey, backgroundPalette, backgroundStorageKey, defaultBackground, loadSavedBackgroundColors, normalizeBackground, type BackgroundPreference } from "@/lib/background-appearance";
 import "./background-appearance.css";
 import { submitFormOnEnter } from "./form-keyboard";
 
@@ -17,7 +17,7 @@ const propertyNames = ["bg", "surface", "soft", "sidebar", "text", "muted", "fai
 const validColor = (color: string) => /^#[0-9a-f]{6}$/i.test(color);
 
 function readBackgroundColors() {
-  return normalizeBackgroundColors(JSON.parse(localStorage.getItem(backgroundColorsStorageKey) ?? "[]"));
+  return loadSavedBackgroundColors(localStorage);
 }
 
 function applyBackground(value: BackgroundPreference, accent: string) {

@@ -1,6 +1,32 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { normalizeBackground, normalizeBackgroundColors, backgroundPalette, backgroundContrast, backgroundStorageKey, backgroundColorsStorageKey } from '../lib/background-appearance.ts';
+import { normalizeBackground, normalizeBackgroundColors, loadSavedBackgroundColors, backgroundPalette, backgroundContrast, backgroundStorageKey, backgroundColorsStorageKey } from '../lib/background-appearance.ts';
+
+const colorStorage = (values = []) => {
+  const data = new Map(values);
+  return { getItem: (key) => data.get(key) ?? null, setItem: (key, value) => data.set(key, value) };
+};
+
+test('the requested screenshot background is saved once alongside existing colors without applying it', () => {
+  const current = JSON.stringify({ mode: 'custom', color: '#123456' });
+  const storage = colorStorage([[backgroundColorsStorageKey, JSON.stringify(['#AABBCC', '#1A2122'])], [backgroundStorageKey, current]]);
+  assert.deepEqual(loadSavedBackgroundColors(storage), ['#aabbcc', '#1a2122']);
+  assert.equal(storage.getItem(backgroundStorageKey), current);
+  storage.setItem(backgroundColorsStorageKey, JSON.stringify(['#aabbcc']));
+  assert.deepEqual(loadSavedBackgroundColors(storage), ['#aabbcc']);
+  assert.equal(storage.getItem(backgroundStorageKey), current);
+});
+
+test('first use saves the requested background, while an unsuccessful save can be retried', () => {
+  const storage = colorStorage();
+  assert.deepEqual(loadSavedBackgroundColors(storage), ['#1a2122']);
+  assert.equal(storage.getItem(backgroundStorageKey), null);
+  const existing = JSON.stringify(['#123456']);
+  const retryStorage = colorStorage([[backgroundColorsStorageKey, existing]]);
+  assert.throws(() => loadSavedBackgroundColors({ getItem: retryStorage.getItem, setItem() { throw new Error('full'); } }));
+  assert.equal(retryStorage.getItem(backgroundColorsStorageKey), existing);
+  assert.deepEqual(loadSavedBackgroundColors(retryStorage), ['#123456', '#1a2122']);
+});
 
 test('saved backgrounds preserve valid colors and order, deduplicate case, and stay separate from current background and theme colors', () => {
   const colors = ['#AABBCC', '#123456', '#aabbcc', null, '#abc', 'red', '#000;display:none', ' #EFEFEF '];

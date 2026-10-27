@@ -1,4 +1,5 @@
 import { isValidLocalDate } from "./finance.ts";
+import { normalizeReviewChapter, reviewChapterKey } from "./review-chapter.ts";
 import { taskCompletionDate, taskProgressOf, taskStatusOf, type TaskScheduleLike } from "./task-progress.ts";
 
 export type ReviewPoolSource = { kind: "task" | "milestone"; id: string };
@@ -19,13 +20,12 @@ export type ReviewPoolDraft = Pick<ReviewPoolItem, "course" | "chapter" | "note"
 
 export function createReviewPoolItem(items: ReviewPoolItem[], draft: ReviewPoolDraft, id: string): ReviewPoolItem {
   const course = draft.course.trim();
-  const chapter = draft.chapter.trim();
+  const chapter = normalizeReviewChapter(draft.chapter);
   const note = draft.note.trim();
   if (!course || !chapter) throw new Error("请填写课程和复习项目");
   if (course.length > 500 || chapter.length > 500 || note.length > 4000) throw new Error("课程或项目最多 500 字，备注最多 4000 字");
   if (items.length >= 500) throw new Error("复习池最多保存 500 个项目");
-  const normalize = (value: string) => value.normalize("NFKC").toLowerCase().replace(/\s+/g, "");
-  if (items.some((item) => item.id === id || sameReviewCourse(item.course, course) && normalize(item.chapter) === normalize(chapter))) throw new Error("池中已有这个复习项目");
+  if (items.some((item) => item.id === id || sameReviewCourse(item.course, course) && reviewChapterKey(item.chapter) === reviewChapterKey(chapter))) throw new Error("池中已有这个复习项目");
   const courseName = items.find((item) => sameReviewCourse(item.course, course))?.course ?? course;
   return { id, course: courseName, chapter, note, progress: 0, done: false, sources: [] };
 }
@@ -76,8 +76,8 @@ export function deferStudyToReviewPool<T extends PoolState>(state: T, sourceId: 
   const source = state.milestones.find((node) => node.id === sourceId);
   const course = state.courses?.find((course) => course.id === source?.courseId);
   if (!pool || !source || !course || source.done || !source.automationKey?.startsWith("study:") || reviewPoolSourceKeys(state).has(`milestone:${sourceId}`)) return state;
-  const chapter = draft.chapter.trim();
-  const existing = pool.items.find((item) => sameReviewCourse(item.course, course.title) && compact(item.chapter) === compact(chapter));
+  const chapter = normalizeReviewChapter(draft.chapter);
+  const existing = pool.items.find((item) => sameReviewCourse(item.course, course.title) && reviewChapterKey(item.chapter) === reviewChapterKey(chapter));
   if (existing?.done) throw new Error("这个项目已完成，请先在复习池中标记未完成");
   if (existing && existing.sources.length >= 2_000) throw new Error("此项目的关联记录已达上限");
   const note = draft.note.trim();
@@ -212,7 +212,7 @@ export function deleteReviewPoolItem<T extends { reviewPool?: CourseReviewPool }
 
 export function restoreReviewPoolItem<T extends { reviewPool?: CourseReviewPool }>(state: T, item: ReviewPoolItem, index: number): T {
   const pool = state.reviewPool;
-  if (!pool || pool.items.length >= 500 || pool.items.some((current) => current.id === item.id || sameReviewCourse(current.course, item.course) && compact(current.chapter) === compact(item.chapter))) return state;
+  if (!pool || pool.items.length >= 500 || pool.items.some((current) => current.id === item.id || sameReviewCourse(current.course, item.course) && reviewChapterKey(current.chapter) === reviewChapterKey(item.chapter))) return state;
   const keys = new Set(item.sources.map(sourceKey));
   const { removedSources: previousSources, ...rest } = pool;
   const removedSources = previousSources?.filter((source) => !keys.has(sourceKey(source)));

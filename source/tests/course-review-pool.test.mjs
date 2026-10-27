@@ -49,6 +49,15 @@ test('normal course names reuse existing pool groups and reject aliases of an ex
   assert.equal(added.course, '线性代数');
   assert.equal(added.chapter, '第3章');
 });
+
+test('pool additions format chapter names and prevent Chinese-number duplicates without changing existing items', () => {
+  const items = initializeCourseReviewPool(stateFor()).reviewPool.items;
+  const before = structuredClone(items);
+  assert.throws(() => createReviewPoolItem(items, { course: '线代', chapter: '第一章', note: '' }, 'duplicate'), /已有/);
+  assert.equal(createReviewPoolItem(items, { course: '线代', chapter: '第三章', note: '' }, 'third').chapter, '第3章');
+  assert.equal(createReviewPoolItem(items, { course: '会计学基础', chapter: 'l4（后半）', note: '' }, 'fourth').chapter, 'L4（后半）');
+  assert.deepEqual(items, before);
+});
 const task = (id, title, extra = {}) => ({ id, title, area: '课内', source: '', done: false, today: false, elapsed: 0, ...extra });
 const milestone = (id, title, extra = {}) => ({ id, title, area: '课内', courseId: 'linear', date: today, time: '20:00', location: '', requirements: '', done: false, ...extra });
 const stateFor = (tasks = [], milestones = []) => ({ ...createEmptyWorkspaceState(), tasks, milestones });
@@ -136,6 +145,43 @@ test('later study reuses an existing chapter across course aliases, preserving n
   assert.equal(deferStudyToReviewPool(next, 'auto-linear', { chapter: '第3章', note: '' }, 'duplicate'), next);
   const deleted = deleteReviewPoolItem(next, item.id);
   assert.deepEqual(withoutReviewPoolSources(deleted).milestones.map((node) => node.id), ['formal-linear']);
+});
+
+test('Chinese chapter aliases reuse the original pool item on both transfer paths and protect completed chapters', () => {
+  const original = updateReviewPoolItem(studyState(), 'review:linear-algebra:2', { progress: 45, note: '原有笔记', selectedDate: today }, today);
+  const before = structuredClone(original);
+  for (const transfer of [
+    (state) => deferStudyToReviewPool(state, 'auto-linear', { chapter: '第二章', note: '接着看例题' }, 'unused'),
+    (state) => editedStudyToReviewPool(state, { ...state.milestones[0], title: '矩阵复习' }, { chapter: '第二章', note: '接着看例题' }, 'unused'),
+  ]) {
+    const next = transfer(original);
+    const item = itemById(next, 'review:linear-algebra:2');
+    assert.equal(next.reviewPool.items.length, original.reviewPool.items.length);
+    assert.equal(item.chapter, '第2章');
+    assert.equal(item.progress, 45);
+    assert.equal(item.note, '原有笔记\n\n接着看例题');
+    assert.deepEqual(item.sources, [{ kind: 'milestone', id: 'auto-linear' }]);
+    assert.equal(item.selectedDate, undefined);
+    const completed = updateReviewPoolItem(original, item.id, { done: true }, today);
+    const completedBefore = structuredClone(completed);
+    assert.throws(() => transfer(completed), /已完成/);
+    assert.deepEqual(completed, completedBefore);
+    assert.deepEqual(workspaceStateSchema.parse(JSON.parse(JSON.stringify(next))), next);
+  }
+  assert.deepEqual(original, before);
+});
+
+test('undo cannot restore an alias duplicate and incomplete chapter descriptions stay separate', () => {
+  const original = studyState();
+  const item = itemById(original, 'review:linear-algebra:2');
+  const removed = deleteReviewPoolItem(original, item.id);
+  const replacement = createReviewPoolItem(removed.reviewPool.items, { course: '线代', chapter: '第二章', note: '' }, 'replacement');
+  const state = { ...removed, reviewPool: { ...removed.reviewPool, items: [...removed.reviewPool.items, replacement] } };
+  assert.equal(restoreReviewPoolItem(state, { ...item, chapter: '第二章' }, 0), state);
+  const next = deferStudyToReviewPool(original, 'auto-linear', { chapter: '第二章（后半）', note: '' }, 'part');
+  assert.equal(next.reviewPool.items.length, original.reviewPool.items.length + 1);
+  assert.equal(itemById(next, 'part').chapter, '第2章（后半）');
+  assert.deepEqual(itemById(next, item.id), item);
 });
 
 test('later study creates an undated chapter and choosing it does not hide a separate same-course task', () => {
