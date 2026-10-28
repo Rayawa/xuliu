@@ -290,7 +290,7 @@ export function ReviewPoolToday({ items, today, readOnly, onChange, onOpenItem }
       </div> : <button type="button" className="reviewPoolTodayCourse" aria-haspopup="dialog" onClick={() => onOpenItem(item.id)}>{item.course} · {item.chapter}</button>}
       <ul className="reviewPoolTodaySteps">{item.steps?.filter((step) => reviewPoolStepVisibleOnDate(step, today)).map((step) => <li className="reviewPoolTodayRow" key={step.id}>
         <ReviewPoolStepCheck item={item} step={step} readOnly={readOnly} onChange={onChange} />
-        <button type="button" className={`reviewPoolTodayTitle${step.done ? " reviewPoolStepDone" : ""}`} onClick={() => onOpenItem(item.id)}>{step.title}</button>
+        <button type="button" className={`reviewPoolTodayTitle reviewPoolTodayStepTitle${step.done ? " reviewPoolStepDone" : ""}`} aria-haspopup="dialog" onClick={() => onOpenItem(item.id)}>{item.course} · {item.chapter} · {step.title}</button>
         <button type="button" className="reviewPoolTodayCancel" disabled={readOnly} aria-label={`取消今天的小任务：${item.course} ${item.chapter} ${step.title}`}
           onClick={() => onChange(item.id, { steps: item.steps?.map((current) => current.id === step.id ? { ...current, selectedDate: undefined } : current) })}>取消今天</button>
       </li>)}</ul>
