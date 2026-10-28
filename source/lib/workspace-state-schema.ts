@@ -115,6 +115,7 @@ const courseReviewPool = z.object({
     selectedDate: date.optional(),
     completedDate: date.optional(),
     sources: z.array(z.object({ kind: z.enum(["task", "milestone"]), id }).strict()).max(2_000),
+    steps: z.array(z.object({ id, title: shortText.refine((value) => Boolean(value.trim()), "请填写小任务内容"), done: z.boolean(), selectedDate: date.optional(), completedDate: date.optional() }).strict()).max(50).optional(),
   }).strict()).max(500),
   removedSources: z.array(z.object({ kind: z.enum(["task", "milestone"]), id }).strict()).max(30_000).optional(),
 }).strict().superRefine((pool, context) => {
@@ -123,6 +124,10 @@ const courseReviewPool = z.object({
   for (const [index, item] of pool.items.entries()) {
     if (ids.has(item.id)) context.addIssue({ code: "custom", path: ["items", index, "id"], message: "复习章节编号不能重复" });
     ids.add(item.id);
+    if (new Set(item.steps?.map((step) => step.id)).size !== (item.steps?.length ?? 0)) context.addIssue({ code: "custom", path: ["items", index, "steps"], message: "小任务编号不能重复" });
+    for (const [stepIndex, step] of (item.steps ?? []).entries()) {
+      if (!step.done && step.completedDate) context.addIssue({ code: "custom", path: ["items", index, "steps", stepIndex, "completedDate"], message: "未完成的小任务不能设置完成日期" });
+    }
     if (item.done !== (item.progress === 100)) context.addIssue({ code: "custom", path: ["items", index, "progress"], message: "复习进度与完成状态不一致" });
     if (!item.done && item.completedDate) context.addIssue({ code: "custom", path: ["items", index, "completedDate"], message: "未完成的章节不能设置完成日期" });
     if (!item.done && item.previousProgress !== undefined) context.addIssue({ code: "custom", path: ["items", index, "previousProgress"], message: "未完成的章节不需要保存完成前进度" });

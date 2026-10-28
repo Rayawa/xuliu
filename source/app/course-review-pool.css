@@ -13,6 +13,8 @@
 .reviewPoolAddForm :is(label, .reviewPoolCourseField) { display: grid; gap: 8px; min-width: 0; font-size: 12px; color: var(--muted); }
 .reviewPoolAddForm :is(input, select, textarea) { min-width: 0; width: 100%; padding: 10px; border: 1px solid var(--line); border-radius: 7px; background: var(--paper); color: var(--text); font: inherit; }
 .reviewPoolAddForm textarea { resize: vertical; }
+.reviewPoolAddForm .reviewPoolCompleteToday { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text); }
+.reviewPoolAddForm .reviewPoolCompleteToday input { width: 16px; height: 16px; padding: 0; accent-color: var(--accent); }
 .reviewPoolCoursePicker { position: relative; min-width: 0; }
 .reviewPoolCourseInput { display: flex; min-width: 0; }
 .reviewPoolCourseInput input { flex: 1; border-top-right-radius: 0; border-bottom-right-radius: 0; }
@@ -75,6 +77,25 @@
 .reviewPoolTodayCancel:disabled { cursor: default; opacity: .5; }
 :is(.reviewPoolEntry, .reviewPoolDialog button, .reviewPoolToday button):focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .reviewPoolNote textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.reviewPoolSteps { min-width: 0; font-size: 12px; }
+.reviewPoolStepsHead { display: flex; align-items: center; justify-content: space-between; gap: 10px; color: var(--muted); }
+.reviewPoolStepsHead button { padding: 2px 0; font-size: 12px; }
+.reviewPoolSteps ul { display: grid; gap: 8px; list-style: none; margin: 12px 0 0; padding: 0; }
+.reviewPoolSteps li { display: flex; align-items: center; gap: 8px; }
+.reviewPoolStepTitle { flex: 1; min-width: 0; line-height: 1.7; color: var(--text); }
+.reviewPoolStepChoose { padding: 4px 0; white-space: nowrap; font-size: 11px; }
+.reviewPoolSteps li span { overflow-wrap: anywhere; }
+.reviewPoolStepDone { color: var(--muted); text-decoration: line-through; }
+.reviewPoolStepRemove { flex-shrink: 0; padding: 4px 0; border: 0; background: transparent; color: var(--muted); font-size: 11px; }
+.reviewPoolStepForm { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.reviewPoolStepForm input { flex: 1; min-width: 80px; padding: 8px; border: 1px solid var(--line); border-radius: 6px; color: var(--text); background: var(--paper); font: inherit; }
+.reviewPoolStepForm button { padding: 6px 2px; font-size: 12px; }
+.reviewPoolStepError { margin: 10px 0 0; color: var(--appearance-danger, #a7443c); }
+.reviewPoolStepUndo { display: flex; align-items: center; flex-wrap: wrap; gap: 9px; margin-top: 10px; color: var(--muted); font-size: 11px; }
+.reviewPoolStepUndo button { padding: 3px; font-size: 11px; }
+.reviewPoolTodayGroup + .reviewPoolTodayGroup { border-top: 1px solid var(--line); }
+.reviewPoolTodayCourse { display: block; padding: 13px 0 4px; border: 0; color: var(--muted); background: transparent; text-align: left; font-size: 12px; }
+.reviewPoolTodaySteps { list-style: none; margin: 0; padding: 0; }
 @media (max-width: 520px) {
   .reviewPoolDialog { width: calc(100vw - 24px); max-height: calc(100dvh - 24px); border-radius: 13px; }
   .reviewPoolHead { padding: 19px 18px 15px; }

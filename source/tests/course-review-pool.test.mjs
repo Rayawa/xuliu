@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { chooseReviewPoolItem, createReviewPoolItem, deferStudyToReviewPool, deleteReviewPoolItem, editedStudyToReviewPool, initializeCourseReviewPool, restoreReviewPoolItem, reviewPoolItemVisibleOnDate, reviewPoolReadProjection, sameReviewCourse, updateReviewPoolItem, withoutReviewPoolSources } from '../lib/course-review-pool.ts';
+import { chooseReviewPoolItem, createReviewPoolItem, createReviewPoolStep, deferStudyToReviewPool, deleteReviewPoolItem, editedStudyToReviewPool, initializeCourseReviewPool, restoreReviewPoolItem, reviewPoolItemVisibleOnDate, reviewPoolStepVisibleOnDate, reviewPoolTodayCounts, reviewPoolReadProjection, sameReviewCourse, updateReviewPoolItem, withoutReviewPoolSources } from '../lib/course-review-pool.ts';
 import { personalStudyRequirements, studyTaskVisibleOnDate } from '../lib/study-task-automation.ts';
 import { aiCourseContextFromWorkspace } from '../lib/ai-course-context.ts';
 import { createEmptyWorkspaceState, workspaceStateSchema } from '../lib/workspace-state-schema.ts';
@@ -72,6 +72,148 @@ const studyState = () => {
   state.courses = [{ id: 'linear', title: '线性代数B', term: '', teacher: '', location: '', progress: 0, requirements: '', schedule: [], blocks: [] }];
   return initializeCourseReviewPool(state);
 };
+
+test('automatic study can enter the pool as completed today, reusing its chapter and preserving substeps and original records', () => {
+  const steps = [{ id: 's1', title: '基础概念', done: true }, { id: 's2', title: '例题', done: false }];
+  const original = updateReviewPoolItem(studyState(), 'review:linear-algebra:2', { note: '已有记录', progress: 45, steps }, today);
+  const before = structuredClone(original);
+  const next = editedStudyToReviewPool(original, { ...original.milestones[0], title: '第二章', requirements: '今天已看完' }, { chapter: '第二章', note: '今天已看完', completedToday: true }, 'unused', today);
+  const item = itemById(next, 'review:linear-algebra:2');
+  assert.equal(next.reviewPool.items.length, original.reviewPool.items.length);
+  assert.equal(item.done, true);
+  assert.equal(item.completedDate, today);
+  assert.equal(item.selectedDate, today);
+  assert.equal(item.previousProgress, 45);
+  assert.equal(item.note, '已有记录\n\n今天已看完');
+  assert.deepEqual(item.steps, itemById(original, item.id).steps);
+  assert.deepEqual(item.sources, [{ kind: 'milestone', id: 'auto-linear' }]);
+  assert.equal(next.milestones[0].requirements, '今天已看完');
+  assert.equal(next.milestones[0].date, original.milestones[0].date);
+  assert.equal(reviewPoolItemVisibleOnDate(item, today), true);
+  assert.equal(reviewPoolItemVisibleOnDate(item, tomorrow), false);
+  assert.deepEqual(workspaceStateSchema.parse(JSON.parse(JSON.stringify(next))), next);
+  const undone = updateReviewPoolItem(next, item.id, { done: false }, tomorrow);
+  assert.equal(itemById(undone, item.id).progress, 45);
+  assert.deepEqual(itemById(undone, item.id).steps, item.steps);
+  assert.deepEqual(original, before);
+});
+
+test('completed-today also works for a new chapter through later-study, without changing the default unselected transfer', () => {
+  const original = studyState();
+  const draft = { chapter: '第三章', note: '完成例题', completedToday: true };
+  const next = deferStudyToReviewPool(original, 'auto-linear', draft, 'new', tomorrow);
+  const item = itemById(next, 'new');
+  assert.equal(item.chapter, '第3章');
+  assert.equal(item.done, true);
+  assert.equal(item.completedDate, tomorrow);
+  assert.equal(item.selectedDate, tomorrow);
+  assert.equal(reviewPoolItemVisibleOnDate(item, tomorrow), true);
+  assert.equal(next.milestones, original.milestones);
+  for (const key of ['due', 'date', 'plannedDate']) assert.equal(key in item, false);
+  const deferred = deferStudyToReviewPool(original, 'auto-linear', { ...draft, completedToday: false }, 'later');
+  assert.equal(itemById(deferred, 'later').done, false);
+  assert.equal(itemById(deferred, 'later').selectedDate, undefined);
+});
+
+test('invalid completion dates and already-completed targets do not save drafts or partial pool changes', () => {
+  const original = studyState();
+  const before = structuredClone(original);
+  const edited = { ...original.milestones[0], title: '未提交草稿' };
+  const draft = { chapter: '第2章', note: '', completedToday: true };
+  for (const date of [undefined, '', '2026-02-30']) {
+    assert.throws(() => editedStudyToReviewPool(original, edited, draft, 'unused', date), /日期/);
+    assert.deepEqual(original, before);
+  }
+  const completed = updateReviewPoolItem(original, 'review:linear-algebra:2', { done: true }, today);
+  const completedBefore = structuredClone(completed);
+  assert.throws(() => editedStudyToReviewPool(completed, edited, draft, 'unused', tomorrow), /已完成/);
+  assert.deepEqual(completed, completedBefore);
+});
+
+test('partial substeps and free-text progress survive cancelling today, serialization, removal and restoration', () => {
+  const original = studyState();
+  const id = 'review:linear-algebra:1';
+  const first = createReviewPoolStep([], ' 基础概念 ', 's1');
+  const second = createReviewPoolStep([first], '后半章例题', 's2');
+  let state = updateReviewPoolItem(original, id, { steps: [{ ...first, done: true }, second], note: '10/28 复习了一半，下次接着做例题', selectedDate: today }, today);
+  state = updateReviewPoolItem(state, id, { selectedDate: undefined }, today);
+  const item = itemById(state, id);
+  assert.equal(item.done, false);
+  assert.equal(item.completedDate, undefined);
+  assert.equal(reviewPoolItemVisibleOnDate(item, tomorrow), false);
+  assert.equal(item.steps[0].title, '基础概念');
+  assert.equal(item.steps[0].done, true);
+  assert.equal(item.steps[1].done, false);
+  assert.equal(state.tasks, original.tasks);
+  assert.equal(state.milestones, original.milestones);
+  assert.deepEqual(workspaceStateSchema.parse(JSON.parse(JSON.stringify(state))), state);
+  assert.equal(reviewPoolReadProjection(state).reviewPool, state.reviewPool);
+  const removed = deleteReviewPoolItem(state, id);
+  const restored = restoreReviewPoolItem(removed, item, 0);
+  assert.deepEqual(itemById(restored, id), item);
+  const chosen = chooseReviewPoolItem(restored, id, tomorrow);
+  assert.deepEqual(itemById(chosen, id).steps, item.steps);
+  assert.equal(itemById(chosen, id).note, item.note);
+});
+
+test('substep validation rejects invalid or duplicate records and never converts their states into chapter completion', () => {
+  const original = studyState();
+  const id = 'review:linear-algebra:1';
+  const steps = [createReviewPoolStep([], '概念', 's1')];
+  for (const invalid of [[steps[0], steps[0]], [{ ...steps[0], title: ' ' }], [{ ...steps[0], done: 'yes' }], [{ ...steps[0], selectedDate: '2026-02-30' }], [{ ...steps[0], completedDate: today }], Array.from({ length: 51 }, (_, i) => ({ ...steps[0], id: String(i) }))]) {
+    assert.throws(() => updateReviewPoolItem(original, id, { steps: invalid }, today), /小任务/);
+    const state = { ...original, reviewPool: { ...original.reviewPool, items: original.reviewPool.items.map((item) => item.id === id ? { ...item, steps: invalid } : item) } };
+    assert.equal(workspaceStateSchema.safeParse(state).success, false);
+    assert.equal(reviewPoolReadProjection(state), state);
+  }
+  assert.throws(() => createReviewPoolStep(steps, '例题', 's1'));
+  assert.throws(() => createReviewPoolStep([], ' ', 's2'));
+  assert.throws(() => createReviewPoolStep([], '字'.repeat(501), 's2'));
+  const allStepsDone = updateReviewPoolItem(original, id, { steps: [{ ...steps[0], done: true }] }, today);
+  assert.equal(itemById(allStepsDone, id).done, false);
+  assert.equal(itemById(allStepsDone, id).selectedDate, undefined);
+  const cleared = updateReviewPoolItem(allStepsDone, id, { steps: [] }, today);
+  assert.equal('steps' in itemById(cleared, id), false);
+});
+
+test('a selected substep appears only on its chosen day and completion preserves the chapter and other steps', () => {
+  const initial = updateReviewPoolItem(studyState(), economicsId, { selectedDate: undefined }, today);
+  const id = 'review:linear-algebra:1';
+  const selected = { id: 's1', title: '前半章', done: false, selectedDate: today };
+  const later = { id: 's2', title: '后半章', done: false };
+  const state = updateReviewPoolItem(initial, id, { steps: [selected, later], note: '下次接着学' }, today);
+  assert.equal(reviewPoolStepVisibleOnDate(selected, today), true);
+  assert.equal(reviewPoolStepVisibleOnDate(selected, tomorrow), false);
+  assert.equal(reviewPoolStepVisibleOnDate(later, today), false);
+  assert.equal(reviewPoolItemVisibleOnDate(itemById(state, id), today), false);
+  assert.deepEqual(reviewPoolTodayCounts(state.reviewPool.items, today), { total: 1, completed: 0 });
+  const completed = updateReviewPoolItem(state, id, { steps: [{ ...selected, done: true }, later] }, today);
+  const item = itemById(completed, id);
+  assert.equal(item.steps[0].completedDate, today);
+  assert.equal(reviewPoolStepVisibleOnDate(item.steps[0], today), true);
+  assert.equal(reviewPoolStepVisibleOnDate(item.steps[0], tomorrow), false);
+  assert.equal(item.done, false);
+  assert.equal(item.selectedDate, undefined);
+  assert.equal(item.completedDate, undefined);
+  assert.deepEqual(item.steps[1], later);
+  assert.equal(item.note, '下次接着学');
+  assert.deepEqual(reviewPoolTodayCounts(completed.reviewPool.items, today), { total: 1, completed: 1 });
+  assert.deepEqual(reviewPoolTodayCounts(completed.reviewPool.items, tomorrow), { total: 0, completed: 0 });
+  assert.equal(completed.tasks, initial.tasks);
+  assert.equal(completed.milestones, initial.milestones);
+  assert.deepEqual(workspaceStateSchema.parse(JSON.parse(JSON.stringify(completed))), completed);
+  const cancelled = updateReviewPoolItem(completed, id, { steps: [{ ...item.steps[0], selectedDate: undefined }, later] }, tomorrow);
+  assert.equal(reviewPoolStepVisibleOnDate(itemById(cancelled, id).steps[0], today), false);
+  assert.equal(itemById(cancelled, id).steps[0].completedDate, today);
+  const reopened = updateReviewPoolItem(completed, id, { steps: [{ ...item.steps[0], done: false, completedDate: undefined }, later] }, tomorrow);
+  assert.equal(itemById(reopened, id).steps[0].completedDate, undefined);
+  assert.equal(itemById(reopened, id).steps[0].selectedDate, today);
+  assert.equal(reviewPoolStepVisibleOnDate(itemById(reopened, id).steps[0], tomorrow), false);
+  const removed = updateReviewPoolItem(completed, id, { steps: [later] }, tomorrow);
+  const restored = updateReviewPoolItem(removed, id, { steps: item.steps }, tomorrow);
+  assert.deepEqual(itemById(restored, id).steps, item.steps);
+  assert.equal(itemById(restored, id).steps[0].completedDate, today);
+});
 
 test('edited automatic study saves the requested fields and pool link together without overwriting newer attachments or notes', () => {
   const original = studyState();

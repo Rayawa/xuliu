@@ -3,6 +3,7 @@ import { normalizeReviewChapter, reviewChapterKey } from "./review-chapter.ts";
 import { taskCompletionDate, taskProgressOf, taskStatusOf, type TaskScheduleLike } from "./task-progress.ts";
 
 export type ReviewPoolSource = { kind: "task" | "milestone"; id: string };
+export type ReviewPoolStep = { id: string; title: string; done: boolean; selectedDate?: string; completedDate?: string };
 export type ReviewPoolItem = {
   id: string;
   course: string;
@@ -14,9 +15,32 @@ export type ReviewPoolItem = {
   selectedDate?: string;
   completedDate?: string;
   sources: ReviewPoolSource[];
+  steps?: ReviewPoolStep[];
 };
 export type CourseReviewPool = { version: 1; items: ReviewPoolItem[]; removedSources?: ReviewPoolSource[] };
 export type ReviewPoolDraft = Pick<ReviewPoolItem, "course" | "chapter" | "note">;
+export type ReviewPoolTransferDraft = Pick<ReviewPoolDraft, "chapter" | "note"> & { completedToday?: boolean };
+
+function validReviewPoolSteps(value: unknown): value is ReviewPoolStep[] {
+  if (!Array.isArray(value) || value.length > 50) return false;
+  const ids = new Set<string>();
+  for (const step of value) {
+    if (!step || typeof step !== "object" || typeof step.id !== "string" || !step.id || step.id.length > 120 || ids.has(step.id)
+      || typeof step.title !== "string" || !step.title.trim() || step.title.length > 500 || typeof step.done !== "boolean"
+      || step.selectedDate !== undefined && (typeof step.selectedDate !== "string" || !isValidLocalDate(step.selectedDate))
+      || step.completedDate !== undefined && (!step.done || typeof step.completedDate !== "string" || !isValidLocalDate(step.completedDate))) return false;
+    ids.add(step.id);
+  }
+  return true;
+}
+
+export function createReviewPoolStep(steps: ReviewPoolStep[], title: string, id: string): ReviewPoolStep {
+  const step = { id, title: title.trim(), done: false };
+  if (!step.title) throw new Error("请填写小任务内容");
+  if (steps.length >= 50) throw new Error("每个复习项目最多添加 50 个小任务");
+  if (!validReviewPoolSteps([...steps, step])) throw new Error("小任务内容最多 500 字，编号不能重复");
+  return step;
+}
 
 export function createReviewPoolItem(items: ReviewPoolItem[], draft: ReviewPoolDraft, id: string): ReviewPoolItem {
   const course = draft.course.trim();
@@ -71,11 +95,12 @@ export function sameReviewCourse(left: string, right: string) {
   return reviewCourseKey(left) === reviewCourseKey(right);
 }
 
-export function deferStudyToReviewPool<T extends PoolState>(state: T, sourceId: string, draft: Pick<ReviewPoolDraft, "chapter" | "note">, id: string): T {
+export function deferStudyToReviewPool<T extends PoolState>(state: T, sourceId: string, draft: ReviewPoolTransferDraft, id: string, currentDate?: string): T {
   const pool = state.reviewPool;
   const source = state.milestones.find((node) => node.id === sourceId);
   const course = state.courses?.find((course) => course.id === source?.courseId);
   if (!pool || !source || !course || source.done || !source.automationKey?.startsWith("study:") || reviewPoolSourceKeys(state).has(`milestone:${sourceId}`)) return state;
+  if (draft.completedToday && (!currentDate || !isValidLocalDate(currentDate))) throw new Error("请选择有效的完成日期");
   const chapter = normalizeReviewChapter(draft.chapter);
   const existing = pool.items.find((item) => sameReviewCourse(item.course, course.title) && reviewChapterKey(item.chapter) === reviewChapterKey(chapter));
   if (existing?.done) throw new Error("这个项目已完成，请先在复习池中标记未完成");
@@ -86,10 +111,11 @@ export function deferStudyToReviewPool<T extends PoolState>(state: T, sourceId: 
   const created = createReviewPoolItem(existing ? pool.items.filter((item) => item.id !== existing.id) : pool.items, { course: courseName, chapter, note: combinedNote }, existing?.id ?? id);
   const item: ReviewPoolItem = { ...(existing ?? created), note: combinedNote, sources: [...(existing?.sources ?? []), { kind: "milestone", id: sourceId }] };
   delete item.selectedDate;
-  return { ...state, reviewPool: { ...pool, items: existing ? pool.items.map((current) => current.id === existing.id ? item : current) : [...pool.items, item] } };
+  const next = { ...state, reviewPool: { ...pool, items: existing ? pool.items.map((current) => current.id === existing.id ? item : current) : [...pool.items, item] } };
+  return draft.completedToday ? updateReviewPoolItem(next, item.id, { done: true, selectedDate: currentDate! }, currentDate!) : next;
 }
 
-export function editedStudyToReviewPool<T extends PoolState>(state: T, edited: SourceRecord, draft: Pick<ReviewPoolDraft, "chapter" | "note">, id: string): T {
+export function editedStudyToReviewPool<T extends PoolState>(state: T, edited: SourceRecord, draft: ReviewPoolTransferDraft, id: string, currentDate?: string): T {
   const original = state.milestones.find((node) => node.id === edited.id);
   if (!original || !original.automationKey?.startsWith("study:") || original.done || reviewPoolSourceKeys(state).has(`milestone:${edited.id}`)) return state;
   const title = edited.title.trim();
@@ -100,7 +126,7 @@ export function editedStudyToReviewPool<T extends PoolState>(state: T, edited: S
     else Object.assign(node, { [key]: edited[key] });
   }
   const withEdits = { ...state, milestones: state.milestones.map((current) => current.id === original.id ? node : current) };
-  const result = deferStudyToReviewPool(withEdits, original.id, draft, id);
+  const result = deferStudyToReviewPool(withEdits, original.id, draft, id, currentDate);
   return result === withEdits ? state : result;
 }
 
@@ -202,6 +228,18 @@ export function reviewPoolItemVisibleOnDate(item: ReviewPoolItem, date: string) 
   return item.selectedDate === date && (!item.done || item.completedDate === date);
 }
 
+export function reviewPoolStepVisibleOnDate(step: ReviewPoolStep, date: string) {
+  return step.selectedDate === date && (!step.done || step.completedDate === date);
+}
+
+export function reviewPoolTodayCounts(items: ReviewPoolItem[], date: string) {
+  const selected = items.flatMap((item) => [
+    ...(reviewPoolItemVisibleOnDate(item, date) ? [item] : []),
+    ...(item.steps?.filter((step) => reviewPoolStepVisibleOnDate(step, date)) ?? []),
+  ]);
+  return { total: selected.length, completed: selected.filter((entry) => entry.done).length };
+}
+
 export function deleteReviewPoolItem<T extends { reviewPool?: CourseReviewPool }>(state: T, id: string): T {
   const pool = state.reviewPool;
   const item = pool?.items.find((item) => item.id === id);
@@ -221,20 +259,27 @@ export function restoreReviewPoolItem<T extends { reviewPool?: CourseReviewPool 
   return { ...state, reviewPool: { ...rest, items, ...(removedSources?.length ? { removedSources } : {}) } };
 }
 
-export function updateReviewPoolItem<T extends { reviewPool?: CourseReviewPool }>(state: T, id: string, patch: Partial<Pick<ReviewPoolItem, "progress" | "note" | "done" | "selectedDate">>, currentDate: string): T {
+export function updateReviewPoolItem<T extends { reviewPool?: CourseReviewPool }>(state: T, id: string, patch: Partial<Pick<ReviewPoolItem, "progress" | "note" | "done" | "selectedDate" | "steps">>, currentDate: string): T {
   if (!state.reviewPool) return state;
   if (!isValidLocalDate(currentDate) || patch.selectedDate !== undefined && !isValidLocalDate(patch.selectedDate)) throw new Error("请选择有效日期");
   if (patch.progress !== undefined && (!Number.isInteger(patch.progress) || patch.progress < 0 || patch.progress > 100)) throw new Error("进度应为 0–100");
   if (patch.note !== undefined && patch.note.length > 4000) throw new Error("备注最多 4000 字");
+  if (patch.steps !== undefined && !validReviewPoolSteps(patch.steps)) throw new Error("每个复习项目最多 50 个小任务，内容最多 500 字，编号不能重复");
   return { ...state, reviewPool: { ...state.reviewPool, items: state.reviewPool.items.map((item) => {
     if (item.id !== id) return item;
     const next = { ...item, ...patch };
+    if (patch.steps) next.steps = patch.steps.map((step) => {
+      if (step.done && step.completedDate === undefined && !item.steps?.find((current) => current.id === step.id)?.done) return { ...step, completedDate: currentDate };
+      if (!step.done) { const { completedDate: _completedDate, ...rest } = step; return rest; }
+      return step;
+    });
     if (patch.progress !== undefined) next.done = patch.progress === 100;
     if (patch.done === true) { next.done = true; next.progress = 100; }
     if (patch.done === false) { next.done = false; if (next.progress === 100) next.progress = item.previousProgress ?? 0; }
     if (next.done && !item.done) { next.completedDate = currentDate; next.previousProgress = item.progress; }
     if (!next.done) { delete next.completedDate; delete next.previousProgress; }
     if (next.selectedDate === undefined) delete next.selectedDate;
+    if (next.steps?.length === 0) delete next.steps;
     return next;
   }) } };
 }
@@ -261,6 +306,7 @@ function readablePool(value: unknown): value is CourseReviewPool {
       || typeof item.done !== "boolean" || typeof item.progress !== "number" || !Number.isInteger(item.progress)
       || item.progress < 0 || item.progress > 100 || item.done !== (item.progress === 100)
       || !Array.isArray(item.sources) || item.sources.length > 2000
+      || item.steps !== undefined && !validReviewPoolSteps(item.steps)
       || item.selectedDate !== undefined && (typeof item.selectedDate !== "string" || !isValidLocalDate(item.selectedDate))
       || item.completedDate !== undefined && (!item.done || typeof item.completedDate !== "string" || !isValidLocalDate(item.completedDate))
       || item.previousProgress !== undefined && (!item.done || typeof item.previousProgress !== "number" || !Number.isInteger(item.previousProgress) || item.previousProgress < 0 || item.previousProgress > 99)) return false;

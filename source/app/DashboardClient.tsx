@@ -8,7 +8,7 @@ import { CourseEventDialog } from "./CourseEventDialog";
 import { assessmentTypeLabel, assessmentTypeOptions, eventCourseChoices, eventCourseLabel, eventDateLabel, migrateCourseEvents } from "@/lib/course-events";
 import { isFormSaveEnter as isDialogSaveEnter, submitFormOnEnter } from "./form-keyboard";
 import { CourseReviewPoolDialog, DeferStudyDialog, ReviewPoolEntry, ReviewPoolToday } from "./CourseReviewPool";
-import { editedStudyToReviewPool, deleteReviewPoolItem, initializeCourseReviewPool, restoreReviewPoolItem, reviewPoolItemVisibleOnDate, updateReviewPoolItem, withoutReviewPoolSources, type CourseReviewPool, type ReviewPoolItem } from "@/lib/course-review-pool";
+import { editedStudyToReviewPool, deleteReviewPoolItem, initializeCourseReviewPool, restoreReviewPoolItem, reviewPoolTodayCounts, updateReviewPoolItem, withoutReviewPoolSources, type CourseReviewPool, type ReviewPoolItem } from "@/lib/course-review-pool";
 import FocusTimer, { usePomodoroTimer } from "./FocusTimer";
 import { defaultFocusSettings, descendantTasks, detachRemovedParents, entryMatches, parentError, type FocusSettings, type TimeEntry, type WorkTarget } from "@/lib/task-time";
 import { upload as uploadBlob } from "@vercel/blob/client";
@@ -775,7 +775,7 @@ export default function DashboardClient({ account, visibleAccounts, onLogout, de
   const navigate = (id: NavId) => { setActive(id); setDetail(null); setWorkDetail(null); setMobileNav(false); setReviewPoolOpen(null); };
   const daily = data.daily[today] ?? { note: "", gain: "", problem: "", feeling: "", tomorrow: "" };
   const displayedData = withoutReviewPoolSources(data);
-  const changeReviewItem = (id: string, patch: Partial<Pick<ReviewPoolItem, "progress" | "note" | "done" | "selectedDate">>) => {
+  const changeReviewItem = (id: string, patch: Partial<Pick<ReviewPoolItem, "progress" | "note" | "done" | "selectedDate" | "steps">>) => {
     setData((current) => updateReviewPoolItem(current, id, patch, dateKey()));
   };
   const reviewToday = <ReviewPoolToday items={data.reviewPool?.items ?? []} today={reviewDate} readOnly={readOnly} onChange={changeReviewItem} onOpenItem={setReviewPoolOpen} />;
@@ -993,8 +993,7 @@ function TodayView({ reviewToday, data, setData, tasks, milestones, daily, updat
     },
   ];
   const allTaskEntries = taskGroups.flatMap((group) => group.entries);
-  const selectedReviews = data.reviewPool?.items.filter((item) => reviewPoolItemVisibleOnDate(item, dateKey())) ?? [];
-  const completedReviews = selectedReviews.filter((item) => item.done).length;
+  const { total: selectedReviewCount, completed: completedReviews } = reviewPoolTodayCounts(data.reviewPool?.items ?? [], dateKey());
   const automaticTasks = milestones.filter((node) => Boolean(node.automationKey));
   const toggleStudyPlan = () => setData((current) => {
     const enabled = !current.studyAutomation.enabled;
@@ -1025,7 +1024,7 @@ function TodayView({ reviewToday, data, setData, tasks, milestones, daily, updat
     <div className="taskRowActions"><span className={"areaTag " + areaClass[entry.item.area]}>{entry.item.area}</span>{entry.item.automationKey ? <AutomaticStudyActions title={entry.item.title} done={entry.item.done} readOnly={readOnly} plannedToday onEdit={() => setEditingNode(entry.item)} onDelete={() => requestDelete({ kind: "milestone", id: entry.item.id }, entry.item.title)} onOpen={() => openWork({ kind: "milestone", id: entry.item.id })} onPostpone={() => postponeWork({ kind: "milestone", id: entry.item.id })} onCancel={() => cancelToday({ kind: "milestone", id: entry.item.id })} onDefer={entry.item.automationKey.startsWith("study:") ? () => setDeferringNode({ node: entry.item }) : undefined} /> : <>{!entry.item.done && <><button type="button" className="quickPostponeButton" disabled={readOnly} aria-label={"将课程任务推迟一天：" + entry.item.title} onClick={() => postponeWork({ kind: "milestone", id: entry.item.id })}>＋1天</button><button type="button" className="cancelTodayButton" disabled={readOnly} aria-label={"取消今天：" + entry.item.title} onClick={() => cancelToday({ kind: "milestone", id: entry.item.id })}>取消今天</button></>}<button type="button" className="miniRemove todayQuickDelete" disabled={readOnly} aria-label={"快捷删除任务：" + entry.item.title} onClick={() => requestDelete({ kind: "milestone", id: entry.item.id }, entry.item.title)}>×</button></>}</div>
   </div>;
   return <div className="page">
-    <PageHead eyebrow={(new Date().getMonth() + 1) + "月" + new Date().getDate() + "日 · " + new Intl.DateTimeFormat("zh-CN", { weekday: "long" }).format(new Date())} title="今日" subtitle={(allTaskEntries.filter((entry) => !entry.item.done).length + selectedReviews.length - completedReviews) + " 项任务待完成"} action={<div className="pageHeadActions"><button className="primaryButton" disabled={readOnly} onClick={() => setCreatingTask(true)}>＋ 新增任务</button><button className="softButton" disabled={readOnly} onClick={addEvent}>＋ 新增事项</button><SyncChip /></div>} />
+    <PageHead eyebrow={(new Date().getMonth() + 1) + "月" + new Date().getDate() + "日 · " + new Intl.DateTimeFormat("zh-CN", { weekday: "long" }).format(new Date())} title="今日" subtitle={(allTaskEntries.filter((entry) => !entry.item.done).length + selectedReviewCount - completedReviews) + " 项任务待完成"} action={<div className="pageHeadActions"><button className="primaryButton" disabled={readOnly} onClick={() => setCreatingTask(true)}>＋ 新增任务</button><button className="softButton" disabled={readOnly} onClick={addEvent}>＋ 新增事项</button><SyncChip /></div>} />
     {deferringNode && !readOnly && <StudyReviewDialog request={deferringNode} data={data} setData={setData} onClose={() => { if (deferringNode.edited) setEditingNode(deferringNode.node); setDeferringNode(null); }} onSaved={() => setDeferringNode(null)} />}
     {creatingTask && <TaskSettingsDialog access={access} tasks={data.tasks} milestones={data.milestones} courses={data.courses} learning={data.learning} onClose={() => setCreatingTask(false)} onSave={(task) => { setData((current) => ({ ...current, tasks: [...current.tasks, task] })); setCreatingTask(false); }} />}
     {editingTask && <TaskSettingsDialog task={editingTask} access={access} tasks={data.tasks} milestones={data.milestones} courses={data.courses} learning={data.learning} onClose={() => setEditingTask(null)} onSave={(task) => { setData((current) => ({ ...current, tasks: current.tasks.map((item) => item.id === task.id ? preserveTaskContent(item, task) : item) })); setEditingTask(null); }} onOpenDetail={() => { const id = editingTask.id; setEditingTask(null); openWork({ kind: "task", id }); }} />}
@@ -1033,7 +1032,7 @@ function TodayView({ reviewToday, data, setData, tasks, milestones, daily, updat
     {editingNode && <MilestoneSettingsDialog courses={data.courses} node={editingNode} onClose={() => setEditingNode(null)} onSave={(node) => { setData((current) => ({ ...current, milestones: current.milestones.map((item) => item.id === node.id ? node : item) })); setEditingNode(null); }} onSaveToReviewPool={(node) => { setEditingNode(null); setDeferringNode({ node, edited: true }); }} onOpenDetail={() => { const id = editingNode.id; setEditingNode(null); openWork({ kind: "milestone", id }); }} />}
     <div className="todayGrid"><div className="stack">
       {taskGroups.map((group) => <Fragment key={group.id}><section className="panel taskPanel todayCategoryPanel">
-        <PanelTitle title={group.title} meta={(group.entries.filter((entry) => entry.item.done).length + (group.id === "single" ? completedReviews : 0)) + " / " + (group.entries.length + (group.id === "single" ? selectedReviews.length : 0))} />
+        <PanelTitle title={group.title} meta={(group.entries.filter((entry) => entry.item.done).length + (group.id === "single" ? completedReviews : 0)) + " / " + (group.entries.length + (group.id === "single" ? selectedReviewCount : 0))} />
         <div className={"taskList " + (group.id === "single" ? "groupedTaskList" : "")}>{group.id === "single" ? shortTaskSections.map((section) => <div className="todayTaskSubgroup" key={section.id}>
           <div className="todayTaskSubhead"><strong>{section.title}</strong><span>{section.entries.length} 项</span></div>
           {section.id === "automatic" ? automaticCourseGroups.map((course) => <details className="todayAutomaticCourse" key={course.courseId}>
@@ -1041,7 +1040,7 @@ function TodayView({ reviewToday, data, setData, tasks, milestones, daily, updat
             {course.entries.map(renderTaskEntry)}
           </details>) : section.entries.map(renderTaskEntry)}
         </div>) : group.entries.map(renderTaskEntry)}</div>
-        {!group.entries.length && !(group.id === "single" && selectedReviews.length) && <div className="emptyState compact"><h2>今天没有{group.title}</h2></div>}
+        {!group.entries.length && !(group.id === "single" && selectedReviewCount) && <div className="emptyState compact"><h2>今天没有{group.title}</h2></div>}
         {group.id === "single" && reviewToday}
       </section>{group.id === "single" && <section className="panel taskPanel todayCategoryPanel"><PanelTitle title="事项" meta={calendarItems.filter((item) => item.done).length + " / " + calendarItems.length} /><div className="taskList">{calendarItems.map((item) => <div className={"taskRow " + (item.done ? "done" : "")} key={item.id}><button className="checkButton" disabled={readOnly} aria-pressed={item.done} aria-label={(item.done ? "标记未完成：" : "标记完成：") + item.title} onClick={() => setData((current) => ({ ...current, milestones: current.milestones.map((node) => node.id === item.id ? { ...node, done: !node.done } : node) }))}>{item.done ? "✓" : ""}</button><div className="taskBody"><button className="taskTitleButton" onClick={() => readOnly ? openWork({ kind: "milestone", id: item.id }) : setEditingNode(item)}>{item.title}</button>{item.done && <span className="taskStatus 已完成 todayCompletionStatus">已完成</span>}<span>{[eventDateLabel(item), eventCourseLabel(item, data.courses), assessmentTypeLabel(item.assessmentType), item.location].filter(Boolean).join(" · ")}</span><button className="taskRecordLink" onClick={() => readOnly ? openWork({ kind: "milestone", id: item.id }) : setEditingNode(item)}>{readOnly ? "查看详细信息" : "修改基础信息"}</button></div><div className="taskRowActions"><span className={"areaTag " + areaClass[item.area]}>{item.area}</span>{!item.done && <button type="button" className="quickPostponeButton" disabled={readOnly} aria-label={"将事项推迟一天：" + item.title} onClick={() => postponeWork({ kind: "milestone", id: item.id })}>＋1天</button>}<button type="button" className="miniRemove todayQuickDelete" disabled={readOnly} aria-label={"快捷删除事项：" + item.title} onClick={() => requestDelete({ kind: "milestone", id: item.id }, item.title)}>×</button></div></div>)}</div>{!calendarItems.length && <div className="emptyState compact"><h2>今天没有事项</h2></div>}</section>}</Fragment>)}
       <section className="panel notePanel"><PanelTitle title="今日随记" meta="自动保存" /><textarea value={daily.note} onChange={(event) => updateDaily("note", event.target.value)} aria-label="今日随记" /></section>
@@ -1546,8 +1545,9 @@ function StudyReviewDialog({ request, data, setData, onClose, onSaved }: {
   return <DeferStudyDialog course={course} items={data.reviewPool?.items ?? []} title={request.edited ? "保存到复习池" : "以后再学"}
     initialDraft={{ chapter: title === dailyStudyTitle(course) ? "" : title, note: personalStudyRequirements(request.node.requirements) }} onClose={onClose} onSave={(draft) => {
       const id = uid();
-      if (editedStudyToReviewPool(data, request.node, draft, id) === data) throw new Error("这项任务已进入复习池或已完成，请重新查看");
-      setData((current) => editedStudyToReviewPool(current, request.node, draft, id));
+      const currentDate = dateKey();
+      if (editedStudyToReviewPool(data, request.node, draft, id, currentDate) === data) throw new Error("这项任务已进入复习池或已完成，请重新查看");
+      setData((current) => editedStudyToReviewPool(current, request.node, draft, id, currentDate));
       onSaved();
     }} />;
 }
