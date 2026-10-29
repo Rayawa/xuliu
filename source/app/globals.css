@@ -374,6 +374,10 @@ a { color: inherit; }
 .researchGrid { display: grid; grid-template-columns: repeat(2,1fr); gap: 17px; }
 .entityCard, .researchCard, .folderCard, .recipeCard { position: relative; overflow: hidden; }
 .cardOpen, .folderOpen { width: 100%; height: 100%; padding: 23px; border: 0; background: transparent; text-align: left; }
+.courseGrid { grid-auto-rows: 1fr; }
+.courseCard .cardOpen { display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; }
+.courseCard h2 { min-height: 3em; line-height: 1.5; }
+.courseCard .cardFoot { margin-top: auto; }
 .cardKicker { color: color-mix(in srgb, var(--appearance-link, var(--accent)) 75%, var(--appearance-text, #58645d)); font-size: 11px; font-weight: 700; }
 .entityCard h2, .folderCard h2, .researchCard h2 { margin: 15px 0 8px; font-size: 19px; letter-spacing: -.03em; }
 .entityCard p, .folderCard p, .researchCard p { min-height: 43px; margin: 0; color: var(--muted); font-size: 12px; line-height: 1.7; }

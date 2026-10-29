@@ -220,7 +220,7 @@ test('a manually linked branch can cancel its matching parent reminder without c
   assert.equal(withPlannedTaskStages(cancelled, today, createId), cancelled);
 });
 
-test('a deadline-only stage also cancels its unplanned long parent and can be explicitly selected again', () => {
+test('a deadline-only stage can be selected again while its long parent waits for the seven-day window', () => {
   const unplanned = { ...parent, plannedDate: undefined, startDate: today };
   const branch = { id: 'draft', title: '完成初稿', parentId: parent.id, area: parent.area, source: parent.title, due: today, done: false, today: false, elapsed: 20 };
   const original = stateFor([unplanned, branch]);
@@ -233,5 +233,8 @@ test('a deadline-only stage also cancels its unplanned long parent and can be ex
   const restored = withPlannedTaskStages(nextPlan, today, createId, cancelled);
   assert.equal(restored.tasks.length, 2);
   assert.equal(restored.tasks[0].dismissedTodayDate, undefined);
-  assert.equal(restored.tasks.every((task) => taskVisibleToday(task, today)), true);
+  assert.equal(taskVisibleToday(restored.tasks[0], today), false);
+  assert.equal(taskVisibleToday(restored.tasks[1], today), true);
+  assert.equal(taskVisibleToday(restored.tasks[0], tomorrow), true);
+  assert.equal(restored.tasks[0].due, unplanned.due);
 });

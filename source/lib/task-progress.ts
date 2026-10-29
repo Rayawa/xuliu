@@ -70,7 +70,15 @@ export function cancelWorkForDate<T extends TaskScheduleLike>(task: T, targetDat
 export function courseNodeVisibleToday(node: TaskScheduleLike & { date: string; done: boolean }, targetDate: string) {
   if (isTaskNode(node) && node.dismissedTodayDate === targetDate) return false;
   if (isTaskNode(node) && node.done) return node.completedDate === targetDate;
-  return node.date === targetDate || Boolean(isTaskNode(node) && (defaultTaskPlannedDate(node) === targetDate || node.mode === "multi" && !node.done));
+  if (isTaskNode(node) && node.mode === "multi") return longTaskInTodayWindow(node, targetDate);
+  return node.date === targetDate || Boolean(isTaskNode(node) && defaultTaskPlannedDate(node) === targetDate);
+}
+
+function longTaskInTodayWindow(task: TaskScheduleLike, targetDate: string) {
+  const deadline = task.due || (isTaskNode(task) ? task.date : undefined);
+  return Boolean(deadline && isValidLocalDate(deadline) && isValidLocalDate(targetDate)
+    && dayDifference(targetDate, deadline) <= 7
+    && (task.plannedDate === targetDate || !task.startDate || task.startDate <= targetDate));
 }
 
 export function taskCompletionDate(task: TaskScheduleLike) {
@@ -124,9 +132,9 @@ export function taskScheduledForDate(task: TaskScheduleLike, targetDate: string)
 export function taskVisibleToday(task: TaskScheduleLike, targetDate: string) {
   if (task.dismissedTodayDate === targetDate) return false;
   if (taskStatusOf(task) === "已完成") return taskCompletionDate(task) === targetDate;
+  if (taskModeOf(task) === "multi") return longTaskInTodayWindow(task, targetDate);
   if (task.plannedDate === targetDate) return true;
-  if (taskModeOf(task) === "single") return taskScheduledForDate(task, targetDate) || (!task.due && !task.plannedDate && task.today === true);
-  return (task.startDate || task.due || targetDate) <= targetDate;
+  return taskScheduledForDate(task, targetDate) || (!task.due && !task.plannedDate && task.today === true);
 }
 
 export function taskOverlapsRange(task: TaskScheduleLike, rangeStart: string, rangeEnd: string) {

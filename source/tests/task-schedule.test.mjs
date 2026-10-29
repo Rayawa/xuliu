@@ -37,6 +37,33 @@ const plannedTask = {
   progressLogs: [{ id: 'log', date: '2026-10-02', progress: 30, status: '进行中', note: '完成提纲' }],
 };
 
+test('long tasks enter today seven calendar days before their deadline, including course tasks', () => {
+  const task = { ...plannedTask, mode: 'multi', due: '2026-11-05', startDate: '2026-10-01', plannedDate: '2026-10-28', progressLogs: [] };
+  const node = { courseId: 'course', date: task.due, mode: 'multi', plannedDate: task.plannedDate, done: false };
+  for (const [date, visible] of [['2026-10-28', false], ['2026-10-29', true], ['2026-11-05', true], ['2026-11-06', true]]) {
+    assert.equal(taskVisibleToday(task, date), visible, date);
+    assert.equal(courseNodeVisibleToday(node, date), visible, date);
+    assert.equal(studyTaskVisibleOnDate(node, date), visible, date);
+  }
+  assert.equal(taskVisibleToday({ ...task, plannedDate: '2026-10-27' }, '2026-10-27'), false);
+  assert.equal(taskVisibleToday({ ...task, due: '2027-01-03' }, '2026-12-27'), true);
+  assert.equal(taskVisibleToday({ ...task, due: '2027-01-03' }, '2026-12-26'), false);
+  assert.equal(taskVisibleToday({ ...task, due: '2028-03-01' }, '2028-02-23'), true);
+  assert.equal(taskVisibleToday({ ...task, due: '2028-03-01' }, '2028-02-22'), false);
+});
+
+test('long-task today filtering preserves cancellation, completion, start dates and undated records', () => {
+  const task = { ...plannedTask, mode: 'multi', due: '2026-11-05', startDate: '2026-10-01', plannedDate: undefined, progressLogs: [] };
+  const before = JSON.stringify(task);
+  assert.equal(taskVisibleToday(cancelWorkForDate(task, '2026-10-29'), '2026-10-29'), false);
+  assert.equal(taskVisibleToday({ ...task, startDate: '2026-10-30' }, '2026-10-29'), false);
+  assert.equal(taskVisibleToday({ ...task, due: undefined }, '2026-10-29'), false);
+  assert.equal(taskVisibleToday({ ...task, due: '2026-02-30' }, '2026-10-29'), false);
+  assert.equal(taskVisibleToday({ ...task, done: true, completedDate: '2026-10-28' }, '2026-10-29'), false);
+  assert.equal(taskVisibleToday({ ...task, done: true, completedDate: '2026-10-29' }, '2026-10-29'), true);
+  assert.equal(JSON.stringify(task), before);
+});
+
 test('a short task can be worked on today and remain incomplete until its later deadline', () => {
   assert.equal(taskVisibleToday(plannedTask, '2026-10-02'), true);
   assert.equal(taskScheduledForDate(plannedTask, '2026-10-10'), true);
