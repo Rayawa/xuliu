@@ -1,8 +1,34 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { cancelWorkForDate, courseNodeVisibleToday, defaultTaskPlannedDate, planTaskForDate, taskDeadlineLabel, taskOverlapsRange, taskScheduledForDate, taskScheduleSummary, taskVisibleToday, withWorkCompletionDates } from '../lib/task-progress.ts';
+import { cancelWorkForDate, courseNodeVisibleToday, defaultTaskPlannedDate, newTaskPlannedDate, planTaskForDate, taskDeadlineLabel, taskOverlapsRange, taskScheduledForDate, taskScheduleSummary, taskVisibleToday, withWorkCompletionDates, workDateChangeAllowed, workDateInputMinimum } from '../lib/task-progress.ts';
 import { studyTaskVisibleOnDate } from '../lib/study-task-automation.ts';
 import { createEmptyWorkspaceState, workspaceStateSchema } from '../lib/workspace-state-schema.ts';
+
+test('new tasks near their deadline plan today while old dates and explicit choices keep their meaning', () => {
+  assert.equal(newTaskPlannedDate({ due: '2026-10-30' }, '2026-10-29'), '2026-10-29');
+  assert.equal(newTaskPlannedDate({ due: '2026-10-30' }, '2026-10-30'), '2026-10-30');
+  assert.equal(newTaskPlannedDate({ due: '2026-10-31' }, '2026-10-29'), '2026-10-29');
+  assert.equal(newTaskPlannedDate({ due: '2026-11-01' }, '2026-10-29'), '2026-10-30');
+  assert.equal(newTaskPlannedDate({ due: '2027-01-01' }, '2026-12-31'), '2026-12-31');
+  assert.equal(newTaskPlannedDate({ due: '2026-10-31', plannedDate: '2026-10-30' }, '2026-10-29'), '2026-10-30');
+  assert.equal(newTaskPlannedDate({ alsoTask: true, date: '2026-10-30' }, '2026-10-29'), '2026-10-29');
+  assert.equal(newTaskPlannedDate({ due: '2026-10-30', mode: 'multi' }, '2026-10-29'), undefined);
+  assert.equal(newTaskPlannedDate({}, '2026-10-29'), undefined);
+  assert.equal(defaultTaskPlannedDate({ due: '2026-10-30' }), '2026-10-28');
+});
+
+test('date inputs reject new past values but permit untouched historical dates without rolling records forward', () => {
+  assert.equal(workDateChangeAllowed('2026-10-28', '2026-10-29'), false);
+  assert.equal(workDateChangeAllowed('2026-10-28', '2026-10-29', '2026-10-27'), false);
+  assert.equal(workDateChangeAllowed('2026-10-28', '2026-10-29', '2026-10-28'), true);
+  assert.equal(workDateChangeAllowed('2026-02-30', '2026-10-29'), false);
+  assert.equal(workDateChangeAllowed('2026-10-29', '2026-10-29'), true);
+  assert.equal(workDateChangeAllowed('2026-10-30', '2026-10-29'), true);
+  assert.equal(workDateChangeAllowed('', '2026-10-29'), true);
+  assert.equal(workDateInputMinimum('2026-10-28', '2026-10-29', '2026-10-28'), '2026-10-28');
+  assert.equal(workDateInputMinimum('2026-10-27', '2026-10-29', '2026-10-28'), '2026-10-29');
+  assert.equal(workDateInputMinimum('', '2026-10-29', ''), '2026-10-29');
+});
 
 const plannedTask = {
   id: 'paper', title: '完成论文', area: '课内', source: '课程',

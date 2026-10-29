@@ -1,3 +1,5 @@
+import { isValidLocalDate } from "./finance.ts";
+
 export type TaskMode = "single" | "multi";
 export type TaskProgressStatus = "未开始" | "进行中" | "已暂停" | "已完成";
 
@@ -9,6 +11,7 @@ export type TaskScheduleLike = {
   dismissedTodayDate?: string;
   date?: string;
   courseId?: string;
+  alsoTask?: boolean;
   automationKey?: string;
   today?: boolean;
   done?: boolean;
@@ -22,8 +25,12 @@ export type TaskScheduleLike = {
 
 export const taskStatusOptions: TaskProgressStatus[] = ["未开始", "进行中", "已暂停", "已完成"];
 
+export function isTaskNode(node: Pick<TaskScheduleLike, "courseId" | "alsoTask">) {
+  return Boolean(node.courseId || node.alsoTask);
+}
+
 export function defaultTaskPlannedDate(task: TaskScheduleLike) {
-  const deadline = task.due || (task.courseId ? task.date : undefined);
+  const deadline = task.due || (isTaskNode(task) ? task.date : undefined);
   const cancelledManualPlan = deadline && task.plannedDate === task.dismissedTodayDate && !task.automationKey && !task.id?.startsWith("stage:") && taskModeOf(task) === "single";
   if (task.plannedDate && !cancelledManualPlan) return task.plannedDate;
   if (taskModeOf(task) === "multi" || task.automationKey) return undefined;
@@ -37,6 +44,19 @@ export function defaultTaskPlannedDate(task: TaskScheduleLike) {
   return `${String(date.getUTCFullYear()).padStart(4, "0")}-${String(date.getUTCMonth() + 1).padStart(2, "0")}-${String(date.getUTCDate()).padStart(2, "0")}`;
 }
 
+export function newTaskPlannedDate(task: TaskScheduleLike, currentDate: string) {
+  const planned = defaultTaskPlannedDate(task);
+  return planned && !task.plannedDate && planned < currentDate && isValidLocalDate(currentDate) ? currentDate : planned;
+}
+
+export function workDateChangeAllowed(value: string, currentDate: string, original?: string) {
+  return !value || isValidLocalDate(value) && (value >= currentDate || value === original);
+}
+
+export function workDateInputMinimum(value: string, currentDate: string, original?: string) {
+  return value && value === original && value < currentDate ? value : currentDate;
+}
+
 export function planTaskForDate<T extends TaskScheduleLike>(task: T, targetDate: string): T {
   if (task.done || task.status === "已完成") return task;
   const { dismissedTodayDate: _dismissedTodayDate, ...rest } = task;
@@ -48,9 +68,9 @@ export function cancelWorkForDate<T extends TaskScheduleLike>(task: T, targetDat
 }
 
 export function courseNodeVisibleToday(node: TaskScheduleLike & { date: string; done: boolean }, targetDate: string) {
-  if (node.courseId && node.dismissedTodayDate === targetDate) return false;
-  if (node.courseId && node.done) return node.completedDate === targetDate;
-  return node.date === targetDate || Boolean(node.courseId && (defaultTaskPlannedDate(node) === targetDate || node.mode === "multi" && !node.done));
+  if (isTaskNode(node) && node.dismissedTodayDate === targetDate) return false;
+  if (isTaskNode(node) && node.done) return node.completedDate === targetDate;
+  return node.date === targetDate || Boolean(isTaskNode(node) && (defaultTaskPlannedDate(node) === targetDate || node.mode === "multi" && !node.done));
 }
 
 export function taskCompletionDate(task: TaskScheduleLike) {

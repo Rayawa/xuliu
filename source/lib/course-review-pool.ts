@@ -42,6 +42,27 @@ export function createReviewPoolStep(steps: ReviewPoolStep[], title: string, id:
   return step;
 }
 
+export function editReviewPoolStep(steps: ReviewPoolStep[], id: string, title: string): ReviewPoolStep[] {
+  if (!steps.some((step) => step.id === id)) throw new Error("这个小任务已不存在");
+  const name = title.trim();
+  if (!name) throw new Error("请填写小任务内容");
+  const next = steps.map((step) => step.id === id ? { ...step, title: name } : step);
+  if (!validReviewPoolSteps(next)) throw new Error("小任务内容最多 500 字");
+  return next;
+}
+
+export function editReviewPoolItem(items: ReviewPoolItem[], id: string, draft: Pick<ReviewPoolDraft, "course" | "chapter">): ReviewPoolItem {
+  const item = items.find((item) => item.id === id);
+  if (!item) throw new Error("这个复习项目已不存在");
+  const course = draft.course.trim();
+  const chapter = normalizeReviewChapter(draft.chapter);
+  if (!course || !chapter) throw new Error("请填写课程和复习项目");
+  if (course.length > 500 || chapter.length > 500) throw new Error("课程或项目最多 500 字");
+  const others = items.filter((current) => current.id !== id);
+  if (others.some((current) => sameReviewCourse(current.course, course) && reviewChapterKey(current.chapter) === reviewChapterKey(chapter))) throw new Error("池中已有这个复习项目");
+  return { ...item, course: others.find((current) => sameReviewCourse(current.course, course))?.course ?? course, chapter };
+}
+
 export function createReviewPoolItem(items: ReviewPoolItem[], draft: ReviewPoolDraft, id: string): ReviewPoolItem {
   const course = draft.course.trim();
   const chapter = normalizeReviewChapter(draft.chapter);
@@ -259,15 +280,18 @@ export function restoreReviewPoolItem<T extends { reviewPool?: CourseReviewPool 
   return { ...state, reviewPool: { ...rest, items, ...(removedSources?.length ? { removedSources } : {}) } };
 }
 
-export function updateReviewPoolItem<T extends { reviewPool?: CourseReviewPool }>(state: T, id: string, patch: Partial<Pick<ReviewPoolItem, "progress" | "note" | "done" | "selectedDate" | "steps">>, currentDate: string): T {
+export function updateReviewPoolItem<T extends { reviewPool?: CourseReviewPool }>(state: T, id: string, patch: Partial<Pick<ReviewPoolItem, "course" | "chapter" | "progress" | "note" | "done" | "selectedDate" | "steps">>, currentDate: string): T {
   if (!state.reviewPool) return state;
   if (!isValidLocalDate(currentDate) || patch.selectedDate !== undefined && !isValidLocalDate(patch.selectedDate)) throw new Error("请选择有效日期");
   if (patch.progress !== undefined && (!Number.isInteger(patch.progress) || patch.progress < 0 || patch.progress > 100)) throw new Error("进度应为 0–100");
   if (patch.note !== undefined && patch.note.length > 4000) throw new Error("备注最多 4000 字");
   if (patch.steps !== undefined && !validReviewPoolSteps(patch.steps)) throw new Error("每个复习项目最多 50 个小任务，内容最多 500 字，编号不能重复");
+  const original = state.reviewPool.items.find((item) => item.id === id);
+  const edited = original && (patch.course !== undefined || patch.chapter !== undefined)
+    ? editReviewPoolItem(state.reviewPool.items, id, { course: patch.course ?? original.course, chapter: patch.chapter ?? original.chapter }) : undefined;
   return { ...state, reviewPool: { ...state.reviewPool, items: state.reviewPool.items.map((item) => {
     if (item.id !== id) return item;
-    const next = { ...item, ...patch };
+    const next = { ...item, ...patch, ...(edited ? { course: edited.course, chapter: edited.chapter } : {}) };
     if (patch.steps) next.steps = patch.steps.map((step) => {
       if (step.done && step.completedDate === undefined && !item.steps?.find((current) => current.id === step.id)?.done) return { ...step, completedDate: currentDate };
       if (!step.done) { const { completedDate: _completedDate, ...rest } = step; return rest; }

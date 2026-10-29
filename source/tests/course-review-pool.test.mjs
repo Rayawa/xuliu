@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { chooseReviewPoolItem, createReviewPoolItem, createReviewPoolStep, deferStudyToReviewPool, deleteReviewPoolItem, editedStudyToReviewPool, initializeCourseReviewPool, restoreReviewPoolItem, reviewPoolItemVisibleOnDate, reviewPoolStepVisibleOnDate, reviewPoolTodayCounts, reviewPoolReadProjection, sameReviewCourse, updateReviewPoolItem, withoutReviewPoolSources } from '../lib/course-review-pool.ts';
+import { chooseReviewPoolItem, createReviewPoolItem, createReviewPoolStep, deferStudyToReviewPool, deleteReviewPoolItem, editedStudyToReviewPool, editReviewPoolItem, editReviewPoolStep, initializeCourseReviewPool, restoreReviewPoolItem, reviewPoolItemVisibleOnDate, reviewPoolStepVisibleOnDate, reviewPoolTodayCounts, reviewPoolReadProjection, sameReviewCourse, updateReviewPoolItem, withoutReviewPoolSources } from '../lib/course-review-pool.ts';
 import { personalStudyRequirements, studyTaskVisibleOnDate } from '../lib/study-task-automation.ts';
 import { aiCourseContextFromWorkspace } from '../lib/ai-course-context.ts';
 import { createEmptyWorkspaceState, workspaceStateSchema } from '../lib/workspace-state-schema.ts';
@@ -9,6 +9,57 @@ import { upcomingDeadlines } from '../lib/upcoming-deadlines.ts';
 
 const today = '2026-10-23';
 const tomorrow = '2026-10-24';
+
+test('editing course and chapter preserves identity, completion, selected substeps and original source content', () => {
+  const initialized = initializeCourseReviewPool(stateFor([task('review-source', '线代第二章rev', { requirements: '保留原任务说明' })]));
+  const id = 'review:linear-algebra:2';
+  const state = updateReviewPoolItem(initialized, id, { note: '复习到一半', progress: 45, selectedDate: today, steps: [{ id: 'step', title: '例题', done: true, completedDate: today, selectedDate: today }] }, today);
+  const completed = updateReviewPoolItem(state, id, { done: true }, today);
+  const before = JSON.stringify(completed);
+  const edited = updateReviewPoolItem(completed, id, { course: '会计基础', chapter: ' l8（后半） ' }, tomorrow);
+  const item = itemById(edited, id);
+  assert.deepEqual(item, { ...itemById(completed, id), course: '会计学基础', chapter: 'L8（后半）' });
+  assert.equal(edited.tasks, completed.tasks);
+  assert.equal(edited.milestones, completed.milestones);
+  assert.equal(edited.reviewPool.items.length, completed.reviewPool.items.length);
+  assert.deepEqual(reviewPoolTodayCounts(edited.reviewPool.items, today), reviewPoolTodayCounts(completed.reviewPool.items, today));
+  assert.deepEqual(workspaceStateSchema.parse(JSON.parse(JSON.stringify(edited))), edited);
+  assert.equal(initializeCourseReviewPool(edited), edited);
+  assert.equal(JSON.stringify(completed), before);
+});
+
+test('project edits recognize chapter and course aliases, block collisions and work when the pool is full', () => {
+  const state = initializeCourseReviewPool(stateFor());
+  const id = 'review:linear-algebra:2';
+  assert.equal(editReviewPoolItem(state.reviewPool.items, id, { course: '线代', chapter: '第二章' }).chapter, '第2章');
+  const before = JSON.stringify(state);
+  for (const patch of [{ course: '线性代数B', chapter: '第一章' }, { course: ' ', chapter: 'L8' }, { course: '线代', chapter: ' ' }, { course: '字'.repeat(501), chapter: 'L8' }, { course: '线代', chapter: '字'.repeat(501) }]) {
+    assert.throws(() => updateReviewPoolItem(state, id, patch, today));
+  }
+  assert.throws(() => editReviewPoolItem(state.reviewPool.items, 'missing', { course: '线代', chapter: '第3章' }));
+  assert.equal(JSON.stringify(state), before);
+  const item = itemById(state, id);
+  const full = Array.from({ length: 500 }, (_, index) => ({ ...item, id: `full-${index}`, chapter: `第${index + 1}章` }));
+  assert.equal(editReviewPoolItem(full, 'full-0', { course: '线代', chapter: '第五百零一章' }).chapter, '第501章');
+});
+
+test('editing selected or completed substeps preserves dates, siblings and chapter progress even with 50 substeps', () => {
+  const initial = initializeCourseReviewPool(stateFor());
+  const id = 'review:linear-algebra:2';
+  const steps = Array.from({ length: 50 }, (_, index) => ({ id: `step-${index}`, title: `例题${index}`, done: false }));
+  steps[0] = { ...steps[0], done: true, completedDate: today, selectedDate: today };
+  const original = updateReviewPoolItem(initial, id, { steps, note: '学到例题3', progress: 45 }, today);
+  const nextSteps = editReviewPoolStep(steps, 'step-0', ' 例题3与练习 ');
+  assert.deepEqual(nextSteps[0], { ...steps[0], title: '例题3与练习' });
+  assert.equal(nextSteps[1], steps[1]);
+  const next = updateReviewPoolItem(original, id, { steps: nextSteps }, tomorrow);
+  assert.deepEqual(itemById(next, id), { ...itemById(original, id), steps: nextSteps });
+  assert.equal(reviewPoolStepVisibleOnDate(nextSteps[0], today), true);
+  assert.deepEqual(workspaceStateSchema.parse(JSON.parse(JSON.stringify(next))), next);
+  for (const title of [' ', '字'.repeat(501)]) assert.throws(() => editReviewPoolStep(steps, 'step-0', title));
+  assert.throws(() => editReviewPoolStep(steps, 'missing', '例题'));
+  assert.equal(steps[0].title, '例题0');
+});
 
 test('adding within the pool creates an undated checklist item and preserves other work', () => {
   const original = initializeCourseReviewPool(stateFor([task('formal', '线代作业week3', { due: tomorrow })]));

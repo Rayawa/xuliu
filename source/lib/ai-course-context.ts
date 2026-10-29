@@ -18,6 +18,7 @@ export type AiCourseContext = {
     requirements: string;
     kind: "task" | "event";
     eventDateKind?: "occurs" | "deadline";
+    alsoTask?: boolean;
   }>;
 };
 
@@ -53,6 +54,7 @@ export function aiCourseContextFromWorkspace(workspace: unknown, activeCourseId?
         location: limitedText(milestone?.location, 300),
         requirements: limitedText(milestone?.requirements, 1_000),
         kind: milestone?.courseId ? "task" as const : "event" as const,
+        ...(milestone?.alsoTask === true ? { alsoTask: true } : {}),
         ...(milestone?.eventDateKind === "occurs" || milestone?.eventDateKind === "deadline" ? { eventDateKind: milestone.eventDateKind } : {}),
       }))
       .sort((left, right) => `${left.date} ${left.time}`.localeCompare(`${right.date} ${right.time}`))

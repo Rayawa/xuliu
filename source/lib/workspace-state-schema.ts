@@ -157,13 +157,14 @@ export const workspaceStateSchema = z.object({
     if (task.dueTime && !task.due) context.addIssue({ code: "custom", message: "设置截止时间前请先选择截止日期" });
   })).max(10_000),
   milestones: z.array(z.object({
-    id, courseId: id.optional(), linkedCourseId: id.optional(), courseLinkReviewed: z.boolean().optional(), assessmentType: z.enum(["exam", "quiz", "submission", "presentation"]).optional(), eventDateKind: z.enum(["occurs", "deadline"]).optional(),
+    id, courseId: id.optional(), linkedCourseId: id.optional(), courseLinkReviewed: z.boolean().optional(), alsoTask: z.boolean().optional(), assessmentType: z.enum(["exam", "quiz", "submission", "presentation"]).optional(), eventDateKind: z.enum(["occurs", "deadline"]).optional(),
     automationKey: shortText.optional(), title: shortText, date: z.union([date, z.literal("")]), time: z.union([time, z.literal("")]), plannedDate: date.optional(), completedDate: date.optional(), dismissedTodayDate: date.optional(), location: shortText, requirements: text,
     attachments: z.array(storedAttachment).max(50).optional(), outcomeText: text.optional(), outcomeAttachments: z.array(storedAttachment).max(50).optional(), blocks: z.array(block).max(2000).optional(), elapsed: z.number().int().min(0).max(10000000).optional(), mode: z.enum(["single", "multi"]).optional(), parentCandidate: z.boolean().optional(), area, done: z.boolean(),
   }).strict().superRefine((node, context) => {
     if (node.courseId && (!node.date || !node.time)) context.addIssue({ code: "custom", message: "课程任务必须设置有效日期和时间" });
     if (node.time && !node.date) context.addIssue({ code: "custom", path: ["time"], message: "设置时间前请先选择日期" });
     if (node.courseId && (node.linkedCourseId || node.assessmentType || node.eventDateKind)) context.addIssue({ code: "custom", message: "课程任务与课程事项的关联方式不能混用" });
+    if (node.alsoTask && (node.courseId || node.automationKey)) context.addIssue({ code: "custom", message: "仅手动事项可设置同时作为任务" });
   })).max(10_000),
   courses: z.array(z.object({
     id, title: shortText, term: shortText, teacher: shortText, location: shortText, school: z.enum(["pku", "bit"]).optional(), progress: z.number().int().min(0).max(100), requirements: text,

@@ -2,7 +2,7 @@ import { isCourseTitleCandidate } from "./timetable.ts";
 
 export type AssessmentType = "exam" | "quiz" | "submission" | "presentation";
 export type EventDateKind = "occurs" | "deadline";
-export type CourseEventFields = { linkedCourseId?: string; assessmentType?: AssessmentType; eventDateKind?: EventDateKind; courseLinkReviewed?: boolean };
+export type CourseEventFields = { linkedCourseId?: string; assessmentType?: AssessmentType; eventDateKind?: EventDateKind; courseLinkReviewed?: boolean; alsoTask?: boolean };
 type CourseIdentity = { id: string; title: string };
 
 export function eventCourseChoices<T extends CourseIdentity>(courses: T[]) {

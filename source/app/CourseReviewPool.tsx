@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useId, useRef, useState, type ReactNode, type RefObject } from "react";
-import { createReviewPoolItem, createReviewPoolStep, reviewPoolItemVisibleOnDate, reviewPoolStepVisibleOnDate, sameReviewCourse, type ReviewPoolItem, type ReviewPoolStep, type ReviewPoolTransferDraft } from "../lib/course-review-pool";
+import { createReviewPoolItem, createReviewPoolStep, editReviewPoolItem, editReviewPoolStep, reviewPoolItemVisibleOnDate, reviewPoolStepVisibleOnDate, sameReviewCourse, type ReviewPoolItem, type ReviewPoolStep, type ReviewPoolTransferDraft } from "../lib/course-review-pool";
 import { reviewChapterKey } from "../lib/review-chapter";
 import { submitFormOnEnter } from "./form-keyboard";
 import "./course-review-pool.css";
 
-type ReviewPoolChange = (id: string, patch: Partial<Pick<ReviewPoolItem, "note" | "done" | "selectedDate" | "steps">>) => void;
+type ReviewPoolChange = (id: string, patch: Partial<Pick<ReviewPoolItem, "course" | "chapter" | "note" | "done" | "selectedDate" | "steps">>) => void;
 
 type ReviewPoolProps = {
   items: ReviewPoolItem[];
@@ -122,19 +122,29 @@ function ReviewPoolSteps({ item, today, readOnly, onChange }: Omit<ReviewPoolPro
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState("");
   const [error, setError] = useState("");
+  const [editing, setEditing] = useState<{ id: string; title: string } | null>(null);
+  const [focusStep, setFocusStep] = useState<string | null>(null);
+  const editRef = useRef<HTMLButtonElement>(null);
   const [removed, setRemoved] = useState<{ step: ReviewPoolStep; index: number } | null>(null);
   const undoRef = useRef<HTMLButtonElement>(null);
   useEffect(() => { if (removed) undoRef.current?.focus(); }, [removed]);
+  useEffect(() => { if (focusStep) { editRef.current?.focus(); setFocusStep(null); } }, [focusStep]);
   const steps = item.steps ?? [];
   return <section className="reviewPoolSteps" aria-label={`${item.course} ${item.chapter} 小任务`}>
     <div className="reviewPoolStepsHead">{steps.length > 0 && <span>小任务 · {steps.filter((step) => step.done).length}/{steps.length}</span>}
-      {!readOnly && !adding && <button type="button" className="textButton" disabled={steps.length >= 50} onClick={() => setAdding(true)}>＋ 小任务</button>}</div>
+      {!readOnly && !adding && <button type="button" className="textButton" disabled={steps.length >= 50} onClick={() => { setEditing(null); setError(""); setAdding(true); }}>＋ 小任务</button>}</div>
     {steps.length > 0 && <ul>{steps.map((step) => <li key={step.id}>
+      {editing?.id === step.id && !readOnly ? <form className="reviewPoolStepForm reviewPoolStepEditForm" aria-label={`修改小任务：${step.title}`} onKeyDown={submitFormOnEnter} onSubmit={(event) => {
+        event.preventDefault();
+        try { onChange(item.id, { steps: editReviewPoolStep(steps, step.id, editing.title) }); setEditing(null); setFocusStep(step.id); setError(""); }
+        catch (cause) { setError(cause instanceof Error ? cause.message : "暂时无法修改小任务"); }
+      }}><input autoFocus aria-label="修改小任务内容" required maxLength={500} value={editing.title} onChange={(event) => { setEditing({ ...editing, title: event.target.value }); setError(""); }} /><button type="submit" className="textButton">保存</button><button type="button" className="textButton" onClick={() => { setEditing(null); setFocusStep(step.id); setError(""); }}>取消</button></form> : <>
       <ReviewPoolStepCheck item={item} step={step} readOnly={readOnly} onChange={onChange} /><span className={`reviewPoolStepTitle${step.done ? " reviewPoolStepDone" : ""}`}>{step.title}</span>
       {(step.selectedDate === today || !step.done) && <button type="button" className="textButton reviewPoolStepChoose" disabled={readOnly}
         aria-label={`${step.selectedDate === today ? "取消今天的小任务" : "今天做小任务"}：${item.course} ${item.chapter} ${step.title}`}
         onClick={() => onChange(item.id, { steps: steps.map((current) => current.id === step.id ? { ...current, selectedDate: step.selectedDate === today ? undefined : today } : current) })}>{step.selectedDate === today ? "取消今天" : "今天做"}</button>}
-      {!readOnly && <button type="button" className="reviewPoolStepRemove" aria-label={`删除小任务：${step.title}`} onClick={() => { setRemoved({ step, index: steps.findIndex((current) => current.id === step.id) }); setError(""); onChange(item.id, { steps: steps.filter((current) => current.id !== step.id) }); }}>删除</button>}
+      {!readOnly && <><button type="button" ref={focusStep === step.id ? editRef : undefined} className="reviewPoolStepEdit" aria-label={`修改小任务：${step.title}`} onClick={() => { setAdding(false); setEditing({ id: step.id, title: step.title }); setError(""); }}>修改</button><button type="button" className="reviewPoolStepRemove" aria-label={`删除小任务：${step.title}`} onClick={() => { setRemoved({ step, index: steps.findIndex((current) => current.id === step.id) }); setError(""); onChange(item.id, { steps: steps.filter((current) => current.id !== step.id) }); }}>删除</button></>}
+      </>}
     </li>)}</ul>}
     {removed && !readOnly && <div className="reviewPoolStepUndo"><span role="status">已删除 {removed.step.title}</span><button ref={undoRef} type="button" className="textButton" onClick={() => {
       try { createReviewPoolStep(steps, removed.step.title, removed.step.id); const restored = [...steps]; restored.splice(Math.min(removed.index, restored.length), 0, removed.step); onChange(item.id, { steps: restored }); setRemoved(null); setError(""); }
@@ -149,12 +159,32 @@ function ReviewPoolSteps({ item, today, readOnly, onChange }: Omit<ReviewPoolPro
   </section>;
 }
 
-function ReviewPoolRow({ item, today, readOnly, onChange, onDelete, expanded, onToggle, initialFocusRef, renderSources }: {
+function ReviewPoolItemEditor({ item, items, courseNames, onSave, onCancel }: {
+  item: ReviewPoolItem; items: ReviewPoolItem[]; courseNames: string[];
+  onSave: (names: Pick<ReviewPoolItem, "course" | "chapter">) => void; onCancel: () => void;
+}) {
+  const [draft, setDraft] = useState({ course: item.course, chapter: item.chapter });
+  const [error, setError] = useState("");
+  return <form className="reviewPoolAddForm reviewPoolEditForm" aria-label="修改复习项目" onKeyDown={submitFormOnEnter} onSubmit={(event) => {
+    event.preventDefault();
+    try { const edited = editReviewPoolItem(items, item.id, draft); onSave({ course: edited.course, chapter: edited.chapter }); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : "暂时无法修改复习项目"); }
+  }}>
+    <div className="reviewPoolCourseField"><span>课程</span><ReviewPoolPicker options={courseNames} value={draft.course} label="修改复习课程" placeholder="选择或输入课程" listLabel="可选课程" expandLabel="展开全部课程" onChange={(course) => { setDraft({ ...draft, course }); setError(""); }} /></div>
+    <label><span>复习项目</span><input aria-label="修改复习项目" required maxLength={500} value={draft.chapter} onChange={(event) => { setDraft({ ...draft, chapter: event.target.value }); setError(""); }} /></label>
+    {error && <p role="alert">{error}</p>}
+    <div className="reviewPoolAddActions"><button type="button" className="textButton" onClick={onCancel}>取消</button><button type="submit" className="primaryButton">保存</button></div>
+  </form>;
+}
+
+function ReviewPoolRow({ item, today, readOnly, onChange, onDelete, onEdit, editForm, expanded, onToggle, initialFocusRef, renderSources }: {
   item: ReviewPoolItem;
   today: string;
   readOnly: boolean;
   onChange: ReviewPoolChange;
   onDelete: () => void;
+  onEdit: () => void;
+  editForm?: ReactNode;
   expanded: boolean;
   onToggle: () => void;
   initialFocusRef?: RefObject<HTMLButtonElement | null>;
@@ -177,13 +207,14 @@ function ReviewPoolRow({ item, today, readOnly, onChange, onDelete, expanded, on
           aria-label={`今天学：${item.course} ${item.chapter}`} onClick={() => onChange(item.id, { selectedDate: today })}>今天学</button> : null}
     </div>
     {expanded && <div className="reviewPoolDetails" id={detailId}>
+      {!readOnly && !editForm && <div className="reviewPoolItemActions"><button type="button" className="textButton" aria-label={`修改复习项目：${item.course} ${item.chapter}`} onClick={onEdit}>修改项目</button><button type="button" className="reviewPoolDelete" aria-label={`删除复习项目：${item.course} ${item.chapter}`} onClick={onDelete}>删除项目</button></div>}
+      {editForm}
       <ReviewPoolSteps item={item} today={today} readOnly={readOnly} onChange={onChange} />
       <label className="reviewPoolNote"><span>进度与备注</span>
         <textarea value={item.note} readOnly={readOnly} maxLength={4000} rows={3}
           aria-label={`${item.course} ${item.chapter} 进度与备注`} onChange={(event) => onChange(item.id, { note: event.target.value })} />
       </label>
       {item.sources.length > 0 && renderSources && <div className="reviewPoolSources"><h4>原有记录</h4>{renderSources(item)}</div>}
-      {!readOnly && <button type="button" className="reviewPoolDelete" aria-label={`删除复习项目：${item.course} ${item.chapter}`} onClick={onDelete}>删除项目</button>}
     </div>}
   </li>;
 }
@@ -203,6 +234,8 @@ export function CourseReviewPoolDialog({ items, today, readOnly, onChange, onCre
   const createButton = useRef<HTMLButtonElement>(null);
   const undoButton = useRef<HTMLButtonElement>(null);
   const [adding, setAdding] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [focusItemId, setFocusItemId] = useState<string | null>(null);
   const [draft, setDraft] = useState({ course: "", chapter: "", note: "" });
   const [removed, setRemoved] = useState<{ item: ReviewPoolItem; index: number } | null>(null);
   const [undoError, setUndoError] = useState("");
@@ -218,6 +251,8 @@ export function CourseReviewPoolDialog({ items, today, readOnly, onChange, onCre
   useEffect(() => {
     if (removed) undoButton.current?.focus();
   }, [removed]);
+
+  useEffect(() => { if (focusItemId) { initialFocusRef.current?.focus(); setFocusItemId(null); } }, [focusItemId]);
 
   useEffect(() => {
     if (removed && items.some((item) => item.id === removed.item.id)) { initialFocusRef.current?.focus(); setRemoved(null); }
@@ -238,7 +273,7 @@ export function CourseReviewPoolDialog({ items, today, readOnly, onChange, onCre
   return <dialog className="reviewPoolDialog" ref={dialogRef} aria-labelledby={titleId}
     onCancel={(event) => { event.preventDefault(); onClose(); }}>
     <header className="reviewPoolHead"><h2 id={titleId}>课程复习池</h2><div className="reviewPoolHeadActions">
-      {!readOnly && <button type="button" ref={createButton} className="softButton reviewPoolAddButton" disabled={items.length >= 500} aria-expanded={adding} onClick={() => { setAdding(!adding); setError(""); }}>＋ 新增项目</button>}
+      {!readOnly && <button type="button" ref={createButton} className="softButton reviewPoolAddButton" disabled={items.length >= 500} aria-expanded={adding} onClick={() => { setEditingId(null); setAdding(!adding); setError(""); }}>＋ 新增项目</button>}
       <button type="button" className="reviewPoolClose" aria-label="关闭课程复习池" onClick={onClose}>×</button></div>
     </header>
     <div className="reviewPoolContents">
@@ -266,8 +301,10 @@ export function CourseReviewPoolDialog({ items, today, readOnly, onChange, onCre
       {[...courses].map(([course, courseItems]) => <section className="reviewPoolCourse" key={course} aria-label={course}>
         <h3>{course}</h3>
         <ul className="reviewPoolList">{courseItems.map((item) => <ReviewPoolRow key={item.id} item={item} today={today} readOnly={readOnly} onChange={onChange}
+          onEdit={() => { setAdding(false); setEditingId(item.id); }}
+          editForm={editingId === item.id && !readOnly ? <ReviewPoolItemEditor item={item} items={items} courseNames={courseNames} onCancel={() => { setEditingId(null); setFocusItemId(item.id); }} onSave={(names) => { onChange(item.id, names); setEditingId(null); setFocusItemId(item.id); }} /> : undefined}
           onDelete={() => { setRemoved({ item, index: items.findIndex((current) => current.id === item.id) }); setUndoError(""); onDelete(item.id); }}
-          expanded={expanded.has(item.id)} initialFocusRef={initialItemId === item.id || removed?.item.id === item.id ? initialFocusRef : undefined} renderSources={renderSources}
+          expanded={expanded.has(item.id)} initialFocusRef={(focusItemId ?? removed?.item.id ?? initialItemId) === item.id ? initialFocusRef : undefined} renderSources={renderSources}
           onToggle={() => setExpanded((current) => { const next = new Set(current); if (next.has(item.id)) next.delete(item.id); else next.add(item.id); return next; })} />)}</ul>
       </section>)}
     </div>

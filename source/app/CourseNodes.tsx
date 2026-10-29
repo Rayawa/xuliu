@@ -5,6 +5,8 @@ import { upload as uploadBlob } from "@vercel/blob/client";
 import dynamic from "next/dynamic";
 import { attachmentUrl, MAX_NODE_FILES, uploadNodeFileBatch, type NodeAttachment } from "@/lib/course-node-attachments";
 import { saveLocalPreviewFile, downloadLocalPreviewFile } from "@/lib/local-preview-files";
+import { localDateKey } from "@/lib/finance";
+import { newTaskPlannedDate, workDateChangeAllowed, workDateInputMinimum } from "@/lib/task-progress";
 
 const AttachmentPreview = dynamic(() => import("./AttachmentPreview"), { ssr: false });
 
@@ -119,15 +121,15 @@ export function CourseNodeForm({ courseId, location, date, access, onCreate, onC
   const submitted = useRef(false);
   const patch = (values: Partial<CourseNode>) => setDraft((current) => ({ ...current, ...values }));
   return <form className="courseNodeForm" onSubmit={(event) => {
-    event.preventDefault(); if (blocked || access.readOnly || submitted.current || !draft.title.trim()) return;
-    submitted.current = true; onCreate({ ...draft, title: draft.title.trim() });
+    event.preventDefault(); if (blocked || access.readOnly || submitted.current || !draft.title.trim() || !workDateChangeAllowed(draft.date, localDateKey())) return;
+    submitted.current = true; onCreate({ ...draft, title: draft.title.trim(), ...(draft.mode !== "multi" ? { plannedDate: newTaskPlannedDate(draft, localDateKey()) } : {}) });
   }}>
     <div className="courseNodeSectionHead"><div><h3>新增课程任务</h3></div></div>
     <div className="fieldGrid">
       <label className="editField wide"><span>任务名称</span><input autoFocus required maxLength={500} value={draft.title} placeholder="考试 / 作业 / 汇报" onChange={(event) => patch({ title: event.target.value })} /></label>
       <label className="editField"><span>任务周期</span><select value={draft.mode ?? "single"} onChange={(event) => { const mode = event.target.value as "single" | "multi"; patch({ mode, parentCandidate: mode === "multi" }); }}><option value="single">短期任务</option><option value="multi">长期任务</option></select></label>
       <label className="editField taskCandidateField"><span>所属任务备选</span><span><input type="checkbox" checked={draft.parentCandidate ?? false} onChange={(event) => patch({ parentCandidate: event.target.checked })} />允许其他任务归属于它</span></label>
-      <label className="editField"><span>日期</span><input type="date" required value={draft.date} onChange={(event) => patch({ date: event.target.value })} /></label>
+      <label className="editField"><span>日期</span><input type="date" min={localDateKey()} required value={draft.date} onChange={(event) => patch({ date: event.target.value })} /></label>
       <label className="editField"><span>时间</span><input type="time" required value={draft.time} onChange={(event) => patch({ time: event.target.value })} /></label>
       <label className="editField wide"><span>地点</span><input maxLength={500} value={draft.location} onChange={(event) => patch({ location: event.target.value })} /></label>
       <label className="editField wide"><span>具体要求</span><textarea maxLength={4000} value={draft.requirements}  onChange={(event) => patch({ requirements: event.target.value })} /></label>
@@ -161,7 +163,7 @@ export function CourseNodeEditor({ node, access, onChange, onClose, onPendingCha
       {isCourseTask && <label className="editField"><span>任务周期</span><select disabled={access.readOnly} value={node.mode ?? "single"} onChange={(event) => { const mode = event.target.value as "single" | "multi"; onChange((current) => ({ ...current, mode, parentCandidate: current.parentCandidate ?? (mode === "multi") })); }}><option value="single">短期任务</option><option value="multi">长期任务</option></select></label>}
       {isCourseTask && <label className="editField taskCandidateField"><span>所属任务备选</span><span><input type="checkbox" disabled={access.readOnly} checked={node.parentCandidate ?? false} onChange={(event) => { const parentCandidate = event.target.checked; onChange((current) => ({ ...current, parentCandidate })); }} />允许其他任务归属于它</span></label>}
       {!isCourseTask && <label className="editField"><span>所属领域</span><select disabled={access.readOnly} value={node.area} onChange={(event) => { const area = event.target.value as CourseNode["area"]; onChange((current) => ({ ...current, area })); }}><option>课内</option><option>课外</option><option>工作</option><option>生活</option><option>思考</option></select></label>}
-      <label className="editField"><span>日期</span><input readOnly={access.readOnly} type="date" required value={node.date} onChange={(event) => { const date = event.target.value; onChange((current) => ({ ...current, date })); }} /></label>
+      <label className="editField"><span>日期</span><input readOnly={access.readOnly} type="date" min={workDateInputMinimum(node.date, localDateKey(), node.date)} required value={node.date} onChange={(event) => { const date = event.target.value; if (workDateChangeAllowed(date, localDateKey(), node.date)) onChange((current) => ({ ...current, date })); }} /></label>
       <label className="editField"><span>时间</span><input readOnly={access.readOnly} type="time" required value={node.time} onChange={(event) => { const time = event.target.value; onChange((current) => ({ ...current, time })); }} /></label>
       <label className="editField wide"><span>地点</span><input readOnly={access.readOnly} maxLength={500} value={node.location} onChange={(event) => { const location = event.target.value; onChange((current) => ({ ...current, location })); }} /></label>
     </div>

@@ -3,10 +3,67 @@ import assert from 'node:assert/strict';
 import { assessmentTypeLabel, eventCourseChoices, eventCourseLabel, eventDateLabel, migrateCourseEvents } from '../lib/course-events.ts';
 import { createEmptyWorkspaceState, workspaceStateSchema } from '../lib/workspace-state-schema.ts';
 import { aiCourseContextFromWorkspace } from '../lib/ai-course-context.ts';
+import { cancelWorkForDate, courseNodeVisibleToday, defaultTaskPlannedDate, isTaskNode, planTaskForDate, withWorkCompletionDates } from '../lib/task-progress.ts';
+import { studyTaskVisibleOnDate } from '../lib/study-task-automation.ts';
+import { manualCalendarItems } from '../lib/calendar-items.ts';
+import { upcomingDeadlines } from '../lib/upcoming-deadlines.ts';
 
 const course = (id, title) => ({ id, title, term: '', teacher: '', location: '', progress: 0, requirements: '', schedule: [], blocks: [] });
 const event = (id, title, patch = {}) => ({ id, title, date: '2026-10-26', time: '00:00', location: '', requirements: '', area: '课内', done: false, ...patch });
 const stateFor = (milestones, courses = [course('probability', '概率论与数理统计')]) => ({ ...createEmptyWorkspaceState(), milestones, courses });
+
+test('one manual event can also be a task with a default DDL-2 plan and one calendar/deadline record', () => {
+  const node = event('both', '概率论作业', { date: '2026-10-31', time: '', alsoTask: true, eventDateKind: 'deadline', linkedCourseId: 'probability', requirements: '交完整过程' });
+  const state = stateFor([node]);
+  assert.equal(isTaskNode(node), true);
+  assert.equal(defaultTaskPlannedDate(node), '2026-10-29');
+  assert.equal(studyTaskVisibleOnDate(node, '2026-10-29'), true);
+  assert.equal(courseNodeVisibleToday(node, '2026-10-30'), false);
+  assert.equal(courseNodeVisibleToday(node, '2026-10-31'), true);
+  assert.equal(manualCalendarItems(state).length, 1);
+  assert.equal(manualCalendarItems(state)[0].date, '2026-10-31');
+  assert.equal(upcomingDeadlines([], state.milestones, '2026-10-29').length, 1);
+  assert.equal(upcomingDeadlines([], state.milestones, '2026-10-29')[0].entity, 'task');
+  assert.deepEqual(workspaceStateSchema.parse(JSON.parse(JSON.stringify(state))), state);
+  assert.equal(aiCourseContextFromWorkspace(state, 'probability').upcomingMilestones[0].alsoTask, true);
+  assert.equal(state.tasks.length, 0);
+});
+
+test('event-task planning, cancellation and completion preserve the deadline and synchronize through one identity', () => {
+  const original = event('both', '提交报告', { alsoTask: true, date: '2026-10-31', time: '16:00', requirements: '保留要求', plannedDate: '2026-10-28' });
+  const chosen = planTaskForDate(original, '2026-10-29');
+  const cancelled = cancelWorkForDate(chosen, '2026-10-29');
+  assert.equal(courseNodeVisibleToday(cancelled, '2026-10-29'), false);
+  assert.equal(defaultTaskPlannedDate(cancelled), '2026-10-29');
+  const rescheduled = planTaskForDate(cancelled, '2026-10-30');
+  assert.equal(courseNodeVisibleToday(rescheduled, '2026-10-30'), true);
+  assert.equal(rescheduled.dismissedTodayDate, undefined);
+  assert.equal(rescheduled.date, original.date);
+  assert.equal(rescheduled.time, original.time);
+  const before = stateFor([rescheduled]);
+  const completed = withWorkCompletionDates(before, { ...before, milestones: [{ ...rescheduled, done: true }] }, '2026-10-30');
+  assert.equal(completed.milestones[0].completedDate, '2026-10-30');
+  assert.equal(courseNodeVisibleToday(completed.milestones[0], '2026-10-30'), true);
+  assert.equal(courseNodeVisibleToday(completed.milestones[0], '2026-10-31'), false);
+  assert.equal(upcomingDeadlines([], completed.milestones, '2026-10-30').length, 0);
+  assert.equal(completed.milestones[0].requirements, original.requirements);
+  assert.deepEqual(workspaceStateSchema.parse(JSON.parse(JSON.stringify(completed))), completed);
+});
+
+test('disabling also-task keeps ordinary event semantics and undated tasks get no invented deadline', () => {
+  const node = event('both', '会议安排', { alsoTask: true, date: '2026-10-31', plannedDate: '2026-10-29' });
+  const { alsoTask, ...ordinary } = node;
+  assert.equal(isTaskNode(ordinary), false);
+  assert.equal(courseNodeVisibleToday(ordinary, '2026-10-29'), false);
+  assert.equal(courseNodeVisibleToday(ordinary, '2026-10-31'), true);
+  const undated = { ...node, date: '', time: '', plannedDate: undefined };
+  assert.equal(defaultTaskPlannedDate(undated), undefined);
+  assert.equal(studyTaskVisibleOnDate(undated, '2026-10-29'), false);
+  assert.equal(studyTaskVisibleOnDate(planTaskForDate(undated, '2026-10-29'), '2026-10-29'), true);
+  for (const patch of [{ alsoTask: 'yes' }, { alsoTask: true, courseId: 'probability' }, { alsoTask: true, automationKey: 'study:2026-10-31:self:probability' }]) {
+    assert.equal(workspaceStateSchema.safeParse(stateFor([event('invalid', '无效', patch)])).success, false);
+  }
+});
 
 test('course choices and automatic links ignore imported period headings without deleting the original course records', () => {
   const originals = [course('period1', '第1节-第2节'), course('period2', '第3节-第5节'), course('period3', '第6节-第7节'), course('time', '08:00—09:35'), course('heading', '上午'), course('data', '大数据分析（全英文）'), course('policy', '形势与政策Ⅲ')];

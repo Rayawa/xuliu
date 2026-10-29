@@ -26,7 +26,7 @@ import type { NodeAttachment } from "@/lib/course-node-attachments";
 import WebsiteCollection, { CollectionForm } from "./ToolCollections";
 import { toolCollectionFields, type ToolCollectionFields } from "@/lib/tool-collections";
 import { createInitialFinanceState, createPreviewFinanceState, normalizeFinanceState, type FinanceState } from "@/lib/finance";
-import { cancelWorkForDate, courseNodeVisibleToday, defaultTaskPlannedDate, planTaskForDate, taskDeadlineLabel, taskModeOf, taskOverlapsRange, taskProgressOf, taskScheduleSummary, taskScheduledForDate, taskStatusOf, taskStatusOptions, taskVisibleToday, withWorkCompletionDates, type TaskMode, type TaskProgressStatus } from "@/lib/task-progress";
+import { cancelWorkForDate, courseNodeVisibleToday, defaultTaskPlannedDate, isTaskNode, newTaskPlannedDate, planTaskForDate, taskDeadlineLabel, taskModeOf, taskOverlapsRange, taskProgressOf, taskScheduleSummary, taskScheduledForDate, taskStatusOf, taskStatusOptions, taskVisibleToday, withWorkCompletionDates, workDateChangeAllowed, workDateInputMinimum, type TaskMode, type TaskProgressStatus } from "@/lib/task-progress";
 import "./task-scheduling.css";
 import "./task-settings.css";
 import "./calendar-navigation.css";
@@ -775,7 +775,7 @@ export default function DashboardClient({ account, visibleAccounts, onLogout, de
   const navigate = (id: NavId) => { setActive(id); setDetail(null); setWorkDetail(null); setMobileNav(false); setReviewPoolOpen(null); };
   const daily = data.daily[today] ?? { note: "", gain: "", problem: "", feeling: "", tomorrow: "" };
   const displayedData = withoutReviewPoolSources(data);
-  const changeReviewItem = (id: string, patch: Partial<Pick<ReviewPoolItem, "progress" | "note" | "done" | "selectedDate" | "steps">>) => {
+  const changeReviewItem = (id: string, patch: Partial<Pick<ReviewPoolItem, "course" | "chapter" | "progress" | "note" | "done" | "selectedDate" | "steps">>) => {
     setData((current) => updateReviewPoolItem(current, id, patch, dateKey()));
   };
   const reviewToday = <ReviewPoolToday items={data.reviewPool?.items ?? []} today={reviewDate} readOnly={readOnly} onChange={changeReviewItem} onOpenItem={setReviewPoolOpen} />;
@@ -831,6 +831,7 @@ export default function DashboardClient({ account, visibleAccounts, onLogout, de
       ? { ...current, tasks: current.tasks.map((entry) => entry.id === target.id ? postponeTask(entry, days) : entry) }
       : { ...current, milestones: current.milestones.map((entry) => {
         if (entry.id !== target.id) return entry;
+        if (entry.alsoTask) { const currentDate = dateKey(); const planned = defaultTaskPlannedDate(entry); return planTaskForDate(entry, addDays(planned && planned > currentDate ? planned : currentDate, days)); }
         if (entry.courseId && entry.plannedDate === today && entry.date !== today) return { ...entry, plannedDate: addDays(today, days) };
         const date = addDays(entry.date || today, days);
         return { ...entry, date, ...(entry.plannedDate === today ? { plannedDate: date } : {}) };
@@ -841,7 +842,7 @@ export default function DashboardClient({ account, visibleAccounts, onLogout, de
     const date = dateKey();
     setData((current) => target.kind === "task"
       ? { ...current, tasks: current.tasks.map((entry) => entry.id === target.id ? cancelWorkForDate(entry, date) : entry) }
-      : { ...current, milestones: current.milestones.map((entry) => entry.id === target.id && entry.courseId ? cancelWorkForDate(entry, date) : entry) });
+      : { ...current, milestones: current.milestones.map((entry) => entry.id === target.id && isTaskNode(entry) ? cancelWorkForDate(entry, date) : entry) });
   }, [readOnly, setData]);
   const insertAiCourseNote = useCallback(({ courseId, question, answer }: { courseId: string; question: string; answer: string }) => {
     if (!answer.trim() || !data.courses.some((course) => course.id === courseId)) throw new Error("当前课程不存在或回答为空");
@@ -949,15 +950,15 @@ function TodayView({ reviewToday, data, setData, tasks, milestones, daily, updat
   const deadlines = upcomingDeadlines(data.tasks, data.milestones, dateKey());
   const [creatingEvent, setCreatingEvent] = useState(false);
   const addEvent = () => setCreatingEvent(true);
-  const courseTasks = milestones.filter((node) => Boolean(node.courseId));
-  const calendarItems = milestones.filter((node) => !node.courseId);
+  const courseTasks = milestones.filter(isTaskNode);
+  const calendarItems = milestones.filter((node) => !node.courseId && (!node.alsoTask || node.date === today));
   type TodayTaskEntry = { kind: "task"; item: TaskItem } | { kind: "milestone"; item: Milestone };
   const shortEntries: TodayTaskEntry[] = [
     ...tasks.filter((task) => taskModeOf(task) !== "multi").map((item) => ({ kind: "task" as const, item })),
     ...courseTasks.filter((node) => node.mode !== "multi").map((item) => ({ kind: "milestone" as const, item })),
   ];
   const importantCourseIds = new Set(data.courses.filter((course) => isPriorityStudyCourse(course.title)).map((course) => course.id));
-  const courseAssignments = shortEntries.filter((entry) => entry.kind === "task" ? Boolean(entry.item.courseId) : Boolean(entry.item.courseId && !entry.item.automationKey)).sort((left, right) => {
+  const courseAssignments = shortEntries.filter((entry) => entry.kind === "task" ? Boolean(entry.item.courseId) : Boolean((entry.item.courseId || entry.item.linkedCourseId) && !entry.item.automationKey)).sort((left, right) => {
     const deadline = (entry: TodayTaskEntry) => entry.kind === "task" ? entry.item.due || "9999-12-31" : entry.item.date;
     const urgent = (entry: TodayTaskEntry) => deadline(entry) <= addDays(today, 2);
     return Number(left.item.done) - Number(right.item.done)
@@ -1020,7 +1021,7 @@ function TodayView({ reviewToday, data, setData, tasks, milestones, daily, updat
     <div className="taskRowActions"><span className={"areaTag " + areaClass[entry.item.area]}>{entry.item.area}</span>{!entry.item.done && <button type="button" className="quickPostponeButton" disabled={readOnly} aria-label={"将任务推迟一天：" + entry.item.title} onClick={() => postponeWork({ kind: "task", id: entry.item.id })}>＋1天</button>}{!entry.item.done && <button type="button" className="cancelTodayButton" disabled={readOnly} aria-label={"取消今天：" + entry.item.title} onClick={() => cancelToday({ kind: "task", id: entry.item.id })}>取消今天</button>}<button type="button" className="miniRemove todayQuickDelete" disabled={readOnly} aria-label={"快捷删除任务：" + entry.item.title} onClick={() => requestDelete({ kind: "task", id: entry.item.id }, entry.item.title)}>×</button></div>
   </div> : <div key={"milestone-" + entry.item.id} className={"taskRow " + (entry.item.done ? "done" : "")}>
     <button className="checkButton" disabled={readOnly} aria-pressed={entry.item.done} aria-label={(entry.item.done ? "标记未完成：" : "标记完成：") + entry.item.title} onClick={() => setData((current) => ({ ...current, milestones: current.milestones.map((node) => node.id === entry.item.id ? { ...node, done: !node.done } : node) }))}>{entry.item.done ? "✓" : ""}</button>
-    <div className="taskBody"><button className="taskTitleButton" onClick={() => readOnly ? openWork({ kind: "milestone", id: entry.item.id }) : setEditingNode(entry.item)}>{entry.item.title}</button>{entry.item.done && <span className="taskStatus 已完成 todayCompletionStatus">已完成</span>}<small>{entry.item.automationKey ? DAILY_STUDY_DURATION : data.courses.find((course) => course.id === entry.item.courseId)?.title ?? "课程任务"} · {defaultTaskPlannedDate(entry.item) === today ? "今日推进 · " : ""}{entry.item.mode === "multi" || entry.item.plannedDate ? "截止 " : ""}{entry.item.date}</small><button className="taskRecordLink" onClick={() => readOnly ? openWork({ kind: "milestone", id: entry.item.id }) : setEditingNode(entry.item)}>{readOnly ? "查看详细信息" : "修改基础信息"}</button></div>
+    <div className="taskBody"><button className="taskTitleButton" onClick={() => readOnly ? openWork({ kind: "milestone", id: entry.item.id }) : setEditingNode(entry.item)}>{entry.item.title}</button>{entry.item.done && <span className="taskStatus 已完成 todayCompletionStatus">已完成</span>}<small>{entry.item.automationKey ? DAILY_STUDY_DURATION : data.courses.find((course) => course.id === (entry.item.courseId || entry.item.linkedCourseId))?.title ?? (entry.item.alsoTask ? "事项任务" : "课程任务")} · {defaultTaskPlannedDate(entry.item) === today ? "今日推进 · " : ""}{entry.item.alsoTask || entry.item.mode === "multi" || entry.item.plannedDate ? "截止 " : ""}{entry.item.date || "未设日期"}{entry.item.alsoTask && entry.item.time ? ` ${entry.item.time}` : ""}</small><button className="taskRecordLink" onClick={() => readOnly ? openWork({ kind: "milestone", id: entry.item.id }) : setEditingNode(entry.item)}>{readOnly ? "查看详细信息" : "修改基础信息"}</button></div>
     <div className="taskRowActions"><span className={"areaTag " + areaClass[entry.item.area]}>{entry.item.area}</span>{entry.item.automationKey ? <AutomaticStudyActions title={entry.item.title} done={entry.item.done} readOnly={readOnly} plannedToday onEdit={() => setEditingNode(entry.item)} onDelete={() => requestDelete({ kind: "milestone", id: entry.item.id }, entry.item.title)} onOpen={() => openWork({ kind: "milestone", id: entry.item.id })} onPostpone={() => postponeWork({ kind: "milestone", id: entry.item.id })} onCancel={() => cancelToday({ kind: "milestone", id: entry.item.id })} onDefer={entry.item.automationKey.startsWith("study:") ? () => setDeferringNode({ node: entry.item }) : undefined} /> : <>{!entry.item.done && <><button type="button" className="quickPostponeButton" disabled={readOnly} aria-label={"将课程任务推迟一天：" + entry.item.title} onClick={() => postponeWork({ kind: "milestone", id: entry.item.id })}>＋1天</button><button type="button" className="cancelTodayButton" disabled={readOnly} aria-label={"取消今天：" + entry.item.title} onClick={() => cancelToday({ kind: "milestone", id: entry.item.id })}>取消今天</button></>}<button type="button" className="miniRemove todayQuickDelete" disabled={readOnly} aria-label={"快捷删除任务：" + entry.item.title} onClick={() => requestDelete({ kind: "milestone", id: entry.item.id }, entry.item.title)}>×</button></>}</div>
   </div>;
   return <div className="page">
@@ -1284,7 +1285,7 @@ function TaskDetail({ target, data, setData, access, onOpen, onClose, requestDel
   return <div className="page taskDetailPage">
     <button className="backButton" disabled={nodePending} onClick={onClose}>← 返回列表</button>
     {reviewStudy && !access.readOnly && <StudyReviewDialog request={reviewStudy} data={data} setData={setData} onClose={() => setReviewStudy(null)} onSaved={() => { setReviewStudy(null); onClose(); }} />}
-    <PageHead eyebrow={isEvent ? "事项详情" : isCourseTask ? "课程任务详情" : "任务详情"} title={item.title} subtitle={subtitle} action={<div className="pageHeadActions">{task && <button className="softButton" disabled={access.readOnly} onClick={() => setEditing(task)}>修改任务</button>}{isEvent && <button className="softButton" disabled={access.readOnly || nodePending} onClick={() => setEditingEvent(true)}>修改事项</button>}{!item.done && (!isEvent || node?.date) && <button className="softButton" disabled={access.readOnly || nodePending} onClick={() => postponeWork(target)}>推迟 1 天</button>}{!isEvent && !item.done && (task ? taskVisibleToday(task, dateKey()) : node && courseNodeVisibleToday(node, dateKey())) && <button type="button" className="cancelTodayButton" disabled={access.readOnly} onClick={() => cancelToday(target)}>取消今天</button>}<button className="primaryButton" disabled={access.readOnly} onClick={toggle}>{item.done ? "重新打开" + entityLabel : "标记" + entityLabel + "完成"}</button><details className="taskMoreActions taskDetailMore"><summary>更多</summary><div><button type="button" className="dangerText" disabled={access.readOnly || nodePending} onClick={remove}>删除{entityLabel}</button></div></details></div>} />
+    <PageHead eyebrow={isEvent ? "事项详情" : isCourseTask ? "课程任务详情" : "任务详情"} title={item.title} subtitle={subtitle} action={<div className="pageHeadActions">{task && <button className="softButton" disabled={access.readOnly} onClick={() => setEditing(task)}>修改任务</button>}{isEvent && <button className="softButton" disabled={access.readOnly || nodePending} onClick={() => setEditingEvent(true)}>修改事项</button>}{!item.done && (!isEvent || node?.date) && <button className="softButton" disabled={access.readOnly || nodePending} onClick={() => postponeWork(target)}>推迟 1 天</button>}{(!isEvent || node?.alsoTask) && !item.done && (task ? taskVisibleToday(task, dateKey()) : node && courseNodeVisibleToday(node, dateKey())) && <button type="button" className="cancelTodayButton" disabled={access.readOnly} onClick={() => cancelToday(target)}>取消今天</button>}<button className="primaryButton" disabled={access.readOnly} onClick={toggle}>{item.done ? "重新打开" + entityLabel : "标记" + entityLabel + "完成"}</button><details className="taskMoreActions taskDetailMore"><summary>更多</summary><div><button type="button" className="dangerText" disabled={access.readOnly || nodePending} onClick={remove}>删除{entityLabel}</button></div></details></div>} />
     {parent && <button className="taskParentLink" disabled={nodePending} onClick={() => onOpen(parent)}>属于：{parentTitle ?? "查看关联内容"} →</button>}
     <div className="taskDetailGrid"><div className="stack">
       {task && <section className="panel taskWorkPanel"><SectionHead title="任务内容" action={!task.requirements && !requirementsExpanded && !access.readOnly ? <button className="softButton" onClick={() => setRequirementsExpanded(true)}>＋ 添加具体要求</button> : undefined} />{(Boolean(task.requirements) || requirementsExpanded) && <label className="editField"><span>具体要求</span><textarea readOnly={access.readOnly} maxLength={4000} value={task.requirements ?? ""}  onChange={(event) => { const requirements = event.target.value; setData((current) => ({ ...current, tasks: current.tasks.map((entry) => entry.id === task.id ? { ...entry, requirements } : entry) })); }} /></label>}<details className="taskDetailDisclosure taskAttachmentsDisclosure"><summary>要求附件 <span>{task.attachments?.length ?? 0} 个</span></summary><NodeAttachments nodeId={task.id} scope="task" label="要求" files={task.attachments ?? []} access={access} onBlockedChange={setNodePending} onChange={(update) => setData((current) => ({ ...current, tasks: current.tasks.map((entry) => entry.id === task.id ? { ...entry, attachments: update(entry.attachments ?? []) } : entry) }))} /></details></section>}
@@ -1311,7 +1312,7 @@ function TaskOverviewView({ reviewPoolEntry, data, setData, setDialog, openWork,
   const weekEnd = dateKey(end);
   const items = [
     ...data.tasks.map((task) => ({ id: task.id, kind: "task" as const, entity: "task" as const, period: taskModeOf(task), title: task.title, area: task.area, source: task.courseId ? data.courses.find((course) => course.id === task.courseId)?.title ?? task.source : task.source, due: task.due ?? "", done: task.done, progress: taskProgressOf(task), status: taskStatusOf(task), task, node: undefined })),
-    ...data.milestones.map((node) => ({ id: node.id, kind: "milestone" as const, entity: node.courseId ? "task" as const : "event" as const, period: node.courseId ? (node.mode ?? "single") as TaskMode : undefined, title: node.title, area: node.area, source: node.courseId ? data.courses.find((course) => course.id === node.courseId)?.title ?? "课程任务" : eventCourseLabel(node, data.courses) || node.location || "日历事项", due: node.date, done: node.done, progress: node.done ? 100 : 0, status: node.done ? "已完成" as const : "未开始" as const, task: undefined, node })),
+    ...data.milestones.map((node) => ({ id: node.id, kind: "milestone" as const, entity: isTaskNode(node) ? "task" as const : "event" as const, period: isTaskNode(node) ? (node.mode ?? "single") as TaskMode : undefined, title: node.title, area: node.area, source: node.courseId ? data.courses.find((course) => course.id === node.courseId)?.title ?? "课程任务" : eventCourseLabel(node, data.courses) || node.location || "日历事项", due: node.date, done: node.done, progress: node.done ? 100 : 0, status: node.done ? "已完成" as const : "未开始" as const, task: undefined, node })),
   ].sort((a, b) => (a.due || "9999").localeCompare(b.due || "9999"));
   const visible = items.filter((item) => {
     if (scope === "done") return item.done;
@@ -1322,10 +1323,10 @@ function TaskOverviewView({ reviewPoolEntry, data, setData, setDialog, openWork,
   const sections = [
     { id: "single", title: "短期任务", items: visible.filter((item) => item.entity === "task" && item.period !== "multi") },
     { id: "multi", title: "长期任务", items: visible.filter((item) => item.entity === "task" && item.period === "multi") },
-    { id: "event", title: "事项", items: visible.filter((item) => item.entity === "event" && (!eventCourseFilter || (eventCourseFilter === "unlinked" ? !item.node?.linkedCourseId : item.node?.linkedCourseId === eventCourseFilter)) && (!eventAssessmentFilter || item.node?.assessmentType === eventAssessmentFilter)) },
+    { id: "event", title: "事项", items: visible.filter((item) => (item.entity === "event" || item.node?.alsoTask) && (!eventCourseFilter || (eventCourseFilter === "unlinked" ? !item.node?.linkedCourseId : item.node?.linkedCourseId === eventCourseFilter)) && (!eventAssessmentFilter || item.node?.assessmentType === eventAssessmentFilter)) },
   ];
   const taskCount = items.filter((item) => item.entity === "task" && !item.done).length;
-  const eventCount = items.filter((item) => item.entity === "event").length;
+  const eventCount = items.filter((item) => item.entity === "event" || item.node?.alsoTask).length;
   const weekCount = items.filter((item) => !item.done && taskOverlapsRange(item.task ?? { due: item.due, plannedDate: item.node?.plannedDate }, today, weekEnd)).length;
   const toggle = (item: (typeof items)[number]) => setData((current) => item.kind === "task"
     ? { ...current, tasks: current.tasks.map((entry) => entry.id === item.id ? withTaskCompletion(entry, !entry.done) : entry) }
@@ -1336,7 +1337,7 @@ function TaskOverviewView({ reviewPoolEntry, data, setData, setDialog, openWork,
     const plannedDate = dateKey();
     setData((current) => item.kind === "task"
       ? { ...current, tasks: current.tasks.map((task) => task.id === item.id ? planTaskForDate(task, plannedDate) : task) }
-      : { ...current, milestones: current.milestones.map((node) => node.id === item.id && node.courseId ? planTaskForDate(node, plannedDate) : node) });
+      : { ...current, milestones: current.milestones.map((node) => node.id === item.id && isTaskNode(node) ? planTaskForDate(node, plannedDate) : node) });
   };
   const [creatingEvent, setCreatingEvent] = useState(false);
   const addEvent = () => setCreatingEvent(true);
@@ -1346,9 +1347,9 @@ function TaskOverviewView({ reviewPoolEntry, data, setData, setDialog, openWork,
     const latest = item.task?.progressLogs?.at(-1);
     const scheduledItem = item.task ?? item.node!;
     const plannedDate = item.entity === "task" ? defaultTaskPlannedDate(scheduledItem) : item.node?.plannedDate;
-    const defaultPlan = plannedDate && item.entity === "task" && !item.node?.automationKey && !item.id.startsWith("stage:") && !isMulti && Boolean(item.task?.due || item.node?.courseId && item.node.date) && (!scheduledItem.plannedDate || scheduledItem.plannedDate === scheduledItem.dismissedTodayDate);
+    const defaultPlan = plannedDate && item.entity === "task" && !item.node?.automationKey && !item.id.startsWith("stage:") && !isMulti && Boolean(item.task?.due || item.node && isTaskNode(item.node) && item.node.date) && (!scheduledItem.plannedDate || scheduledItem.plannedDate === scheduledItem.dismissedTodayDate);
     const cancelledToday = scheduledItem.dismissedTodayDate === today;
-    const plannedToday = !cancelledToday && (item.task ? taskVisibleToday(item.task, today) : Boolean(item.node?.courseId && courseNodeVisibleToday(item.node, today)));
+    const plannedToday = !cancelledToday && (item.task ? taskVisibleToday(item.task, today) : Boolean(item.node && isTaskNode(item.node) && courseNodeVisibleToday(item.node, today)));
     return <div className={"overviewRow " + (item.done ? "done " : "") + (isMulti ? "multiTask" : "")} key={item.kind + "-" + item.id}>
       <button className="checkButton" disabled={readOnly} aria-pressed={item.done} aria-label={(item.done ? "重新打开" : "完成") + item.title} onClick={() => toggle(item)}>{item.done ? "✓" : ""}</button>
       <div className="overviewTaskMain"><div className="overviewTaskTitle"><button className="taskTitleButton" onClick={() => readOnly ? openWork({ kind: item.kind, id: item.id }) : item.task ? setEditingTask(item.task) : setEditingNode(item.node!)}>{item.title}</button><span className={"areaTag " + areaClass[item.area]}>{item.area}</span>{isMulti && <span className={"taskStatus " + item.status}>{item.status}</span>}</div><span>{item.task?.parentId ? "属于：" + (data.tasks.find((task) => task.id === item.task!.parentId)?.title ?? "上级任务") : item.task?.parentMilestoneId ? "属于：" + (data.milestones.find((node) => node.id === item.task!.parentMilestoneId)?.title ?? "关联对象") : item.source || "未分类"}{item.node?.courseId ? " · 课程任务" : item.node?.assessmentType ? " · " + assessmentTypeLabel(item.node.assessmentType) : ""}</span>{item.task && isMulti && <><div className="taskOverviewProgress"><i><b style={{ width: item.progress + "%" }} /></i><strong>{item.progress}%</strong></div>{latest && <small>{latest.date}{latest.note ? " · " + latest.note : " · 记录为 " + latest.progress + "%"}</small>}</>}</div>
@@ -1427,7 +1428,7 @@ function TaskSettingsDialog({ task, tasks, milestones, courses, learning, preset
   const [dueTime, setDueTime] = useState(task?.dueTime ?? (task?.due ? "00:00" : ""));
   const [plannedDateInput, setPlannedDate] = useState<string | null>(task?.plannedDate && defaultTaskPlannedDate(task) === task.plannedDate ? task.plannedDate : null);
   const planEdited = useRef(false);
-  const plannedDate = plannedDateInput ?? defaultTaskPlannedDate({ due, mode }) ?? (task ? "" : dateKey());
+  const plannedDate = plannedDateInput ?? (task && due === (task.due ?? "") ? defaultTaskPlannedDate({ due, mode }) : newTaskPlannedDate({ due, mode }, dateKey())) ?? (task ? "" : dateKey());
   const [status, setStatus] = useState<TaskProgressStatus>(taskStatusOf(task ?? {}));
   const [progress, setProgress] = useState(taskProgressOf(task ?? {}));
   const [error, setError] = useState("");
@@ -1461,6 +1462,9 @@ function TaskSettingsDialog({ task, tasks, milestones, courses, learning, preset
     event.preventDefault();
     if (attachmentsPending) { setError("请先上传或移除待上传附件"); return; }
     if (!title.trim()) { setError("请填写任务名称"); return; }
+    const currentDate = dateKey();
+    if (!workDateChangeAllowed(due, currentDate, task?.due) || !workDateChangeAllowed(plannedDate, currentDate, task ? defaultTaskPlannedDate(task) : undefined)) { setError("截止日期和计划推进日不能早于今天"); return; }
+    const savedPlannedDate = plannedDate || ((!task || due !== (task.due ?? "")) ? newTaskPlannedDate({ due, mode }, currentDate) : undefined);
     if (origin === "course" && subjectOptions.length > 0 && !courseId) { setError("请选择所属学习科目"); return; }
     if (mode === "multi" && (!startDate || (due && startDate > due))) { setError("长期任务的开始日期不能晚于截止日期"); return; }
     let nextProgress = Math.min(100, Math.max(0, Math.round(progress)));
@@ -1484,11 +1488,11 @@ function TaskSettingsDialog({ task, tasks, milestones, courses, learning, preset
       source: origin === "course" ? selectedSubject?.title || source.trim() || "学习任务" : source.trim().slice(0, 500) || area + "任务",
       due: due || undefined,
       dueTime: due ? dueTime || undefined : undefined,
-      plannedDate: plannedDate || undefined,
+      plannedDate: savedPlannedDate || undefined,
       dismissedTodayDate: planEdited.current ? undefined : task?.dismissedTodayDate,
       done: nextStatus === "已完成",
       completedDate: nextStatus === "已完成" ? taskStatusOf(task ?? {}) === "已完成" ? task?.completedDate : dateKey() : undefined,
-      today: mode === "single" && (due === today || plannedDate === today),
+      today: mode === "single" && (due === currentDate || savedPlannedDate === currentDate),
       elapsed: task?.elapsed ?? 0,
       mode,
       startDate: mode === "multi" ? startDate : undefined,
@@ -1513,9 +1517,9 @@ function TaskSettingsDialog({ task, tasks, milestones, courses, learning, preset
       </div>
       <div className="taskModePicker" aria-label="任务周期"><button type="button" aria-pressed={mode === "single"} className={mode === "single" ? "active" : ""} onClick={() => { setMode("single"); if (!task) setParentCandidate(false); }}><strong>短期任务</strong></button><button type="button" aria-pressed={mode === "multi"} className={mode === "multi" ? "active" : ""} onClick={() => { setMode("multi"); if (!task) setParentCandidate(true); }}><strong>长期任务</strong></button></div>
       <div className="taskDateGrid">
-        <label><span>截止日期（可选）</span><input type="date" value={due} min={mode === "multi" ? startDate : undefined} onChange={(event) => { setDue(event.target.value); setDueTime((current) => event.target.value ? current || "00:00" : ""); }} /></label>
+        <label><span>截止日期（可选）</span><input type="date" value={due} min={[workDateInputMinimum(due, dateKey(), task?.due), mode === "multi" ? startDate : ""].sort().at(-1)} onChange={(event) => { setDue(event.target.value); setDueTime((current) => event.target.value ? current || "00:00" : ""); }} /></label>
         <label><span>截止时间（可选）</span><input type="time" value={dueTime} disabled={!due} onChange={(event) => setDueTime(event.target.value)} /></label>
-        <div className="taskPlannedField"><div className="taskDateFieldHead"><label htmlFor="task-planned-date">计划推进日（可选）</label><button type="button" disabled={plannedDate === dateKey()} onClick={() => { planEdited.current = true; setPlannedDate(dateKey()); }}>今天</button></div><input id="task-planned-date" type="date" value={plannedDate} onChange={(event) => { planEdited.current = true; setPlannedDate(event.target.value); }} /></div>
+        <div className="taskPlannedField"><div className="taskDateFieldHead"><label htmlFor="task-planned-date">计划推进日（可选）</label><button type="button" disabled={plannedDate === dateKey()} onClick={() => { planEdited.current = true; setPlannedDate(dateKey()); }}>今天</button></div><input id="task-planned-date" type="date" min={workDateInputMinimum(plannedDate, dateKey(), task ? defaultTaskPlannedDate(task) : undefined)} value={plannedDate} onChange={(event) => { planEdited.current = true; setPlannedDate(event.target.value); }} /></div>
         {mode === "multi" && <label><span>开始日期</span><input type="date" required value={startDate} onChange={(event) => setStartDate(event.target.value)} /></label>}
       </div>
       <label><span>具体要求（可选）</span><textarea rows={3} maxLength={4000} value={requirements} onChange={(event) => setRequirements(event.target.value)} /></label>
@@ -1568,9 +1572,9 @@ function MilestoneSettingsDialog({ node, courses, onClose, onSave, onOpenDetail,
       <label className="wide"><span>{isCourseTask ? "具体要求" : "事项说明"}</span><textarea maxLength={4000} value={draft.requirements}  onChange={(event) => patch({ requirements: event.target.value })} /></label>
       {isCourseTask && <label className="wide taskCandidateToggle"><span><input type="checkbox" checked={draft.parentCandidate ?? false} onChange={(event) => patch({ parentCandidate: event.target.checked })} />允许其他任务归属于它</span></label>}
       {!isCourseTask && <label><span>所属领域</span><select value={draft.area} onChange={(event) => patch({ area: event.target.value as Area })}>{(["课内", "课外", "工作", "生活", "思考"] as Area[]).map((area) => <option key={area}>{area}</option>)}</select></label>}
-      <label><span>日期</span><input type="date" required value={draft.date} onChange={(event) => patch({ date: event.target.value })} /></label>
+      <label><span>日期</span><input type="date" min={workDateInputMinimum(draft.date, dateKey(), node.date)} required value={draft.date} onChange={(event) => patch({ date: event.target.value })} /></label>
       <label><span>时间</span><input type="time" required value={draft.time} onChange={(event) => patch({ time: event.target.value })} /></label>
-      {isCourseTask && <div className="taskPlannedField wide"><div className="taskDateFieldHead"><label htmlFor="course-task-planned-date">计划推进日（可选）</label><button type="button" disabled={draft.plannedDate === dateKey()} onClick={() => setDraft((current) => planTaskForDate(current, dateKey()))}>今天</button></div><input id="course-task-planned-date" type="date" value={defaultTaskPlannedDate(draft) ?? ""} onChange={(event) => patch({ plannedDate: event.target.value || undefined, dismissedTodayDate: undefined })} /></div>}
+      {isCourseTask && <div className="taskPlannedField wide"><div className="taskDateFieldHead"><label htmlFor="course-task-planned-date">计划推进日（可选）</label><button type="button" disabled={draft.plannedDate === dateKey()} onClick={() => setDraft((current) => planTaskForDate(current, dateKey()))}>今天</button></div><input id="course-task-planned-date" type="date" min={workDateInputMinimum(defaultTaskPlannedDate(draft) ?? "", dateKey(), defaultTaskPlannedDate(node))} value={defaultTaskPlannedDate(draft) ?? ""} onChange={(event) => patch({ plannedDate: event.target.value || undefined, dismissedTodayDate: undefined })} /></div>}
       <label className="wide"><span>地点</span><input maxLength={500} value={draft.location} onChange={(event) => patch({ location: event.target.value })} /></label>
     </div>
     <div className="dialogActions"><button type="submit" className="softButton dialogDetailAction" onClick={() => { openDetailAfterSave.current = true; }}>保存并进入详细界面</button>{onSaveToReviewPool && node.automationKey?.startsWith("study:") && !node.done && <button type="submit" value="review-pool" formNoValidate className="softButton">保存到复习池</button>}<button type="button" className="softButton" onClick={onClose}>取消</button><button ref={saveButtonRef} type="submit" className="primaryButton" onClick={() => { openDetailAfterSave.current = false; }}>保存设置</button></div>
