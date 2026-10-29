@@ -21,7 +21,7 @@ export function withPlannedTaskStages<T extends StageState>(next: T, date: strin
     const parent = (kind === "task" ? tasks : milestones).find((item) => item.id === parentId);
     const requestedParent = (kind === "task" ? next.tasks : next.milestones).find((item) => item.id === parentId);
     const stage = tasks.find((item) => item.id === oldStage.id);
-    if (!oldParent || !parent || !stage || taskModeOf(parent) !== "multi" || taskStatusOf(parent) === "已完成") continue;
+    if (!oldParent || !parent || !stage || parent.progressedDates?.length || taskModeOf(parent) !== "multi" || taskStatusOf(parent) === "已完成") continue;
     const matchesParentPlan = Boolean(oldParent.plannedDate && defaultTaskPlannedDate(oldStage) === oldParent.plannedDate);
     if (!matchesParentPlan && !taskScheduledForDate(oldStage, date) && !taskVisibleToday(oldStage, date)) continue;
     if (stage.dismissedTodayDate !== oldStage.dismissedTodayDate && stage.dismissedTodayDate === date) {
@@ -45,7 +45,7 @@ export function withPlannedTaskStages<T extends StageState>(next: T, date: strin
     if (poolSources.has(`task:${oldStage.id}`) || poolSources.has(`${kind}:${parentId}`)) continue;
     const oldParent = (kind === "task" ? previous!.tasks : previous!.milestones).find((item) => item.id === parentId);
     const parent = (kind === "task" ? tasks : milestones).find((item) => item.id === parentId);
-    if (!oldParent || !parent || taskModeOf(parent) !== "multi" || !oldStage.plannedDate || oldParent.plannedDate !== oldStage.plannedDate) continue;
+    if (!oldParent || !parent || parent.progressedDates?.length || taskModeOf(parent) !== "multi" || !oldStage.plannedDate || oldParent.plannedDate !== oldStage.plannedDate) continue;
     const stage = tasks.find((item) => item.id === oldStage.id);
     if (oldStage.done && stage) continue;
     if (parent.plannedDate !== oldParent.plannedDate) {
@@ -64,6 +64,7 @@ export function withPlannedTaskStages<T extends StageState>(next: T, date: strin
     ...milestones.filter((node) => node.courseId && node.mode === "multi").map((item) => ({ kind: "milestone" as const, item })),
   ];
   for (const { kind, item } of parents) {
+    if (item.progressedDates?.length) continue;
     if (poolSources.has(`${kind}:${item.id}`)) continue;
     if (item.plannedDate !== date || item.dismissedTodayDate === date || taskStatusOf(item) === "已完成") continue;
     if (tasks.some((task) => linkedTo(task, kind, item.id) && taskModeOf(task) === "single" && (taskScheduledForDate(task, date) || taskVisibleToday(task, date)))) continue;

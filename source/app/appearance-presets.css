@@ -3,7 +3,7 @@
 .appearanceToolbar .appearanceControl:hover, .appearanceToolbar .appearanceControl[aria-expanded="true"] { background: var(--paper-soft); }
 .appearancePreview { display: inline-block; flex-shrink: 0; width: 16px; height: 16px; border: 1px solid var(--line-strong); border-radius: 50%; }
 .appearanceToolbar .appearanceMore { width: 33px; padding: 5px; font-size: 18px; }
-.appearancePresetList { display: grid; gap: 7px; margin-bottom: 12px; }
+.appearancePresetList { display: grid; gap: 7px; max-height: 285px; overflow-y: auto; overscroll-behavior: contain; margin: 10px 0 12px; padding: 2px; }
 .appearancePresetRow { display: flex; align-items: center; gap: 5px; min-width: 0; }
 .appearancePresetChoice { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px; color: var(--text); background: var(--paper-soft); text-align: left; font-size: 12px; }
 .appearancePresetChoice[aria-pressed="true"] { border-color: var(--accent); }

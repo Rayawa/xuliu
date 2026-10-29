@@ -149,7 +149,7 @@ export const workspaceStateSchema = z.object({
   reviewPool: courseReviewPool.optional(),
   tasks: z.array(z.object({
     id, title: shortText, area, source: shortText, due: date.optional(), done: z.boolean(), completedDate: date.optional(), dismissedTodayDate: date.optional(), today: z.boolean(), elapsed: z.number().int().min(0).max(10_000_000),
-    parentId: id.optional(), parentMilestoneId: id.optional(), courseId: id.optional(), blocks: z.array(block).max(2000).optional(),
+    parentId: id.optional(), parentMilestoneId: id.optional(), courseId: id.optional(), showOnCalendar: z.boolean().optional(), progressedDates: z.array(date).max(36_600).optional(), blocks: z.array(block).max(2000).optional(),
     requirements: text.optional(), attachments: z.array(storedAttachment).max(50).optional(), parentCandidate: z.boolean().optional(),
     mode: z.enum(["single", "multi"]).optional(), startDate: date.optional(), dueTime: time.optional(), plannedDate: date.optional(), status: taskStatus.optional(), progress: z.number().int().min(0).max(100).optional(), progressLogs: z.array(taskProgressLog).max(2_000).optional(),
   }).strict().superRefine((task, context) => {
@@ -157,8 +157,8 @@ export const workspaceStateSchema = z.object({
     if (task.dueTime && !task.due) context.addIssue({ code: "custom", message: "设置截止时间前请先选择截止日期" });
   })).max(10_000),
   milestones: z.array(z.object({
-    id, courseId: id.optional(), linkedCourseId: id.optional(), courseLinkReviewed: z.boolean().optional(), alsoTask: z.boolean().optional(), assessmentType: z.enum(["exam", "quiz", "submission", "presentation"]).optional(), eventDateKind: z.enum(["occurs", "deadline"]).optional(),
-    automationKey: shortText.optional(), title: shortText, date: z.union([date, z.literal("")]), time: z.union([time, z.literal("")]), plannedDate: date.optional(), completedDate: date.optional(), dismissedTodayDate: date.optional(), location: shortText, requirements: text,
+    id, courseId: id.optional(), linkedCourseId: id.optional(), courseLinkReviewed: z.boolean().optional(), alsoTask: z.boolean().optional(), showOnCalendar: z.boolean().optional(), assessmentType: z.enum(["exam", "quiz", "submission", "presentation"]).optional(), eventDateKind: z.enum(["occurs", "deadline"]).optional(),
+    automationKey: shortText.optional(), title: shortText, date: z.union([date, z.literal("")]), time: z.union([time, z.literal("")]), plannedDate: date.optional(), progressedDates: z.array(date).max(36_600).optional(), completedDate: date.optional(), dismissedTodayDate: date.optional(), location: shortText, requirements: text,
     attachments: z.array(storedAttachment).max(50).optional(), outcomeText: text.optional(), outcomeAttachments: z.array(storedAttachment).max(50).optional(), blocks: z.array(block).max(2000).optional(), elapsed: z.number().int().min(0).max(10000000).optional(), mode: z.enum(["single", "multi"]).optional(), parentCandidate: z.boolean().optional(), area, done: z.boolean(),
   }).strict().superRefine((node, context) => {
     if (node.courseId && (!node.date || !node.time)) context.addIssue({ code: "custom", message: "课程任务必须设置有效日期和时间" });

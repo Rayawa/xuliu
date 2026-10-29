@@ -206,9 +206,10 @@ type StudyState = Pick<z.infer<typeof workspaceStateSchema>, "courses" | "milest
 type StudyNode = StudyState["milestones"][number];
 const legacyStudyKey = /^study:(\d{4}-\d{2}-\d{2}):(before|during|after):(.+):(\d{4}-\d{2}-\d{2})$/;
 
-export function studyTaskVisibleOnDate(node: Pick<StudyNode, "automationKey" | "date" | "plannedDate" | "courseId" | "alsoTask" | "mode" | "done" | "completedDate" | "dismissedTodayDate">, date: string) {
+export function studyTaskVisibleOnDate(node: Pick<StudyNode, "automationKey" | "date" | "plannedDate" | "progressedDates" | "courseId" | "alsoTask" | "mode" | "done" | "completedDate" | "dismissedTodayDate">, date: string) {
   if (node.dismissedTodayDate === date) return false;
   if (node.done) return courseNodeVisibleToday(node, date);
+  if (node.progressedDates?.length) return courseNodeVisibleToday(node, date);
   return node.automationKey?.split(":")[2] === "review" && node.plannedDate ? node.plannedDate === date : courseNodeVisibleToday(node, date);
 }
 

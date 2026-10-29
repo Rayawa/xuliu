@@ -15,7 +15,7 @@ import type { CourseEventFields } from "@/lib/course-events";
 
 export type CourseNode = CourseEventFields & {
   blocks?: Block[]; elapsed?: number; mode?: "single" | "multi"; parentCandidate?: boolean; automationKey?: string;
-  id: string; courseId?: string; title: string; date: string; time: string; location: string; plannedDate?: string; completedDate?: string; dismissedTodayDate?: string;
+  id: string; courseId?: string; title: string; date: string; time: string; location: string; plannedDate?: string; progressedDates?: string[]; showOnCalendar?: boolean; completedDate?: string; dismissedTodayDate?: string;
   requirements: string; attachments?: NodeAttachment[];
   outcomeText?: string; outcomeAttachments?: NodeAttachment[];
   area: "课内" | "课外" | "工作" | "生活" | "思考"; done: boolean;
@@ -115,7 +115,7 @@ export function CourseNodeForm({ courseId, location, date, access, onCreate, onC
   courseId: string; location: string; date: string; access: Access;
   onCreate: (node: CourseNode) => void; onCancel: () => void;
 }) {
-  const [draft, setDraft] = useState<CourseNode>(() => ({ id: crypto.randomUUID(), courseId, title: "", date, time: "00:00", location, requirements: "", attachments: [], mode: "single", parentCandidate: false, area: "课内", done: false }));
+  const [draft, setDraft] = useState<CourseNode>(() => ({ id: crypto.randomUUID(), courseId, title: "", date, time: "00:00", location, requirements: "", attachments: [], mode: "single", parentCandidate: false, showOnCalendar: false, area: "课内", done: false }));
   const [blocked, setBlocked] = useState(false);
   const [discard, setDiscard] = useState(false);
   const submitted = useRef(false);
@@ -131,6 +131,7 @@ export function CourseNodeForm({ courseId, location, date, access, onCreate, onC
       <label className="editField taskCandidateField"><span>所属任务备选</span><span><input type="checkbox" checked={draft.parentCandidate ?? false} onChange={(event) => patch({ parentCandidate: event.target.checked })} />允许其他任务归属于它</span></label>
       <label className="editField"><span>日期</span><input type="date" min={localDateKey()} required value={draft.date} onChange={(event) => patch({ date: event.target.value })} /></label>
       <label className="editField"><span>时间</span><input type="time" required value={draft.time} onChange={(event) => patch({ time: event.target.value })} /></label>
+      <label className="editField wide calendarVisibilityToggle"><input type="checkbox" disabled={access.readOnly} checked={draft.showOnCalendar ?? false} onChange={(event) => patch({ showOnCalendar: event.target.checked })} /><span>显示在日历</span></label>
       <label className="editField wide"><span>地点</span><input maxLength={500} value={draft.location} onChange={(event) => patch({ location: event.target.value })} /></label>
       <label className="editField wide"><span>具体要求</span><textarea maxLength={4000} value={draft.requirements}  onChange={(event) => patch({ requirements: event.target.value })} /></label>
     </div>
@@ -138,7 +139,7 @@ export function CourseNodeForm({ courseId, location, date, access, onCreate, onC
     {blocked && <p className="nodeHelp" role="status">请先上传所选文件；上传成功后，节点会连同要求附件一起创建。</p>}
     <div className="courseNodeFormActions">
       <button type="button" onClick={() => setDiscard(true)}>取消</button>
-      <button className="primaryButton" disabled={blocked || access.readOnly} type="submit">创建并加入日历</button>
+      <button className="primaryButton" disabled={blocked || access.readOnly} type="submit">创建任务</button>
     </div>
     {discard && <div className="nodeDiscard" role="alert"><span>取消后不创建节点，当前填写的内容将不保留。</span><button type="button" onClick={() => setDiscard(false)}>继续填写</button><button type="button" onClick={onCancel}>放弃创建</button></div>}
   </form>;
@@ -165,6 +166,7 @@ export function CourseNodeEditor({ node, access, onChange, onClose, onPendingCha
       {!isCourseTask && <label className="editField"><span>所属领域</span><select disabled={access.readOnly} value={node.area} onChange={(event) => { const area = event.target.value as CourseNode["area"]; onChange((current) => ({ ...current, area })); }}><option>课内</option><option>课外</option><option>工作</option><option>生活</option><option>思考</option></select></label>}
       <label className="editField"><span>日期</span><input readOnly={access.readOnly} type="date" min={workDateInputMinimum(node.date, localDateKey(), node.date)} required value={node.date} onChange={(event) => { const date = event.target.value; if (workDateChangeAllowed(date, localDateKey(), node.date)) onChange((current) => ({ ...current, date })); }} /></label>
       <label className="editField"><span>时间</span><input readOnly={access.readOnly} type="time" required value={node.time} onChange={(event) => { const time = event.target.value; onChange((current) => ({ ...current, time })); }} /></label>
+      {!node.automationKey && !node.id.startsWith("stage:") && <label className="editField wide calendarVisibilityToggle"><input type="checkbox" disabled={access.readOnly} checked={node.showOnCalendar !== false} onChange={(event) => { const showOnCalendar = event.target.checked; onChange((current) => ({ ...current, showOnCalendar })); }} /><span>显示在日历</span></label>}
       <label className="editField wide"><span>地点</span><input readOnly={access.readOnly} maxLength={500} value={node.location} onChange={(event) => { const location = event.target.value; onChange((current) => ({ ...current, location })); }} /></label>
     </div>
     <div className="courseNodeSections"><section><h4>{isCourseTask ? "任务要求" : "事项说明"}</h4><label className="editField"><span>具体要求</span><textarea readOnly={access.readOnly} maxLength={4000} value={node.requirements} placeholder={isCourseTask ? "填写提交格式、字数、评分标准…" : "填写议程、地点补充或注意事项…"} onChange={(event) => { const requirements = event.target.value; onChange((current) => ({ ...current, requirements })); }} /></label>

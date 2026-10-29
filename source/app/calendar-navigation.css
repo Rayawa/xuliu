@@ -10,6 +10,20 @@
 .calendarCell.outsideMonth { background: var(--paper-soft); }
 .calendarCell.outsideMonth > strong { width: auto; min-width: 27px; justify-self: start; color: var(--faint); font-size: 10px; }
 .calendarCell.today > strong { color: white; }
+.calendarPanel .calendarGrid { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.calendarPanel .calendarCell { min-width: 0; min-height: 142px; }
+.calendarPanel .calendarCell > strong { font-size: 14px; }
+.calendarPanel .weekHead span { font-size: 12px; font-weight: 600; }
+.calendarPanel .calendarEvent { --calendar-category-color: #4d8161; display: grid; align-content: start; gap: 5px; min-width: 0; padding: 8px 9px; border: 1px solid color-mix(in srgb, var(--calendar-category-color) 35%, var(--line)); border-left: 4px solid var(--calendar-category-color); border-radius: 7px; background: color-mix(in srgb, var(--calendar-category-color) 13%, var(--paper)); color: var(--text); font-size: 13px; font-weight: 600; line-height: 1.5; white-space: normal; }
+.calendarPanel .calendarCategory-deadline { --calendar-category-color: #bf742c; }
+.calendarPanel .calendarCategory-task { --calendar-category-color: #3b7fa5; }
+.calendarPanel .calendarEvent small { justify-self: start; margin: 0; padding: 1px 5px; border-radius: 3px; background: color-mix(in srgb, var(--calendar-category-color) 18%, var(--paper)); color: var(--text); font-size: 10px; font-weight: 800; }
+.calendarPanel .calendarEvent:focus-visible { outline: 2px solid var(--calendar-category-color); outline-offset: 2px; }
+.calendarEventName { min-width: 0; white-space: normal; overflow-wrap: anywhere; }
+.calendarPanel .calendarEvent.calendarEventDone { --calendar-category-color: var(--muted); border-color: var(--line); border-left-color: var(--muted); background: var(--paper-soft); }
+.calendarEventDone .calendarEventName { color: var(--muted); font-weight: 500; text-decoration: line-through; }
+.shell .calendarVisibilityToggle { display: flex; align-items: center; gap: 9px; color: var(--text); font-size: 12px; }
+.shell .calendarVisibilityToggle input[type="checkbox"] { flex-shrink: 0; width: 16px; min-width: 16px; min-height: 16px; height: 16px; margin: 0; padding: 0; accent-color: var(--accent); }
 @media (max-width: 620px) {
   .calendarToolbar { flex-wrap: wrap; gap: 10px; }
   .calendarMonthControl input { width: 150px; }

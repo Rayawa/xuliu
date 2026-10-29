@@ -26,3 +26,14 @@ export function normalizeAppearancePresets(raw: unknown): AppearancePreset[] {
   }
   return result;
 }
+
+export function appearancePresetMatches(preset: AppearancePreset, query: string) {
+  const background = preset.background.mode === "custom" ? preset.background.color : preset.background.mode === "dark" ? "深色 #171c20" : "浅色 #f4f5f2";
+  return `${preset.name} ${preset.themeColor} ${background}`.toLowerCase().includes(query.trim().toLowerCase());
+}
+
+export function renameAppearancePreset(presets: AppearancePreset[], id: string, name: string): AppearancePreset[] | null {
+  const trimmed = name.trim();
+  if (!trimmed || trimmed.length > 80 || !presets.some((preset) => preset.id === id)) return null;
+  return presets.map((preset) => preset.id === id ? { ...preset, name: trimmed } : preset);
+}

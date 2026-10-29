@@ -8,6 +8,7 @@ export type TaskScheduleLike = {
   due?: string;
   dueTime?: string;
   plannedDate?: string;
+  progressedDates?: string[];
   dismissedTodayDate?: string;
   date?: string;
   courseId?: string;
@@ -63,6 +64,33 @@ export function planTaskForDate<T extends TaskScheduleLike>(task: T, targetDate:
   return { ...rest, plannedDate: targetDate } as T;
 }
 
+export function nextWorkDate(date: string) {
+  if (!isValidLocalDate(date)) return "";
+  const [year, month, day] = date.split("-").map(Number);
+  const next = new Date(0);
+  next.setUTCFullYear(year, month - 1, day + 1);
+  return `${String(next.getUTCFullYear()).padStart(4, "0")}-${String(next.getUTCMonth() + 1).padStart(2, "0")}-${String(next.getUTCDate()).padStart(2, "0")}`;
+}
+
+export function workProgressedOn(task: TaskScheduleLike, date: string) {
+  return task.progressedDates?.includes(date) ?? false;
+}
+
+export function advanceWorkForDate<T extends TaskScheduleLike>(task: T, date: string, nextDate = nextWorkDate(date)): T {
+  if (taskStatusOf(task) === "已完成" || !isValidLocalDate(date) || !isValidLocalDate(nextDate) || nextDate <= date) return task;
+  return {
+    ...planTaskForDate(task, nextDate),
+    progressedDates: workProgressedOn(task, date) ? task.progressedDates : [...(task.progressedDates ?? []), date],
+  };
+}
+
+function continuationVisibleOn(task: TaskScheduleLike, date: string): boolean | undefined {
+  if (!task.progressedDates?.length) return undefined;
+  if (workProgressedOn(task, date) || task.plannedDate === date) return true;
+  if (task.plannedDate && task.plannedDate > date) return false;
+  return undefined;
+}
+
 export function cancelWorkForDate<T extends TaskScheduleLike>(task: T, targetDate: string): T {
   return task.dismissedTodayDate === targetDate ? task : { ...task, dismissedTodayDate: targetDate };
 }
@@ -70,6 +98,10 @@ export function cancelWorkForDate<T extends TaskScheduleLike>(task: T, targetDat
 export function courseNodeVisibleToday(node: TaskScheduleLike & { date: string; done: boolean }, targetDate: string) {
   if (isTaskNode(node) && node.dismissedTodayDate === targetDate) return false;
   if (isTaskNode(node) && node.done) return node.completedDate === targetDate;
+  if (isTaskNode(node)) {
+    const continued = continuationVisibleOn(node, targetDate);
+    if (continued !== undefined) return continued;
+  }
   if (isTaskNode(node) && node.mode === "multi") return longTaskInTodayWindow(node, targetDate);
   return node.date === targetDate || Boolean(isTaskNode(node) && defaultTaskPlannedDate(node) === targetDate);
 }
@@ -132,6 +164,8 @@ export function taskScheduledForDate(task: TaskScheduleLike, targetDate: string)
 export function taskVisibleToday(task: TaskScheduleLike, targetDate: string) {
   if (task.dismissedTodayDate === targetDate) return false;
   if (taskStatusOf(task) === "已完成") return taskCompletionDate(task) === targetDate;
+  const continued = continuationVisibleOn(task, targetDate);
+  if (continued !== undefined) return continued;
   if (taskModeOf(task) === "multi") return longTaskInTodayWindow(task, targetDate);
   if (task.plannedDate === targetDate) return true;
   return taskScheduledForDate(task, targetDate) || (!task.due && !task.plannedDate && task.today === true);

@@ -27,6 +27,7 @@ export function CourseEventDialog({ node, courses, readOnly, onSave, onClose }: 
   }));
   const [error, setError] = useState("");
   const [alsoTask, setAlsoTask] = useState(node?.alsoTask ?? false);
+  const [showOnCalendar, setShowOnCalendar] = useState(node?.showOnCalendar ?? true);
   const courseChoices = eventCourseChoices(courses);
   const currentDate = localDateKey();
   const schedule = { ...node, alsoTask, date: form.date, plannedDate: form.plannedDate || undefined, ...(form.plannedDate !== (node?.plannedDate ?? "") ? { dismissedTodayDate: undefined } : {}) };
@@ -55,6 +56,7 @@ export function CourseEventDialog({ node, courses, readOnly, onSave, onClose }: 
       title: form.title.trim(), date: form.date, time: form.time, location: form.location, requirements: form.requirements,
       area: form.linkedCourseId ? "课内" : form.area as CourseNode["area"],
       courseLinkReviewed: true,
+      showOnCalendar,
     };
     if (form.linkedCourseId) saved.linkedCourseId = form.linkedCourseId;
     else delete saved.linkedCourseId;
@@ -87,6 +89,7 @@ export function CourseEventDialog({ node, courses, readOnly, onSave, onClose }: 
         <label className="courseEventWide"><span>日期含义</span><select value={form.eventDateKind} onChange={(event) => patch("eventDateKind", event.target.value)}><option value="">未区分</option><option value="occurs">发生时间</option><option value="deadline">提交截止</option></select></label>
         <label><span>{dateLabel}</span><input type="date" min={workDateInputMinimum(form.date, currentDate, node?.date)} value={form.date} onChange={(event) => patch("date", event.target.value)} /></label>
         <label><span>{timeLabel}</span><input type="time" value={form.time} onChange={(event) => patch("time", event.target.value)} /></label>
+        <label className="courseEventWide courseEventTaskToggle"><input type="checkbox" checked={showOnCalendar} onChange={(event) => setShowOnCalendar(event.target.checked)} /><span>显示在日历</span></label>
         <label className="courseEventWide courseEventTaskToggle"><input type="checkbox" checked={alsoTask} onChange={(event) => setAlsoTask(event.target.checked)} /><span>同时作为任务</span></label>
         {alsoTask && <label className="courseEventWide"><span>计划推进日（可选）</span><input type="date" aria-label="事项任务计划推进日" min={workDateInputMinimum(plannedDate, currentDate, node?.alsoTask ? defaultTaskPlannedDate(node) : node?.plannedDate)} value={plannedDate} onChange={(event) => patch("plannedDate", event.target.value)} /></label>}
         <details className="courseEventMore courseEventWide" open={Boolean(node?.location || node?.requirements || node?.plannedDate)}>
