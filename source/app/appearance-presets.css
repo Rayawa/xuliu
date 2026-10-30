@@ -1,4 +1,7 @@
 .themePicker.appearanceToolbar { gap: 5px; padding: 5px; }
+.pageHeadActions.todayHeadActions { display: grid; grid-template-columns: max-content max-content max-content; align-items: start; }
+.todayHeadActions > .themePicker { grid-column: 1 / 3; justify-self: end; max-width: 100%; margin: 0; }
+.todayHeadActions .backgroundPicker { position: static; }
 .appearanceToolbar .appearanceControl { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 33px; padding: 7px 10px; border: 0; border-radius: 999px; background: transparent; color: var(--text); font-size: 12px; white-space: nowrap; }
 .appearanceToolbar .appearanceControl:hover, .appearanceToolbar .appearanceControl[aria-expanded="true"] { background: var(--paper-soft); }
 .appearancePreview { display: inline-block; flex-shrink: 0; width: 16px; height: 16px; border: 1px solid var(--line-strong); border-radius: 50%; }
@@ -16,3 +19,4 @@
 .appearancePresetForm button { padding: 7px 10px; border: 1px solid var(--line); border-radius: 7px; color: var(--text); background: var(--paper-soft); font-size: 11px; }
 .appearanceMorePanel .appearanceStyle { padding-top: 17px; margin-top: 20px; border-top: 1px solid var(--line); }
 @media (max-width: 620px) { .themePicker.appearanceToolbar { flex-wrap: nowrap; gap: 2px; } .appearanceToolbar .appearanceControl { padding: 7px 9px; } }
+@media (max-width: 760px) { .pageHead:has(> .todayHeadActions) { grid-template-columns: minmax(0, 1fr); } .pageHeadActions.todayHeadActions { grid-template-columns: max-content max-content; justify-content: end; } .todayHeadActions > .syncChip { grid-column: 1 / 3; grid-row: 3; justify-self: end; } }
