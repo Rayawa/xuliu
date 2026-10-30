@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ComponentProps } from "react";
 import { BackgroundPicker, useBackgroundAppearance } from "./BackgroundAppearance";
 import { appearancePresetKey, appearancePresetMatches, appearancePresetsStorageKey, normalizeAppearancePresets, renameAppearancePreset, type AppearancePreset } from "@/lib/appearance-presets";
 import { normalizeSavedColor, normalizeSavedColors, themeColorNamesKey } from "@/lib/saved-colors";
@@ -17,11 +17,33 @@ function readColors(key: string): string[] {
 function readPresets() { return normalizeAppearancePresets(JSON.parse(localStorage.getItem(appearancePresetsStorageKey) ?? "[]")); }
 const backgroundPreview = (value: AppearancePreset["background"]) => value.mode === "dark" ? "#171c20" : value.mode === "custom" ? value.color : "#f4f5f2";
 
-export default function ThemePicker({ color, designMode, presets, onChange, onDesignChange }: {
-  color: string; designMode: "classic" | "paper"; presets: string[]; onChange: (color: string) => boolean; onDesignChange: (mode: "classic" | "paper") => void;
+export function AppearanceMenu(props: ComponentProps<typeof ThemePicker>) {
+  const [expanded, setExpanded] = useState(false);
+  const host = useRef<HTMLDivElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const panel = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!expanded) return;
+    panel.current?.querySelector<HTMLButtonElement>("button")?.focus();
+    const outside = (event: PointerEvent) => { if (host.current && !event.composedPath().includes(host.current)) setExpanded(false); };
+    const escape = (event: KeyboardEvent) => { if (event.key === "Escape") { setExpanded(false); trigger.current?.focus(); } };
+    document.addEventListener("pointerdown", outside);
+    document.addEventListener("keydown", escape);
+    return () => { document.removeEventListener("pointerdown", outside); document.removeEventListener("keydown", escape); };
+  }, [expanded]);
+  return <div className="appearanceMenu" ref={host}>
+    <button ref={trigger} type="button" className="appearanceMenuButton" aria-label="外观设置" title="外观设置" aria-haspopup="dialog" aria-expanded={expanded} aria-controls="appearance-menu-panel" onClick={() => setExpanded((value) => !value)}>
+      <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18h1.5a2 2 0 0 0 1.4-3.4 1.5 1.5 0 0 1 1.1-2.6h1a4 4 0 0 0 4-4c0-4.4-4-8-9-8Z" /><circle cx="7.5" cy="10" r=".8" /><circle cx="10.5" cy="6.8" r=".8" /><circle cx="15" cy="7.5" r=".8" /><circle cx="6.8" cy="14.5" r=".8" /></svg>
+    </button>
+    {expanded && <div ref={panel} id="appearance-menu-panel" className="appearanceMenuPanel" role="dialog" aria-label="外观设置"><ThemePicker {...props} defaultPanel="theme" /></div>}
+  </div>;
+}
+
+export default function ThemePicker({ color, designMode, presets, onChange, onDesignChange, defaultPanel = null }: {
+  color: string; designMode: "classic" | "paper"; presets: string[]; onChange: (color: string) => boolean; onDesignChange: (mode: "classic" | "paper") => void; defaultPanel?: "theme" | "more" | null;
 }) {
   const { preference: background, choose: chooseBackground } = useBackgroundAppearance();
-  const [open, setOpen] = useState<"theme" | "more" | null>(null);
+  const [open, setOpen] = useState<"theme" | "more" | null>(defaultPanel);
   const [savedColors, setSavedColors] = useState<string[]>([]);
   const [recentColors, setRecentColors] = useState<string[]>([]);
   const [combinations, setCombinations] = useState<AppearancePreset[]>([]);
