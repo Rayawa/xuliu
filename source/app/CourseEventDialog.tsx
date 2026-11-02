@@ -20,7 +20,7 @@ export function CourseEventDialog({ node, courses, readOnly, onSave, onClose }: 
   const titleId = useId();
   const errorId = useId();
   const [form, setForm] = useState(() => ({
-    title: node?.title ?? "", date: node?.date ?? "", time: node?.time ?? "",
+    title: node?.title ?? "", date: node?.date ?? localDateKey(), time: node?.time ?? "",
     location: node?.location ?? "", requirements: node?.requirements ?? "", area: node?.area ?? "工作",
     linkedCourseId: node?.linkedCourseId ?? "", assessmentType: node?.assessmentType ?? "",
     eventDateKind: node ? node.eventDateKind ?? "" : "occurs", plannedDate: node?.plannedDate ?? "",

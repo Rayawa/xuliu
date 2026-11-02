@@ -37,3 +37,19 @@ export function renameAppearancePreset(presets: AppearancePreset[], id: string, 
   if (!trimmed || trimmed.length > 80 || !presets.some((preset) => preset.id === id)) return null;
   return presets.map((preset) => preset.id === id ? { ...preset, name: trimmed } : preset);
 }
+
+export function saveAppearancePreset(presets: AppearancePreset[], draft: Omit<AppearancePreset, "id">, newId: string) {
+  if (!validColor(draft.themeColor) || !validColor(draft.background.color) || !["light", "dark", "custom"].includes(draft.background.mode) || draft.name.trim().length > 80) return null;
+  const themeColor = draft.themeColor.toLowerCase();
+  const background = normalizeBackground(draft.background);
+  const existing = presets.find((item) => appearancePresetKey(item.themeColor, item.background) === appearancePresetKey(themeColor, background));
+  if (existing) {
+    const preset = draft.name.trim() ? { ...existing, name: draft.name.trim() } : existing;
+    return { preset, presets: presets.map((item) => item.id === existing.id ? preset : item), created: false };
+  }
+  if (!newId || newId.length > 120 || presets.some((item) => item.id === newId)) return null;
+  let index = 1;
+  while (presets.some((item) => item.name === `配色 ${index}`)) index += 1;
+  const preset: AppearancePreset = { id: newId, name: draft.name.trim() || `配色 ${index}`, themeColor, background };
+  return { preset, presets: [...presets, preset], created: true };
+}

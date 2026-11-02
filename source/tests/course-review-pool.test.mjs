@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { chooseReviewPoolItem, createReviewPoolItem, createReviewPoolStep, deferStudyToReviewPool, deleteReviewPoolItem, editedStudyToReviewPool, editReviewPoolItem, editReviewPoolStep, initializeCourseReviewPool, restoreReviewPoolItem, reviewPoolItemVisibleOnDate, reviewPoolStepVisibleOnDate, reviewPoolTodayCounts, reviewPoolReadProjection, sameReviewCourse, updateReviewPoolItem, withoutReviewPoolSources } from '../lib/course-review-pool.ts';
+import { chooseReviewPoolItem, createReviewPoolItem, createReviewPoolStep, deferStudyToReviewPool, deleteReviewPoolItem, editedStudyToReviewPool, editReviewPoolItem, editReviewPoolStep, initializeCourseReviewPool, restoreReviewPoolItem, reviewPoolItemVisibleOnDate, reviewPoolStepVisibleOnDate, reviewPoolStepTodayCounts, reviewPoolTodayCounts, reviewPoolReadProjection, sameReviewCourse, updateReviewPoolItem, withoutReviewPoolSources } from '../lib/course-review-pool.ts';
 import { personalStudyRequirements, studyTaskVisibleOnDate } from '../lib/study-task-automation.ts';
 import { aiCourseContextFromWorkspace } from '../lib/ai-course-context.ts';
 import { createEmptyWorkspaceState, workspaceStateSchema } from '../lib/workspace-state-schema.ts';
@@ -9,6 +9,33 @@ import { upcomingDeadlines } from '../lib/upcoming-deadlines.ts';
 
 const today = '2026-10-23';
 const tomorrow = '2026-10-24';
+
+test('parent summaries count today selections and completions without treating old completions as today', () => {
+  const steps = [
+    { id: 'planned', title: '今日安排', done: false, selectedDate: today },
+    { id: 'done', title: '今日完成', done: true, selectedDate: today, completedDate: today },
+    { id: 'unselected', title: '直接完成', done: true, completedDate: today },
+    { id: 'old', title: '过去完成', done: true, selectedDate: today, completedDate: '2026-10-22' },
+    { id: 'unknown', title: '旧完成无日期', done: true },
+    { id: 'later', title: '以后再做', done: false, selectedDate: tomorrow },
+  ];
+  const before = JSON.stringify(steps);
+  assert.deepEqual(reviewPoolStepTodayCounts({ steps }, today), { total: 3, completed: 2 });
+  assert.deepEqual(reviewPoolStepTodayCounts({ steps }, tomorrow), { total: 1, completed: 0 });
+  assert.deepEqual(reviewPoolStepTodayCounts({}, today), { total: 0, completed: 0 });
+  assert.equal(JSON.stringify(steps), before);
+});
+
+test('parent summaries reflect subtask reopening, cancellation and completion while leaving the parent independent', () => {
+  const item = { done: false, selectedDate: undefined, steps: [{ id: 'one', title: '小任务', done: false, selectedDate: today }] };
+  assert.deepEqual(reviewPoolStepTodayCounts(item, today), { total: 1, completed: 0 });
+  const done = { ...item, steps: [{ ...item.steps[0], done: true, completedDate: today }] };
+  assert.deepEqual(reviewPoolStepTodayCounts(done, today), { total: 1, completed: 1 });
+  assert.deepEqual(reviewPoolStepTodayCounts({ ...done, steps: [{ ...done.steps[0], selectedDate: undefined }] }, today), { total: 1, completed: 1 });
+  assert.deepEqual(reviewPoolStepTodayCounts({ ...item, steps: [{ ...item.steps[0], selectedDate: undefined }] }, today), { total: 0, completed: 0 });
+  assert.equal(done.done, false);
+  assert.equal(done.selectedDate, undefined);
+});
 
 test('editing course and chapter preserves identity, completion, selected substeps and original source content', () => {
   const initialized = initializeCourseReviewPool(stateFor([task('review-source', '线代第二章rev', { requirements: '保留原任务说明' })]));

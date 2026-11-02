@@ -14,6 +14,12 @@
 .appearancePreview { display: inline-block; flex-shrink: 0; width: 16px; height: 16px; border: 1px solid var(--line-strong); border-radius: 50%; }
 .appearanceToolbar .appearanceMore { width: 33px; padding: 5px; font-size: 18px; }
 .appearancePresetList { display: grid; gap: 7px; max-height: 285px; overflow-y: auto; overscroll-behavior: contain; margin: 10px 0 12px; padding: 2px; }
+.appearancePresetList.appearancePresetCompact { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; max-height: 180px; }
+.appearancePresetCompact .appearancePresetChoice { padding: 7px 6px; gap: 6px; font-size: 11px; }
+.appearancePresetCompact .appearancePreview { width: 12px; height: 12px; }
+.appearancePresetCompact .appearancePresetDots { gap: 2px; }
+.appearancePresetCompact :is(.appearancePresetRename, .appearancePresetRemove) { display: none; }
+.appearancePresetCompact .savedLibraryEmpty { grid-column: 1 / -1; }
 .appearancePresetRow { display: flex; align-items: center; gap: 5px; min-width: 0; }
 .appearancePresetChoice { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px; color: var(--text); background: var(--paper-soft); text-align: left; font-size: 12px; }
 .appearancePresetChoice[aria-pressed="true"] { border-color: var(--accent); }
@@ -25,5 +31,17 @@
 .appearancePresetForm > div { display: flex; justify-content: flex-end; gap: 7px; }
 .appearancePresetForm button { padding: 7px 10px; border: 1px solid var(--line); border-radius: 7px; color: var(--text); background: var(--paper-soft); font-size: 11px; }
 .appearanceMorePanel .appearanceStyle { padding-top: 17px; margin-top: 20px; border-top: 1px solid var(--line); }
+.appearanceCodeForm { display: grid; gap: 9px; margin-bottom: 18px; }
+.appearanceCodeFields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.appearanceCodeFields label { display: grid; gap: 6px; min-width: 0; color: var(--muted); font-size: 11px; }
+.appearanceCodeFields label > div { display: flex; align-items: center; gap: 6px; min-width: 0; height: 35px; padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--paper-soft); }
+.appearanceCodeFields i { flex-shrink: 0; width: 15px; height: 15px; border: 1px solid var(--line-strong); border-radius: 50%; }
+.appearanceCodeFields input { min-width: 0; width: 100%; padding: 0; border: 0; color: var(--text); background: transparent; font-size: 12px; }
+.appearanceCodeSave { display: flex; gap: 7px; min-width: 0; }
+.appearanceCodeSave > input { flex: 1; }
+.appearanceCodeSave > button { white-space: nowrap; }
+.appearanceMenuPanel .themeColorGrid { gap: 10px; }
+.appearanceMenuPanel .themeColorGrid .themeSwatch { width: 23px; height: 23px; }
+.appearanceMenuPanel .themeCustomForm { margin-top: 13px; padding-top: 13px; }
 @media (max-width: 620px) { .themePicker.appearanceToolbar { flex-wrap: nowrap; gap: 2px; } .appearanceToolbar .appearanceControl { padding: 7px 9px; } }
 @media (max-width: 760px) { .pageHead:has(.appearanceMenu) { grid-template-columns: minmax(0, 1fr); } .pageHeadActions:has(> .appearanceMenu) { justify-content: flex-end; } .appearanceMenuPanel { max-height: calc(100dvh - 340px); } }

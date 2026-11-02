@@ -4,6 +4,7 @@ export const backgroundColorNamesKey = "xuliu-saved-background-color-names-v1";
 export const recentBackgroundColorsKey = "xuliu-recent-background-colors-v1";
 
 export const normalizeSavedColor = (value: unknown) => typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value.trim()) ? value.trim().toLowerCase() : "";
+export const normalizeColorCode = (value: string) => normalizeSavedColor(value.trim().startsWith("#") ? value : `#${value.trim()}`);
 
 export function normalizeSavedColors(value: unknown): string[] {
   return Array.isArray(value) ? [...new Set(value.map(normalizeSavedColor).filter(Boolean))] : [];

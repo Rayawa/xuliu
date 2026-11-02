@@ -253,6 +253,11 @@ export function reviewPoolStepVisibleOnDate(step: ReviewPoolStep, date: string) 
   return step.selectedDate === date && (!step.done || step.completedDate === date);
 }
 
+export function reviewPoolStepTodayCounts(item: Pick<ReviewPoolItem, "steps">, date: string) {
+  const steps = item.steps?.filter((step) => reviewPoolStepVisibleOnDate(step, date) || step.done && step.completedDate === date) ?? [];
+  return { total: steps.length, completed: steps.filter((step) => step.done && step.completedDate === date).length };
+}
+
 export function reviewPoolTodayCounts(items: ReviewPoolItem[], date: string) {
   const selected = items.flatMap((item) => [
     ...(reviewPoolItemVisibleOnDate(item, date) ? [item] : []),

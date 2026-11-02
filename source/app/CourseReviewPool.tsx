@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState, type ReactNode, type RefObject } from "react";
-import { createReviewPoolItem, createReviewPoolStep, editReviewPoolItem, editReviewPoolStep, reviewPoolItemVisibleOnDate, reviewPoolStepVisibleOnDate, sameReviewCourse, type ReviewPoolItem, type ReviewPoolStep, type ReviewPoolTransferDraft } from "../lib/course-review-pool";
+import { createReviewPoolItem, createReviewPoolStep, editReviewPoolItem, editReviewPoolStep, reviewPoolItemVisibleOnDate, reviewPoolStepVisibleOnDate, reviewPoolStepTodayCounts, sameReviewCourse, type ReviewPoolItem, type ReviewPoolStep, type ReviewPoolTransferDraft } from "../lib/course-review-pool";
 import { reviewChapterKey } from "../lib/review-chapter";
 import { submitFormOnEnter } from "./form-keyboard";
 import "./course-review-pool.css";
@@ -177,6 +177,13 @@ function ReviewPoolItemEditor({ item, items, courseNames, onSave, onCancel }: {
   </form>;
 }
 
+function ReviewPoolStepSummary({ item, today, id }: { item: ReviewPoolItem; today: string; id?: string }) {
+  const { total, completed } = reviewPoolStepTodayCounts(item, today);
+  if (!total) return null;
+  const text = completed === total ? `今日完成 ${completed} 项` : completed ? `今日完成 ${completed}/${total} 项` : `今日小任务 ${total} 项`;
+  return <span id={id} className="reviewPoolStepSummary">{text}</span>;
+}
+
 function ReviewPoolRow({ item, today, readOnly, onChange, onDelete, onEdit, editForm, expanded, onToggle, initialFocusRef, renderSources }: {
   item: ReviewPoolItem;
   today: string;
@@ -196,9 +203,10 @@ function ReviewPoolRow({ item, today, readOnly, onChange, onDelete, onEdit, edit
     <div className="reviewPoolRow">
       <ReviewPoolCheck item={item} readOnly={readOnly} onChange={onChange} />
       <button type="button" className="reviewPoolChapter" aria-expanded={expanded} aria-controls={expanded ? detailId : undefined}
-        aria-label={`${item.course} ${item.chapter}，${expanded ? "收起" : "展开"}详情`} ref={initialFocusRef} onClick={onToggle}>
+        aria-label={`${item.course} ${item.chapter}，${expanded ? "收起" : "展开"}详情`} aria-describedby={reviewPoolStepTodayCounts(item, today).total ? `${detailId}-steps-today` : undefined} ref={initialFocusRef} onClick={onToggle}>
         <span>{item.chapter}</span>
         {item.done && <span className="reviewPoolProgressLabel">已完成</span>}
+        <ReviewPoolStepSummary item={item} today={today} id={`${detailId}-steps-today`} />
         <span className={`reviewPoolDisclosure${expanded ? " reviewPoolDisclosureOpen" : ""}`} aria-hidden="true">›</span>
       </button>
       {selectedToday ? <button type="button" className="softButton reviewPoolChoose reviewPoolSelected" disabled={readOnly}
@@ -320,11 +328,11 @@ export function ReviewPoolToday({ items, today, readOnly, onChange, onOpenItem }
       {reviewPoolItemVisibleOnDate(item, today) ? <div className={`reviewPoolTodayRow${item.done ? " reviewPoolDone" : ""}`}>
         <ReviewPoolCheck item={item} readOnly={readOnly} onChange={onChange} />
         <button type="button" className="reviewPoolTodayTitle" aria-haspopup="dialog" onClick={() => onOpenItem(item.id)}>
-          <span>{item.course} · {item.chapter}</span>{item.done && <span className="reviewPoolProgressLabel">已完成</span>}
+          <span>{item.course} · {item.chapter}</span>{item.done && <span className="reviewPoolProgressLabel">已完成</span>}<ReviewPoolStepSummary item={item} today={today} />
         </button>
         <button type="button" className="reviewPoolTodayCancel" disabled={readOnly} aria-label={`取消今天学习：${item.course} ${item.chapter}`}
           onClick={() => onChange(item.id, { selectedDate: undefined })}>取消今天</button>
-      </div> : <button type="button" className="reviewPoolTodayCourse" aria-haspopup="dialog" onClick={() => onOpenItem(item.id)}>{item.course} · {item.chapter}</button>}
+      </div> : <button type="button" className="reviewPoolTodayCourse" aria-haspopup="dialog" onClick={() => onOpenItem(item.id)}>{item.course} · {item.chapter}<ReviewPoolStepSummary item={item} today={today} /></button>}
       <ul className="reviewPoolTodaySteps">{item.steps?.filter((step) => reviewPoolStepVisibleOnDate(step, today)).map((step) => <li className="reviewPoolTodayRow" key={step.id}>
         <ReviewPoolStepCheck item={item} step={step} readOnly={readOnly} onChange={onChange} />
         <button type="button" className={`reviewPoolTodayTitle reviewPoolTodayStepTitle${step.done ? " reviewPoolStepDone" : ""}`} aria-haspopup="dialog" onClick={() => onOpenItem(item.id)}>{item.course} · {item.chapter} · {step.title}</button>

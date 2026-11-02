@@ -52,8 +52,9 @@ export function SavedColorLibrary({ title, colors, names, selected, chooseLabel,
   const [editing, setEditing] = useState<string | null>(null);
   if (!colors.length) return null;
   const matches = colors.filter((color) => savedColorMatches(color, names[color], query));
-  const visible = query.trim() || expanded ? matches : matches.slice(0, 6);
-  return <section className="savedColorLibrary" aria-label={title}>
+  const compact = colors.length > 6 && !expanded;
+  const visible = query.trim() || expanded ? matches : matches.slice(0, compact ? 12 : 6);
+  return <section className={"savedColorLibrary" + (compact ? " savedLibraryCompact" : "")} aria-label={title}>
     <div className="savedLibraryHead"><h3>{title}</h3><small>{query.trim() ? `${matches.length} / ${colors.length}` : colors.length}</small></div>
     <input className="savedLibrarySearch" type="search" aria-label={"搜索" + title} placeholder="搜索名称或颜色值" value={query} onChange={(event) => { setQuery(event.target.value); setEditing(null); }} onKeyDown={(event) => { if (event.key === "Enter") event.preventDefault(); }} />
     <div className="savedLibraryList">
@@ -69,6 +70,6 @@ export function SavedColorLibrary({ title, colors, names, selected, chooseLabel,
       })}
       {!matches.length && <p className="savedLibraryEmpty">没有匹配的颜色</p>}
     </div>
-    {!query.trim() && colors.length > 6 && <button type="button" className="savedLibraryExpand" aria-expanded={expanded} onClick={() => setExpanded((current) => !current)}>{expanded ? "收起" : `查看全部 ${colors.length} 个颜色`}</button>}
+    {colors.length > 6 && <button type="button" className="savedLibraryExpand" aria-expanded={expanded} onClick={() => { setExpanded((current) => !current); setEditing(null); }}>{expanded ? "收起" : `查看全部与管理 · ${colors.length} 色`}</button>}
   </section>;
 }
