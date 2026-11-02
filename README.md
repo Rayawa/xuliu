@@ -1,53 +1,36 @@
-# 序流
+# 序流 · HarmonyOS
 
-序流是个人学习与生活工作台，把今日安排、任务、课程、笔记和日常记录放在同一个空间。
+面向 HarmonyOS API26、最低兼容 API23 的学习与生活工作台。以 [Serenitycheng/xuliu](https://github.com/Serenitycheng/xuliu/tree/26cd01e2c62a030ff79fbdb58c47d8b7cca70d29) 的功能为参照，采用本机 Dashboard HarmonyOS 工程的分层目录、Hds 导航和统一存储模式。
 
-正式网址：[xuliu-ai-web-one.vercel.app](https://xuliu-ai-web-one.vercel.app)。本文以 GitHub `main` 的应用代码为准；本地演示与云端服务的状态分别核验。
+完整功能清单、原生覆盖范围与剩余差异见 [功能对照](docs/features.md)。本轮按要求只编码和构建，未运行测试或安装到设备；目前是首版原生实现，尚未达到全部上游功能的原生等价。
 
-## 现有能力与边界
+## 开始使用
 
-- 今日安排、短期与长期任务、事项、计划推进日与截止时间；课程任务和课前、课上、课后学习安排。
-- 课表导入、笔记与私有附件、专注计时、习惯与提醒、个人记账及微信账单导入。
-- 多账号空间、云端版本检查与冲突保护；AI 助手可提出修改，写入前需要预览和确认。
-- `/preview` 使用演示数据，刷新后重置。课表安排由客户端规则生成；不会自动读取本机笔记库，也不是关闭网页后运行的定时任务。
-- 真正的登录、保存、附件和 AI 需要各自服务配置；演示页面不能证明这些服务可用。账单分类仍需人工核对。
+主标签为今日、任务、学习、生活、我的。默认空工作台；“我的 → 添加演示内容”可追加由本工程生成的示例，不会复制上游个人数据。今日提供日历、课表、专注、复习池、记账和每日复盘入口。记账包含分类预算、商户识别规则、储值实付与赠送、收支占比和趋势；微信CSV可预览去重并选择更新分类。
 
-## 技术栈与运行
+“我的 → 账号与云端”支持原生登录、手动读写 version 6 数据，上传带版本冲突保护。原生文档支持局部格式、段落样式、目录和撤销；私有附件支持选文件、分片上传、授权读取及PDF/图片/文本预览，需要先登录且上游已配置存储服务。原生会话仅在应用进程内跨页面共享，不与Web会话共享。AI和一言仍通过“完整云端工作台”使用，后续继续原生接入。当前未进行真实账号联调。
 
-Next.js 16、React 19、TypeScript、Zod、Vercel AI SDK；Upstash Redis 保存空间状态，Vercel 私有 Blob 保存附件，DeepSeek 提供可选 AI。
+## 构建
 
-需要 Node.js 22.13+ 与 npm。应用在 `source/`，从仓库根目录执行：
+安装 DevEco Studio 和 HarmonyOS API26 SDK 后：
 
-```powershell
-cd source
-npm ci
-npm run dev:local -- --port 3006
+```sh
+bash scripts/build.sh
 ```
 
-演示入口为 `http://localhost:3006/preview`。常用检查与生产运行：
+默认从 `~/Applications/DevEco-Studio.app` 查找工具；可设置 `DEVECO_STUDIO_HOME`。脚本只调用 Debug `assembleHap`，不执行测试。
 
-```powershell
-npm test
-npm run typecheck
-npm run build
-npm start -- --port 3006
-```
+产物：`entry/build/default/outputs/default/entry-default-unsigned.hap`。工程没有签名配置，因此产物未签名；未自动安装、发布或提交代码。
 
-## 环境变量
+## 目录与约定
 
-将自己的配置放在 `source/.env.local`，部署时配置在 Vercel。这里只列名称，不保存实际值。
+- `abilities/`：Ability 与应用生命周期。
+- `pages/main/`：主标签；其余 `pages/<业务>/`：二级页面。
+- `components/<业务>/`：有复用需求或独立逻辑的组件。
+- `domain/<业务>/`：业务规则、调度与导入解析。
+- `services/storage/`：唯一持久化入口；Preferences 保存设置，应用私有 JSON 保存业务数据；写入发布 AppStorage 更新。
+- `services/api/`、`services/files/`：云端与系统文件选择器。
+- `models/`：version 6 数据类型；`state/`：跨页面临时状态；`config/constants.ets`：公共常量。
+- `ui/`：界面辅助；`resources/base`、`resources/dark`：成对颜色资源。
 
-- 云端状态：`UPSTASH_REDIS_REST_URL`、`UPSTASH_REDIS_REST_TOKEN`；兼容 `KV_REST_API_URL`、`KV_REST_API_TOKEN`。
-- 登录：`XULIU_SESSION_SECRET`，以及 `XULIU_OWNER_PASSWORD_HASH`、`XULIU_PARTNER_PASSWORD_HASH`、`XULIU_LXS_PASSWORD_HASH`、`XULIU_RAYCHEN_PASSWORD_HASH`。各组还支持对应的 `*_USERNAME` 与 `*_DISPLAY_NAME`；只配置需要的账号，密码使用哈希。
-- 私有附件：`BLOB_READ_WRITE_TOKEN`。
-- 可选 AI：`DEEPSEEK_API_KEY`、`DEEPSEEK_BASE_URL`、`DEEPSEEK_MODEL`、`XULIU_AI_APPROVAL_SECRET`。当前代码要求地址为 `https://api.deepseek.com`、模型为 `deepseek-v4-flash`。
-
-## 部署与目录
-
-已有 Vercel 项目名为 `xuliu-ai-web`。使用 Next.js，Root Directory 设为 `source`，生产分支为 `main`；构建与运行使用应用中的 npm 脚本。仓库改名不要求更改项目名或正式域名。推送后应核对对应提交的构建与部署结果。
-
-- `source/`：当前应用。
-- `docs/`：环境变量名称、结构与历史记录。
-- `archive/recovery/`、`data/`、`attachments/`：历史恢复资料、业务快照与附件副本，不能作为今天的云端状态或直接回灌。
-
-恢复数据与附件包含私有内容，公开前需要单独处理公开范围；仅修改 README 不会清除 Git 历史中的数据。
+页面使用 `HdsNavigation` / `HdsNavDestination`，应用内临时表单状态留在页面；偏好经统一 setter 持久化并通过 `@StorageLink` 绑定。栅格按窗口宽度而非设备型号重排，参考[华为响应式布局完整章节](https://developer.huawei.com/consumer/cn/doc/doccenter-multi-device/bpta-multi-device-responsive-layout)和[无障碍属性](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/arkts-universal-attributes-accessibility)。API 写法同时核对本地华为 SDK 声明。

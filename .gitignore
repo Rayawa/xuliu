@@ -1,4 +1,12 @@
-# Local recovery copies, tools, and package caches stay on this computer.
-/.local-archive/
-/.local-tools/
-/.local-cache/
+/node_modules
+/oh_modules
+/local.properties
+/.idea
+**/build
+/.hvigor
+.cxx
+/.clangd
+/.clang-format
+/.clang-tidy
+**/.test
+/.appanalyzer

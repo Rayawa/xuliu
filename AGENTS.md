@@ -1,4 +1,11 @@
-# 序流：唯一维护目录
+# 本机 HarmonyOS 移植任务
+
+- 2026-11-02 用户已确认本地仓库切换正确。本次唯一维护目录是 `/Users/raychen/Develop/xuliu`；HarmonyOS 应用在 `entry/`，`source/` 为同仓库上游 Web 实现的对照源码。
+- 本次按用户明确要求先编码和构建，不运行测试；不提交、推送、部署或写入真实云端业务数据。
+- HarmonyOS 构建使用 `bash scripts/build.sh`；目标 API26、最低 API23。架构参照本机 `~/Develop/Dashboard/dashboard-HarmonyOS`，开发规范按用户高亮截图执行。
+- 以下 Windows 路径和 Next.js 命令属于上游 Web 项目的原有约定；保留其数据、产品决策、网络与协作边界。本次不把修改写入不可访问的 Windows 目录，也不升级或重构 `source/`。
+
+# 序流：上游 Web 项目约定
 
 - 唯一活动仓库是 `D:\projects\xuliu`，应用目录为其下的 `source`。后续修改、安装依赖、build、commit 和 push 均从此仓库执行。
 - 新会话先读本文件、`docs/HANDOFF.md` 和 `项目入口.md`，核对 `git status --short --branch`、当前提交及与本地远程跟踪分支的差异。只有需要确认远程最新版本、同步或发布时才联网核查；文档中的提交号和服务状态只是带日期的快照。

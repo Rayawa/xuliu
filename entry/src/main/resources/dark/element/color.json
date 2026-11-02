@@ -1,0 +1,96 @@
+{
+  "color": [
+    {
+      "name": "start_window_background",
+      "value": "#101713"
+    },
+    {
+      "name": "background",
+      "value": "#101713"
+    },
+    {
+      "name": "surface",
+      "value": "#1C2620"
+    },
+    {
+      "name": "surface_secondary",
+      "value": "#29372D"
+    },
+    {
+      "name": "text_primary",
+      "value": "#ECF1E9"
+    },
+    {
+      "name": "text_secondary",
+      "value": "#B3C1B5"
+    },
+    {
+      "name": "accent",
+      "value": "#9BC8A7"
+    },
+    {
+      "name": "accent_blue",
+      "value": "#99C4EB"
+    },
+    {
+      "name": "accent_plum",
+      "value": "#D5AFD0"
+    },
+    {
+      "name": "accent_amber",
+      "value": "#E3C08B"
+    },
+    {
+      "name": "on_accent",
+      "value": "#14251A"
+    },
+    {
+      "name": "border",
+      "value": "#3E4D40"
+    },
+    {
+      "name": "danger",
+      "value": "#FFADAD"
+    },
+    {
+      "name": "chart_track",
+      "value": "#344239"
+    },
+    {
+      "name": "transparent",
+      "value": "#00000000"
+    },
+    {
+      "name": "highlight",
+      "value": "#625420"
+    },
+    {
+      "name": "chart_teal",
+      "value": "#8EC6C1"
+    },
+    {
+      "name": "chart_rose",
+      "value": "#D7A3B7"
+    },
+    {
+      "name": "chart_slate",
+      "value": "#ACBDC8"
+    },
+    {
+      "name": "chart_lime",
+      "value": "#BFCE86"
+    },
+    {
+      "name": "chart_rust",
+      "value": "#DBB08D"
+    },
+    {
+      "name": "chart_income",
+      "value": "#9BC8A7"
+    },
+    {
+      "name": "chart_expense",
+      "value": "#DBB08D"
+    }
+  ]
+}

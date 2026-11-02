@@ -1,0 +1,16 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "学习与生活工作台"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "学习与生活工作台"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "序流"
+    }
+  ]
+}

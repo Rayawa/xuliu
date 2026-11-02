@@ -1,0 +1,7 @@
+{
+  "layered-image":
+  {
+    "background" : "$media:xuliu_background",
+    "foreground" : "$media:xuliu_foreground"
+  }
+}
