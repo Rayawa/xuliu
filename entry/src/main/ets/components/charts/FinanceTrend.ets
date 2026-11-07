@@ -26,8 +26,14 @@ export struct FinanceTrend {
           Polyline().points(this.points(true)).stroke($r('app.color.chart_income')).strokeWidth(3).fill($r('app.color.transparent'))
           Polyline().points(this.points(false)).stroke($r('app.color.chart_expense')).strokeWidth(3).fill($r('app.color.transparent'))
         }.viewPort({ x: 0, y: 0, width: 720, height: 210 }).width('100%').height(190)
-          .onAreaChange((_old: Area, area: Area) => { this.widthVp = Number(area.width); })
-          .onClick((event: ClickEvent) => { this.selected = Math.max(0, Math.min(this.data.length - 1, Math.round((event.x / this.widthVp * 720 - 16) / 688 * (this.data.length - 1)))); })
+          .onAreaChange((_old: Area, area: Area) => {
+            const width = Number(area.width);
+            if (Number.isFinite(width) && width > 0) this.widthVp = width;
+          })
+          .onClick((event: ClickEvent) => {
+            const ratio = Math.max(0, Math.min(1, (event.x / this.widthVp * 720 - 16) / 688));
+            this.selected = Math.round(ratio * (this.data.length - 1));
+          })
           .accessibilityRole(AccessibilityRoleType.BUTTON).accessibilityText('本月每日收入和支出趋势')
           .accessibilityDescription('触摸图表选择日期，也可使用下方前一天和后一天按钮查看数值')
         Row() {
@@ -43,5 +49,7 @@ export struct FinanceTrend {
         }
       }
     }.width('100%').padding(18).borderRadius(18).backgroundColor($r('app.color.surface'))
+      .border({ width: 1, color: $r('app.color.border') })
+      .shadow({ radius: 12, color: $r('app.color.card_shadow'), offsetY: 3 })
   }
 }

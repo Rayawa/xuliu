@@ -1,3 +1,4 @@
+import { reconcileTaskStages } from '../../domain/workspace/TaskStages';
 import { getWorkspace, saveWorkspace } from '../storage/storage';
 import { applyStudyPlan } from '../../domain/workspace/StudyAutomation';
 import { localDate } from '../../domain/workspace/WorkspaceDomain';
@@ -12,8 +13,9 @@ export async function refreshStudyPlan(): Promise<void> {
   if (signature === lastSignature) return;
   refreshing = true;
   try {
-    const result = applyStudyPlan(data);
-    if (result.changed) await saveWorkspace(data);
+    const before = JSON.stringify(data.tasks);
+    const result = applyStudyPlan(data); reconcileTaskStages(data, localDate());
+    if (result.changed || before !== JSON.stringify(data.tasks)) await saveWorkspace(data);
     lastSignature = signature;
   } finally { refreshing = false; }
 }

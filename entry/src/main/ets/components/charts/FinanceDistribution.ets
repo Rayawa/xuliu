@@ -46,7 +46,7 @@ export struct FinanceDistribution {
         ForEach(this.slices(), (slice: ChartSlice, index: number) => {
           Button({ type: ButtonType.Normal }) {
             Row({ space: 10 }) {
-              Circle().width(12).height(12).fill(CHART_PALETTE[index]).accessibilityLevel('no')
+              Blank().width(12).height(12).borderRadius(6).backgroundColor(CHART_PALETTE[index]).accessibilityLevel('no')
               Text(slice.label).layoutWeight(1).fontColor($r('app.color.text_primary'))
               Text(`${money(slice.value)} · ${(slice.value / Math.max(1, this.data.reduce((sum, item) => sum + item.value, 0)) * 100).toFixed(1)}%`)
                 .fontSize(14).fontColor($r('app.color.text_secondary'))
@@ -67,5 +67,7 @@ export struct FinanceDistribution {
         }
       } else { Text('本月没有该类型账目').fontColor($r('app.color.text_secondary')).padding(24) }
     }.width('100%').padding(18).borderRadius(18).backgroundColor($r('app.color.surface'))
+      .border({ width: 1, color: $r('app.color.border') })
+      .shadow({ radius: 12, color: $r('app.color.card_shadow'), offsetY: 3 })
   }
 }

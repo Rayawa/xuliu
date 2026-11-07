@@ -1,3 +1,4 @@
+import { hdsPageTitle } from '../../ui/navigation/hdsTitleBar';
 import { common } from '@kit.AbilityKit';
 import { picker } from '@kit.CoreFileKit';
 import { openLink } from '../../services/links/openLink';
@@ -40,7 +41,7 @@ export struct CloudWebPage {
         Button('重新加载').onClick(() => { this.error = ''; this.controller.refresh(); }).accessibilityText('重新加载云端工作台')
       }.width('100%').height('100%').backgroundColor($r('app.color.background'))
     }.titleMode(HdsNavDestinationTitleMode.MINI)
-    .titleBar({ content: { title: { mainTitle: '云端工作台' }, backIcon: { action: () => this.pageStack.pop() } } })
+    .titleBar(hdsPageTitle('云端工作台', () => this.pageStack.pop()))
     .onBackPressed(() => { if (this.controller.accessBackward()) { this.controller.backward(); return true; } return false; })
   }
 }

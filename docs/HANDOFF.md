@@ -1,11 +1,17 @@
 # 序流开发交接
 
-更新日期：2026-11-02（Asia/Shanghai）。这是当前状态入口，不替代实时检查，也不复制完整聊天或历史日志。
+更新日期：2026-11-07（Asia/Shanghai）。这是当前状态入口，不替代实时检查，也不复制完整聊天或历史日志。
 
 ## 当前本机任务：HarmonyOS 原生移植
 
-- 用户已确认当前本地仓库切换正确；活动目录为 `/Users/raychen/Develop/xuliu`。`entry/` 是 HarmonyOS 工程，`source/` 是已切入本地的上游 Web 参考实现，以下 Windows 路径属于上游交接原文。
-- 当前 HEAD 为 `26cd01e`，与缓存 `origin/main` 无提交差异；工作区同时包含用户预先暂存的工程文件与本次原生代码，不能以重置或覆盖方式整理。
+- 2026-11-07 “我的”页第二次对齐 Dashboard（List Item Card/图标/振动沉浸光感）：用户指出 ListItemCard 不是 Dashboard 原风格、振动/沉浸/光感未对齐、缺失图标要从 Dashboard 原位置复制。本轮将 `pages/main/MyPage.ets` 按 Dashboard `MyPage.ets` 逐项对齐：使用 `config/constants.ets` 新增的 `CONTENT_MAX_WIDTH`/`LIST_*`/`STAGGER_*`/`MAIN_TAB_MY` 常量；分组改为“设置/更多/帮助”，标题左内边距 4vp、分组间距 14vp、卡片圆角 16vp、阴影 radius 8、分隔线左右 16vp、840vp 起宽屏左固定右滚动；新增 `ui/animation/motion.ets` 分组错峰入场，并按 Dashboard 由 `active` 属性门控（`pages/Dashboard.ets` 传入当前标签）；新增 `ui/interaction/scroll.ets` 并在页面根容器转发二合一滚轮/触控板轴事件。`components/settings/SettingsPanel.ets` 重写为 7 个 HdsListItemCard 行（首页称呼、外观、主题色、前台提醒、振动强度、材质等级、光场视效），行高 68/116、前缀图标全部改为 Dashboard 原始 png，Slider 配色与标签样式、右侧 2vp 内边距、窄屏布局照 Dashboard；振动/材质/光场分别接 `setVibrationLevel`/`setImmersiveMaterialLevel`/`setLightFieldLevel`，HDR 不支持时回落明亮并提示；外观/主题色滑杆改为单向 value + 持久化，避免 `$$` 先写 AppStorage 导致保存失败无法回滚。图标从 `Dashboard/AppScope/resources/{base,dark}/media` 复制 contact/submit/log/share/button/rcON（明暗两套，md5 一致）；此前已复制的 api/app_log/attention/immersive/info/light/link/privacy/question/right/settings/trash/tutorial/user/vibrate 保持。`base`/`dark` color.json 已经是 Dashboard 49 键原值加序流语义别名，本轮未改配色键值，页面只用 v3_* / border / background / diff_content 等键。顺带修复既有的 `services/storage/storage.ets` 解构赋值导致 `--clean` 无法编译的问题（改为逐项 await）。`bash scripts/build.sh --clean` 成功且本页相关文件无 ArkTS 警告；仍未在设备/模拟器做视觉与触觉验收，不能声称视觉已完全验收。已知 Dashboard 也没有深色版 `attention`/`question` 图标，当前深色模式回退浅色版；若需要白色线稿需补充素材。
+- 2026-11-07 “我的”页与配色校正：按用户最新要求将 `pages/main/MyPage.ets` 重写为 Dashboard 的手机单列、840vp 起宽屏左侧固定应用信息/右侧滚动列表布局。设置面板与功能分组改用 HdsListItemCard、分组标题/分隔线、100vp 顶部和110vp 底部留白；保留序流的称呼、外观、主题色、前台提醒、云端/AI/一言入口、完整 JSON 导入导出确认及演示数据。`base`/`dark` 的 `color.json` 各完整纳入 Dashboard 原有49个键及其原值，并为序流现有21个语义色增加映射，颜色键集合一致；主题色名称同步为海蓝/青色/紫色/琥珀。`bash scripts/build.sh --clean` 成功，静态检查无缺失颜色引用；按约定未运行测试或设备视觉验收。
+- 2026-11-07 Dashboard UI 校正：用户指出前一轮仅使用基础 HdsTabs，未实现 Dashboard 的底栏与安全区样式。现主导航已按 Dashboard 的 API23+ 方式使用 `HdsTabsController`、`cachedMaxCount`、`barOverlap`、`blurStrategy` 与 `barFloatingStyle`（系统材质、渐变遮罩、28vp底距）；`HdsNavigation` 标题栏采用同类材质与安全区布局。五个主标签的滚动内容避让顶部标题栏和底部悬浮栏，二级页统一通过 `ui/navigation/hdsTitleBar.ets` 使用 HDS 标题栏样式；日志、隐私页采用沉浸背景及明确的顶部留白。设置导航改用 HdsListItemCard，首页快捷入口和卡片参照 Dashboard 的图标、边框、轻阴影与按压反馈。浅色和深色各新增同名 `card_shadow`，颜色键集合一致。`bash scripts/build.sh --clean` 成功；仍未运行设备视觉/交互测试，不能声称视觉已完全验收。
+- 2026-11-07 工程重构阶段：按用户指定的 `/Users/raychen/Develop/Dashboard/dashboard-HarmonyOS` 核对目录、HdsNavs、AppStorage 边界、生命周期、日志和隐私页面；按 `/Users/raychen/Develop/Web/xuliu` 核对业务入口与状态合同。旧文档中的 `/Users/raychen/Develop/xuliu` 当前不存在，本次仅改 `/Users/raychen/Develop/xuliu-HarmonyOS`。保留开始前的大量未提交业务改动。
+- 主入口由 `pages/Index.ets` 整理为 `pages/Dashboard.ets`，同步 Ability 与页面清单；子页按 Dashboard 惰性导入，主标签采用图标、文字与中文无障碍标签，选中色跟随现有主题设置。`InfoPage` 分为独立更新日志与隐私说明页，原隐私内容保留。日期、存储就绪、错误、云端会话与生活运行修订的写入集中到 `state/appState.ets`；学习计划刷新移到主页面显示后的帧回调，页面隐藏时取消，避免每次数据修订都在首帧重复计算。复习池、日历和复习详情的数据整理改到子页显示阶段，记账页去掉重复的初始化加载；旧学习规则常量并入 `constants.ets`。清除空的旧目录。
+- 图表沿用 ArkUI DataPanel（官方最多9段）和 Shape，分类超过9项继续归并“其余分类”，折线图补零宽保护。颜色仍取浅色/深色 `color.json`，本轮没有增加硬编码颜色。参考华为官方响应式布局、无障碍和 DataPanel 文档；系统 PasteButton 在最低 API23 不支持直接设置 `accessibilityText`，保留相邻中文说明。`bash scripts/build.sh --clean` 构建成功；仍有此前文件/通知等既存 ArkTS 警告。本轮按用户先编码和构建的要求未运行测试或设备交互，尚不能确认全部页面的视觉与功能等价；剩余差异仍以 `docs/features.md` 为准。
+- 用户已确认当前本地仓库切换正确；本机目录2026-11-03已改名，活动目录为 `/Users/raychen/Develop/xuliu-HarmonyOS`。`entry/` 是 HarmonyOS 工程，`source/` 是已切入本地的上游 Web 参考实现，以下 Windows 路径属于上游交接原文。
+- 当前实查 HEAD 为 `7f62855`（`1st stop`），领先缓存 `origin/main` 1个提交，未fetch。前阶段原生工作已在该本地提交中；在其基础上继续，保留其他并行改动，不重置或覆盖。
 - 原生已编写今日/任务/事项、课程与课表、学习/研究、笔记、生活、复习、专注、记账及原生云端连接。覆盖与剩余原生差异集中记录在 `docs/features.md`，不能把 Web 入口当作全部原生功能完成。
 - 图标（2026-11-02）：使用内置 image_gen 生成 1:1（1254×1254）森林绿流动 S 形透明前景及象牙白/浅绿背景，两处 `layered_image.json` 已接入 `xuliu_foreground` / `xuliu_background`，启动图标使用同一透明标记 `xuliu_start`，旧默认图片保留。资源位置及完整提示词见 `docs/icon-assets.md`。`bash scripts/build.sh` 构建成功（unsigned HAP），存在原生业务源码的 API/异常处理警告；未运行测试、未安装或验证设备裁切/启动显示。
 - 已使用 `bash scripts/build.sh --clean` 成功生成 unsigned HAP，包内元数据为 compatible API23、target API26。未配置签名，未安装、未运行测试、未验证真实登录/AI/云端写入；按用户指令继续先编码和构建。
@@ -13,8 +19,21 @@
 - 已新增原生RichEditor局部格式保留/编辑、段落样式、标题目录、块撤销/重做与分批显示；私有附件已编写选文件、50MB限制、令牌授权、分片上传、授权下载和PDF/图片/文本预览。原生会话跨页面仅在进程内共享，账号变化/离开预览清理传输与私有缓存。依据上游锁定Blob SDK2.8.0/API12对接，未实际登录、上传或读取个人附件。
 - 原生记账已补月度/分类预算、分类改名/排序与历史分类迁移、商户/明细/固定金额用途规则及历史人工修正规则推断；微信CSV支持UTF-8/GB18030、跳过计数、重复预览、选择更新旧分类与确认重新识别本月。储值实付/赠送分开填写并保持到账合计和收支排除语义；有账目项目不能删成悬空关联。
 - 收入/支出原生环形占比、图例筛选和每日折线/逐日数值已纳入构建；DataPanel最多9段，多余分类合并但保留全部明细。金额使用整数分，账目/规则分批显示，解析和搜索离开页面取消。Finance页面移至 `pages/finance/`，业务规则集中在 `domain/finance/`。已完成干净Debug构建；仍未运行测试或设备验证，未签名。
-- 下一步继续XLSX账单与完整课程导入、复习编辑/撤销与任务阶段联动、按用途聚合折叠、结构化粘贴/表格交互及原生AI/一言；不能以云端Web入口替代这些剩余移植。
-- 不改用户数据快照、附件、归档、Web业务代码或既有产品决策；没有 commit、push、部署。以下历史验证只代表上游 Web 当时的状态。
+- 已补共享原生XLSX读取器（系统Zlib/API14 PullParser，未用API24 SAX）：多工作表、共享/内嵌文本、缓存公式与1900/1904日期，按需解压并校验CRC/体积。账单已接入；教务新增XLSX/CSV/TSV矩阵/明细、官方节次、可编辑预览、按学校课程键合并/重导，保留既有课程ID/笔记/附件/进度和手动时段。ICS可处理UTC/IANA时区及有界每周重复；不支持的事件跳过并显示说明。
+- 教务确认导入前写入完整独立备份，期间版本变化会重读合并，可导出最近备份。调整统一存储为先入写队列再发布状态，避免观察器派生更新被旧快照反向覆盖。新增模块和迁移已完成干净Debug构建；未运行测试、未用真实个人文件验证解析或导入。
+- 原生AI已新增服务端SSE协议对话、空间/课程上下文、只读限制、DeepSeek返回证明、完整修改预览及签名保留、批量/删除二次确认。停止/切换账号释放请求，未知执行结果不自动重写；同一二次提案可手动安全重试。对话和令牌仅内存，课程回答按同一块ID追加且兼容分页笔记；云端结果仅在本机基线一致时自动下载，覆盖前完整备份可导出。协议与边界见 `docs/native-ai.md`。
+- 原生AI及接入页面已完成Debug和干净Debug构建；未运行测试、未调用真实AI或云端写入。API23/26和unsigned产物保持。
+- 一言已补原生今日卡片、独立图文/连接页、手机验证码、换句预取、公开缓存及配图清晰度/重试、默认和指定文集收藏、分页浏览、公开/私密新建。收藏/新建保留操作UUID，未知结果仅检查不重发；私人文集和连接会话只存内存，后台/不可见暂停预取、请求与倒计时。图像请求隔离凭据、限制体积及解码像素，列表惰性创建，文集上一页/下一页只保留当前页正文和历史游标，操作ID与成功提示缓存有界。
+- 原生网络共享改为内存Cookie容器，合并/删除/过期及Path匹配，避免一言Set-Cookie覆盖序流登录；一言401不会误清整个序流会话。新增一言和会话改动已干净Debug构建；未运行测试、未发送短信或使用真实一言账号。协议边界见 `docs/native-yiyan.md`。
+- 复习池已改为课程分组/章节折叠与惰性列表，新增独立编辑页：名称/备注按最新编号局部修改并核对基线，小任务修改、独立今日选择/完成、删除与原位置恢复；章节删除/恢复去重来源标记，原笔记、附件、成果、进度历史和用时可只读展开。已修正仅选小任务时大章节被误勾选的UI，补充今日取消和详情入口。
+- 任务阶段已按本地source reducer接入统一保存入口，覆盖父子取消/重选、自动阶段双向改期、删除阶段清父级计划、复用未安排阶段、续做不额外生成阶段和完成日期处理；下载/整库导入不使用旧本机状态推导。已有长期任务改用数字进度，移除课程/学习/研究通用进度条。图表图例移除API26专用fill调用，改用API23组件组合。复习源与自动阶段已从总览/今日/临期/日历/专注候选排除；归集后原阶段资料可访问，补全复习合同校验。
+- 上述复习/阶段改动已Debug及干净Debug构建；没有运行测试、设备交互、真实数据迁移或云端写入。规则与尚需验证的场景见 `docs/native-review-and-stages.md`。
+- 番茄钟已改为独立倒计时，移除旧任务选择/结束记入/手动补录UI，但完整保留历史timeEntries和elapsed；增加今日卡片、跨页状态、暂停/继续/重置、结束消息、声音与音量。护眼循环按上游固定30分钟/5分钟，支持暂停/继续/结束、轮数与后台返回追赶；账号切换暂停原番茄钟并重置护眼。
+- 生活提醒改为固定时间/间隔/稍后队列，多个到点项目逐一展示，预览不改时间、不响铃；统一生命周期管理，后台清除活动定时器和播放器，前台按墙钟更新。新增本地三种WAV提示音和原生AVPlayer，按账号/设备保存提醒声音配置。已增加主动系统通知授权、状态读取、系统设置入口和测试按钮；生活/护眼提示可选投递静音通知，声音仍由应用独立控制，带本应用回跳。后台调度仍未接入，不宣称应用关闭后会准点提醒。
+- 番茄钟/护眼/提醒及声音代码在目录改名后已干净构建成功，包元数据兼容23、目标26。通知授权/状态/设置/投递代码也已纳入干净构建。未运行测试、未实际播放音频或启动计时。说明见 `docs/native-life.md`。
+- 已编写原生文档整理粘贴：用户触发系统PasteButton读取HTML/纯文本，移除外部布局、样式和资源，保留段落/列表/代码/局部格式；系统常规粘贴清理原生Span，长文分块追加。新增单元格编辑、添删行列、TSV/HTML整表替换、100×30及每格500字校验；各次结构操作可撤销，编辑中断和文档切换清除异步请求引用。详见 `docs/native-documents.md`；已完成干净Debug构建，未运行测试或实际粘贴。
+- 媒体旧百分比展示、任务/事项分类、父子视图及历史用时查看仍需核对。已接入整月收支的分类和用途折叠及共用账目编辑入口。研究项目已接入多页笔记编辑，已有页面按编号切换，旧单篇笔记纳入研究总览。课外学习资源接入六种上游类型，普通任务可关联课内或课外科目，课外学习页按编号显示关联任务。工具版本维护与网站合集筛选、编辑、排序已接入。日历已接入年月跳转、响应式整月网格、截止与推进分类和选日创建事项。事项已接入课程考核分类、日期含义和课程页双入口。下一步继续双线装饰及完整适配；不能以云端Web入口替代这些剩余移植。
+- 不改用户数据快照、附件、归档、Web业务代码或既有产品决策；本代理未执行commit、push或部署。以下历史验证只代表上游 Web 当时的状态。
 
 ## 1. 项目与接续入口
 

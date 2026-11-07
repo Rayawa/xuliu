@@ -1,8 +1,10 @@
 import { courseTitleCandidate } from '../courses/TimetableRules';
 import { Workspace, WorkspaceEntry, CourseSlot } from '../../models/Workspace';
-import { STUDY_RULE_VERSION, DAILY_STUDY_DURATION, STUDY_EXCLUDED_COURSES } from '../../config/constants';
+import {
+  DAILY_STUDY_DURATION, LEGACY_STUDY_METHOD_LINES, LEGACY_STUDY_SOURCE,
+  STUDY_EXCLUDED_COURSES, STUDY_RULE_VERSION,
+} from '../../config/constants';
 import { localDate, uid, runsInWeek, timetableWeekNumber, validDate } from './WorkspaceDomain';
-import { LEGACY_STUDY_METHOD_LINES, LEGACY_STUDY_SOURCE } from '../../config/studyMethods';
 
 export interface StudyPlanResult {
   changed: boolean;

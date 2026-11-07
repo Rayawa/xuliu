@@ -1,3 +1,5 @@
+import { assertTable } from '../documents/TableData';
+import { assertReviewPool } from './ReviewDomain';
 import { assertFinance } from '../finance/FinanceDomain';
 import { Workspace, WorkspaceEntry, Block } from '../../models/Workspace';
 import { MAX_FILE_BYTES, MAX_BLOCK_TEXT_CHARS, MAX_DOCUMENT_BLOCKS, MAX_ATTACHMENTS } from '../../config/constants';
@@ -16,6 +18,7 @@ function assertBlocks(blocks: Block[] | undefined): void {
     if (block.rows !== undefined && (!Array.isArray(block.rows) || block.rows.some((row) => !Array.isArray(row) || row.some((v) => typeof v !== 'string')))) {
       throw new Error('表格内容无效');
     }
+    if (block.rows !== undefined) assertTable(block.rows);
     if (block.inlineRuns !== undefined && (!Array.isArray(block.inlineRuns) || block.inlineRuns.length > MAX_DOCUMENT_BLOCKS ||
       block.inlineRuns.some((run) => !run || typeof run.text !== 'string') || block.inlineRuns.map((run) => run.text).join('') !== (block.text ?? ''))) throw new Error('局部文字格式与正文不一致');
     if (block.embeddedFiles !== undefined && (!Array.isArray(block.embeddedFiles) || block.embeddedFiles.length > MAX_ATTACHMENTS)) throw new Error('内嵌附件无效');
@@ -70,12 +73,6 @@ export function assertWorkspace(data: Workspace): void {
   assertEntries(data.tools, 'tools'); assertEntries(data.habits, 'habits'); assertEntries(data.routines, 'routines');
   assertEntries(data.reminders, 'reminders'); assertEntries(data.media, 'media'); assertEntries(data.recipes, 'recipes'); assertEntries(data.pages, 'pages');
   assertFinance(data.finance);
-  if (data.reviewPool) {
-    if (!Array.isArray(data.reviewPool.items)) throw new Error('复习池格式无效');
-    data.reviewPool.items.forEach((item) => {
-      if (!item || typeof item.id !== 'string' || typeof item.course !== 'string' || typeof item.chapter !== 'string' || !Array.isArray(item.sources) ||
-        (item.steps !== undefined && !Array.isArray(item.steps))) throw new Error('复习章节格式无效');
-    });
-  }
+  if (data.reviewPool) assertReviewPool(data.reviewPool);
   if (typeof data.timetableSettings.termStartDate !== 'string' || !validDate(data.timetableSettings.termStartDate)) throw new Error('学期起始日期无效');
 }

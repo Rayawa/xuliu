@@ -2,95 +2,283 @@
   "color": [
     {
       "name": "start_window_background",
-      "value": "#F5F6F2"
+      "value": "#FFFFFF"
     },
     {
       "name": "background",
-      "value": "#F5F6F2"
+      "value": "#FFF6F9FF"
     },
     {
-      "name": "surface",
+      "name": "diff_background",
+      "value": "#FFE1E4EA"
+    },
+    {
+      "name": "mask_color",
+      "value": "#66F1F3F5"
+    },
+    {
+      "name": "light_color",
+      "value": "#33E5E5E5"
+    },
+    {
+      "name": "segmented_color_selected",
+      "value": "#22666666"
+    },
+    {
+      "name": "button_border",
       "value": "#FFFFFF"
     },
     {
-      "name": "surface_secondary",
-      "value": "#EAEEE6"
+      "name": "backcolor",
+      "value": "#EEF6FE"
     },
     {
-      "name": "text_primary",
-      "value": "#202C27"
+      "name": "s_station_placeholder",
+      "value": "#EEF6FE"
     },
     {
-      "name": "text_secondary",
-      "value": "#59685F"
-    },
-    {
-      "name": "accent",
-      "value": "#356B50"
-    },
-    {
-      "name": "accent_blue",
-      "value": "#376B96"
-    },
-    {
-      "name": "accent_plum",
-      "value": "#805177"
-    },
-    {
-      "name": "accent_amber",
-      "value": "#946222"
-    },
-    {
-      "name": "on_accent",
-      "value": "#FFFFFF"
+      "name": "navcolor",
+      "value": "#FFEEF4FE"
     },
     {
       "name": "border",
-      "value": "#D8DFD7"
+      "value": "#B8D0E5"
+    },
+    {
+      "name": "border_highlight",
+      "value": "#F97794"
+    },
+    {
+      "name": "diff_content",
+      "value": "#1E6FCD"
+    },
+    {
+      "name": "gradient_start_color",
+      "value": "#F97794"
+    },
+    {
+      "name": "gradient_end_color",
+      "value": "#623AA2"
+    },
+    {
+      "name": "nd_card_bg",
+      "value": "#FFFFFF"
+    },
+    {
+      "name": "nd_card_border",
+      "value": "#D8E4F2"
+    },
+    {
+      "name": "nd_text_main",
+      "value": "#1F2937"
+    },
+    {
+      "name": "nd_text_sub",
+      "value": "#6B7280"
+    },
+    {
+      "name": "nd_bar_track",
+      "value": "#EAF0F8"
+    },
+    {
+      "name": "v3_surface",
+      "value": "#FFFFFFFF"
+    },
+    {
+      "name": "v3_surface_alt",
+      "value": "#FFF0F4FA"
+    },
+    {
+      "name": "v3_text_primary",
+      "value": "#FF172033"
+    },
+    {
+      "name": "v3_text_secondary",
+      "value": "#FF5F6B7A"
+    },
+    {
+      "name": "v3_accent_cyan",
+      "value": "#FF007D8A"
+    },
+    {
+      "name": "v3_accent_green",
+      "value": "#FF00875A"
+    },
+    {
+      "name": "v3_accent_orange",
+      "value": "#FFB54708"
+    },
+    {
+      "name": "v3_accent_red",
+      "value": "#FFCF2634"
+    },
+    {
+      "name": "v3_accent_purple",
+      "value": "#FF7048E8"
+    },
+    {
+      "name": "v3_chart_series_7",
+      "value": "#FFD43C9B"
+    },
+    {
+      "name": "v3_chart_series_8",
+      "value": "#FF5C6BC0"
+    },
+    {
+      "name": "v3_chart_series_9",
+      "value": "#FF8A5A00"
+    },
+    {
+      "name": "v3_chart_series_10",
+      "value": "#FF00838F"
+    },
+    {
+      "name": "v3_chart_series_11",
+      "value": "#FF7B1FA2"
+    },
+    {
+      "name": "v3_chart_series_12",
+      "value": "#FF2E7D32"
+    },
+    {
+      "name": "v3_chart_series_13",
+      "value": "#FFC62828"
+    },
+    {
+      "name": "v3_chart_series_14",
+      "value": "#FFEF6C00"
+    },
+    {
+      "name": "v3_chart_series_15",
+      "value": "#FF1565C0"
+    },
+    {
+      "name": "v3_chart_series_16",
+      "value": "#FF6D4C41"
+    },
+    {
+      "name": "v3_chart_grid",
+      "value": "#FFD8E0EB"
+    },
+    {
+      "name": "v3_scrim",
+      "value": "#66000000"
+    },
+    {
+      "name": "v3_success_bg",
+      "value": "#FFE8F7EF"
+    },
+    {
+      "name": "v3_warning_bg",
+      "value": "#FFFFF4DE"
+    },
+    {
+      "name": "v3_notice_bg",
+      "value": "#FFFFF1F2"
+    },
+    {
+      "name": "v3_notice_surface",
+      "value": "#29FFFFFF"
+    },
+    {
+      "name": "v3_notice_text",
+      "value": "#FF172033"
+    },
+    {
+      "name": "v3_notice_text_secondary",
+      "value": "#FF5F6B7A"
+    },
+    {
+      "name": "v3_notice_divider",
+      "value": "#FFF3C7CC"
+    },
+    {
+      "name": "v3_shadow",
+      "value": "#1A1A2B45"
+    },
+    {
+      "name": "surface",
+      "value": "#FFFFFFFF"
+    },
+    {
+      "name": "surface_secondary",
+      "value": "#FFF0F4FA"
+    },
+    {
+      "name": "text_primary",
+      "value": "#FF172033"
+    },
+    {
+      "name": "text_secondary",
+      "value": "#FF5F6B7A"
+    },
+    {
+      "name": "accent",
+      "value": "#1E6FCD"
+    },
+    {
+      "name": "accent_blue",
+      "value": "#FF007D8A"
+    },
+    {
+      "name": "accent_plum",
+      "value": "#FF7048E8"
+    },
+    {
+      "name": "accent_amber",
+      "value": "#FFB54708"
+    },
+    {
+      "name": "on_accent",
+      "value": "#FFFFFFFF"
+    },
+    {
+      "name": "card_shadow",
+      "value": "#1A1A2B45"
     },
     {
       "name": "danger",
-      "value": "#AF3434"
+      "value": "#FFCF2634"
     },
     {
       "name": "chart_track",
-      "value": "#E5EAE3"
+      "value": "#EAF0F8"
+    },
+    {
+      "name": "highlight",
+      "value": "#FFFFF4DE"
+    },
+    {
+      "name": "chart_teal",
+      "value": "#FF007D8A"
+    },
+    {
+      "name": "chart_rose",
+      "value": "#FFD43C9B"
+    },
+    {
+      "name": "chart_slate",
+      "value": "#FF5C6BC0"
+    },
+    {
+      "name": "chart_lime",
+      "value": "#FF00875A"
+    },
+    {
+      "name": "chart_rust",
+      "value": "#FF8A5A00"
+    },
+    {
+      "name": "chart_income",
+      "value": "#FF00875A"
+    },
+    {
+      "name": "chart_expense",
+      "value": "#FFB54708"
     },
     {
       "name": "transparent",
       "value": "#00000000"
-    },
-    {
-      "name": "highlight",
-      "value": "#E5D9A8"
-    },
-    {
-      "name": "chart_teal",
-      "value": "#337E7A"
-    },
-    {
-      "name": "chart_rose",
-      "value": "#A45E79"
-    },
-    {
-      "name": "chart_slate",
-      "value": "#687B88"
-    },
-    {
-      "name": "chart_lime",
-      "value": "#748B34"
-    },
-    {
-      "name": "chart_rust",
-      "value": "#9A6041"
-    },
-    {
-      "name": "chart_income",
-      "value": "#356B50"
-    },
-    {
-      "name": "chart_expense",
-      "value": "#9A6041"
     }
   ]
 }

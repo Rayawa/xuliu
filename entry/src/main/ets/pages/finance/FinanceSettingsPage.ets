@@ -1,3 +1,4 @@
+import { hdsPageTitle } from '../../ui/navigation/hdsTitleBar';
 import { leaveWithUnsaved } from '../../ui/navigation/unsavedChanges';
 import { HdsNavDestination, HdsNavDestinationTitleMode } from '@kit.UIDesignKit';
 import { LengthMetrics } from '@kit.ArkUI';
@@ -187,7 +188,7 @@ export struct FinanceSettingsPage {
         }.width('100%').constraintSize({ maxWidth: 1200 }).padding(20)
       }.width('100%').height('100%').backgroundColor($r('app.color.background'))
     }.titleMode(HdsNavDestinationTitleMode.MINI)
-    .titleBar({ content: { title: { mainTitle: '分类与识别规则' }, backIcon: { action: () => this.leave() } } })
+    .titleBar(hdsPageTitle('分类与识别规则', () => this.leave()))
     .onBackPressed(() => { this.leave(); return true; })
   }
 }

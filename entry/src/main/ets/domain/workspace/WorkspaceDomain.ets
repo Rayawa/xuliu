@@ -1,3 +1,5 @@
+import { eventCourses } from './CourseEvents';
+import { ResearchPage } from '../../models/Workspace';
 import { Workspace, WorkspaceEntry, Block, DailyRecord } from '../../models/Workspace';
 import { COLLECTIONS, EXPENSE_CATEGORIES, INCOME_CATEGORIES, MS_PER_DAY, DEFAULT_TERM_START, STUDY_RULE_VERSION } from '../../config/constants';
 
@@ -6,7 +8,7 @@ export function uid(): string {
 }
 
 export function localDate(date: Date = new Date()): string {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  return `${String(date.getFullYear()).padStart(4, '0')}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
 export function localTime(date: Date = new Date()): string {
@@ -14,7 +16,7 @@ export function localTime(date: Date = new Date()): string {
 }
 
 export function validDate(value: string): boolean {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  if (!/^(?!0000)\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const date = new Date(`${value}T12:00:00`);
   return Number.isFinite(date.getTime()) && localDate(date) === value;
 }
@@ -96,7 +98,7 @@ export function createEntry(key: string): WorkspaceEntry {
       requirements: '', schedule: [], blocks: [] };
     case 'learning': return { id, title: '', category: '技术', progress: 0, goal: '', resources: [], blocks: [] };
     case 'research': return { id, title: '', status: '收集箱', summary: '', objective: '', next: '', progress: 0,
-      pages: [{ id: uid(), title: '研究笔记', blocks: [] }] };
+      pages: starterResearchPages() };
     case 'ideas': return { id, title: '', note: '', createdAt: new Date().toISOString() };
     case 'tools': return { id, title: '', status: '使用中', description: '', url: '', version: '', kind: 'tool',
       versions: [], websites: [], blocks: [] };
@@ -137,27 +139,51 @@ export function toggleComplete(item: WorkspaceEntry, key: string): void {
   }
 }
 
-export function isToday(item: WorkspaceEntry, day: string = localDate()): boolean {
-  if (item.dismissedTodayDate === day) return false;
-  if (item.done || item.status === '已完成') return item.completedDate === day;
-  if (item.progressedDates?.includes(day)) return true;
-  if (item.progressedDates?.length && item.plannedDate === day) return true;
-  if (item.progressedDates?.length && item.plannedDate && item.plannedDate > day) return false;
-  if (item.mode === 'multi') {
-    const deadline = item.due || item.date;
-    if (!deadline) return item.plannedDate === day;
-    return (!item.startDate || item.startDate <= day) && day >= addDays(deadline, -7);
-  }
+export function defaultPlannedDate(item: WorkspaceEntry): string | undefined {
   const deadline = item.due || ((item.courseId || item.alsoTask) ? item.date : undefined);
-  const cancelledPlan = deadline && item.plannedDate === item.dismissedTodayDate && !item.automationKey && !item.id.startsWith('stage:');
-  const defaultPlan = (!cancelledPlan && item.plannedDate) || (deadline ? addDays(deadline, -2) : '');
-  if (item.automationKey?.split(':')[2] === 'review' && item.plannedDate) return item.plannedDate === day;
-  return defaultPlan === day || item.due === day || item.date === day ||
-    (!deadline && !item.plannedDate && item.today === true);
+  const cancelled = deadline && item.plannedDate === item.dismissedTodayDate && !item.automationKey && !item.id.startsWith('stage:') && item.mode !== 'multi';
+  if (item.plannedDate && !cancelled) return item.plannedDate;
+  if (item.mode === 'multi' || item.automationKey || !deadline || !validDate(deadline)) return undefined;
+  return addDays(deadline, -2);
+}
+export function workCompleted(item: WorkspaceEntry): boolean { return item.done === true || item.status === '已完成'; }
+export function workScheduledForDate(item: WorkspaceEntry, day: string): boolean {
+  if (defaultPlannedDate(item) === day) return true;
+  if (item.mode !== 'multi') return item.due === day || !!item.progressLogs?.some((entry) => entry.date === day);
+  return (item.startDate || item.due || day) <= day && day <= (item.due || '9999-12-31') || !!item.progressLogs?.some((entry) => entry.date === day);
+}
+export function planWorkForDate(item: WorkspaceEntry, day: string): void {
+  if (workCompleted(item)) return;
+  item.plannedDate = day; item.dismissedTodayDate = undefined;
+}
+export function isToday(item: WorkspaceEntry, day: string = localDate(), collection: string = 'tasks'): boolean {
+  const node = collection === 'milestones'; const taskNode = !!item.courseId || item.alsoTask === true;
+  if ((!node || taskNode) && item.dismissedTodayDate === day) return false;
+  if (!node && workCompleted(item)) return (item.completedDate || item.progressLogs?.slice().reverse().find((entry) => entry.progress === 100)?.date) === day;
+  if (node && taskNode && item.done) return item.completedDate === day;
+  if (!node || taskNode) {
+    if (item.progressedDates?.includes(day) || (item.progressedDates?.length && item.plannedDate === day)) return true;
+    if (item.progressedDates?.length && item.plannedDate && item.plannedDate > day) return false;
+    if (item.mode === 'multi') {
+      const deadline = item.due || (node ? item.date : undefined);
+      return !!deadline && validDate(deadline) && day >= addDays(deadline, -7) &&
+        (item.plannedDate === day || !item.startDate || item.startDate <= day);
+    }
+  }
+  if (node) return item.date === day || (taskNode && defaultPlannedDate(item) === day);
+  return item.plannedDate === day || workScheduledForDate(item, day) || (!item.due && !item.plannedDate && item.today === true);
 }
 
 export function emptyDaily(): DailyRecord {
   return { note: '', gain: '', problem: '', feeling: '', tomorrow: '' };
+}
+
+export function starterResearchPages(blocks: Block[] = []): ResearchPage[] {
+  return [
+    { id: uid(), title: '研究总览', blocks },
+    { id: uid(), title: '资料与线索', blocks: [] },
+    { id: uid(), title: '阶段结论', blocks: [] }
+  ];
 }
 
 export function blocksFor(item: WorkspaceEntry): Block[] {
@@ -180,7 +206,7 @@ export function removeEntry(data: Workspace, key: string, id: string): void {
   });
   data.milestones.forEach((item) => {
     if (item.courseId === id) item.courseId = undefined;
-    if (item.linkedCourseId === id) item.linkedCourseId = undefined;
+    // Keep the original link so past events can show that their course was removed.
   });
   data.pages.forEach((item) => { if (item.parentId === id) item.parentId = null; });
 }
@@ -190,9 +216,9 @@ export function money(cents: number): string {
 }
 
 export function weekNumber(start: string, day: string): number {
-  const first = start.split('-').map((v) => Number(v));
-  const current = day.split('-').map((v) => Number(v));
-  return Math.floor((Date.UTC(current[0], current[1] - 1, current[2]) - Date.UTC(first[0], first[1] - 1, first[2])) / MS_PER_DAY / 7) + 1;
+  const first = new Date(`${start}T00:00:00Z`).getTime();
+  const current = new Date(`${day}T00:00:00Z`).getTime();
+  return Math.floor((current - first) / MS_PER_DAY / 7) + 1;
 }
 
 export function timetableWeekNumber(start: string, day: string): number | undefined {
@@ -245,6 +271,9 @@ export function validateEntry(item: WorkspaceEntry, key: string, data: Workspace
   }
   if (item.dueTime && !item.due) return '截止时间需要同时填写截止日期';
   if (item.startDate && item.due && item.startDate > item.due) return '开始日期不能晚于截止日期';
+  if (key === 'milestones' && item.time && !item.date) return '设置时间前请先选择日期';
+  if (key === 'milestones' && item.linkedCourseId && item.linkedCourseId !== original?.linkedCourseId &&
+    !eventCourses(data.courses).some((course) => course.id === item.linkedCourseId)) return '请选择有效的关联课程';
   if (item.courseId && key === 'milestones' && (!item.date || !item.time)) return '课程任务必须填写日期和时间';
   if (item.parentId) {
     const visited: Set<string> = new Set([item.id]);

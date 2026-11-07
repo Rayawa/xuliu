@@ -1,5 +1,6 @@
-import { Workspace, ReviewItem, ReviewStep, WorkspaceEntry } from '../../models/Workspace';
-import { localDate, uid } from './WorkspaceDomain';
+import { MAX_REVIEW_ITEMS, MAX_REVIEW_STEPS, MAX_REVIEW_SOURCES, MAX_REVIEW_REMOVED_SOURCES } from '../../config/constants';
+import { Workspace, ReviewItem, ReviewStep, ReviewPool, WorkspaceEntry } from '../../models/Workspace';
+import { localDate, uid, validDate } from './WorkspaceDomain';
 
 interface ReviewCourse {
   key: string;
@@ -73,13 +74,13 @@ export function sameChapter(left: string, right: string): boolean {
   return compact(normalizeChapter(left)) === compact(normalizeChapter(right));
 }
 
-export function assertReviewItem(items: ReviewItem[], item: ReviewItem): void {
+export function assertReviewItem(items: ReviewItem[], item: ReviewItem, checkName: boolean = true): void {
   if (!item.course.trim() || !item.chapter.trim()) throw new Error('请填写课程和复习项目');
   if (item.course.length > 500 || item.chapter.length > 500 || item.note.length > 4000) throw new Error('课程或项目最多500字，备注最多4000字');
-  if (items.some((v) => v.id !== item.id && sameCourse(v.course, item.course) && sameChapter(v.chapter, item.chapter))) throw new Error('池中已有这个复习项目');
-  if (!items.some((v) => v.id === item.id) && items.length >= 500) throw new Error('复习池最多保存500个项目');
+  if (checkName && items.some((v) => v.id !== item.id && sameCourse(v.course, item.course) && sameChapter(v.chapter, item.chapter))) throw new Error('池中已有这个复习项目');
+  if (!items.some((v) => v.id === item.id) && items.length >= MAX_REVIEW_ITEMS) throw new Error('复习池最多保存500个项目');
   const steps = item.steps ?? [];
-  if (steps.length > 50) throw new Error('每章最多50个小任务');
+  if (steps.length > MAX_REVIEW_STEPS) throw new Error('每章最多50个小任务');
   const ids = new Set<string>();
   steps.forEach((step) => {
     if (!step.title.trim() || step.title.length > 500 || ids.has(step.id)) throw new Error('小任务内容需为1–500字，编号不能重复');
@@ -134,6 +135,27 @@ export function reviewSourceKeys(data: Workspace): Set<string> {
   return keys;
 }
 
+/** Attach hidden generated descendants so their original notes and timing remain reachable in the pool. */
+export function attachReviewStages(data: Workspace): number {
+  const owners = new Map<string, ReviewItem>(); const removed = new Set((data.reviewPool?.removedSources ?? []).map((source) => `${source.kind}:${source.id}`));
+  data.reviewPool?.items.forEach((item) => item.sources.forEach((source) => owners.set(`${source.kind}:${source.id}`, item)));
+  let added = 0; let changed = true;
+  while (changed) {
+    changed = false;
+    for (const task of data.tasks) {
+      const key = `task:${task.id}`;
+      if (!task.id.startsWith('stage:') || FORMAL_WORK.test(task.title) || FORMAL_WORK.test(task.requirements ?? '') || owners.has(key) || removed.has(key)) continue;
+      const taskOwner = task.parentId ? owners.get(`task:${task.parentId}`) : undefined;
+      const nodeOwner = task.parentMilestoneId ? owners.get(`milestone:${task.parentMilestoneId}`) : undefined;
+      if (taskOwner && nodeOwner && taskOwner.id !== nodeOwner.id) continue;
+      const owner = taskOwner ?? nodeOwner; if (!owner) continue;
+      if (owner.sources.length >= MAX_REVIEW_SOURCES) throw new Error('章节来源已达上限，未归集额外阶段');
+      owner.sources.push({ kind: 'task', id: task.id }); owners.set(key, owner); changed = true; added++;
+    }
+  }
+  return added;
+}
+
 /** Classify only unambiguous course/chapter review records; formal coursework is never absorbed. */
 export function pureReviewMatch(record: WorkspaceEntry, data: Workspace): ReviewItem | undefined {
   if (record.automationKey || record.id.startsWith('stage:') || FORMAL_WORK.test(record.title) || FORMAL_WORK.test(record.requirements ?? '')) return undefined;
@@ -157,8 +179,10 @@ export function pureReviewMatch(record: WorkspaceEntry, data: Workspace): Review
   if (!explicitReview && !onlyCourseChapter) return undefined;
   remainder = remainder.replace(/review|rev|复习|自学|学习/g, '').replace(/[·:：/\\_\-—()（）]/g, '');
   if (remainder) return undefined;
-  return { id: uid(), course: course.title, chapter, progress: Number(record.progress ?? 0), done: record.done ?? false,
-    completedDate: record.completedDate, note: '', sources: [], steps: [] };
+  const done = record.done === true || record.status === '已完成' || record.progress === 100;
+  const progress = done ? 100 : Math.min(99, Math.max(0, Math.round(Number(record.progress) || 0)));
+  return { id: uid(), course: course.title, chapter, progress, done,
+    completedDate: done ? record.completedDate || record.progressLogs?.slice().reverse().find((log) => log.progress === 100)?.date : undefined, note: '', sources: [], steps: [] };
 }
 
 export function transferStudyToPool(data: Workspace, sourceId: string, chapter: string, note: string, completedToday: boolean): ReviewItem {
@@ -171,7 +195,7 @@ export function transferStudyToPool(data: Workspace, sourceId: string, chapter: 
   const normalized = normalizeChapter(chapter);
   let item = data.reviewPool.items.find((v) => sameCourse(v.course, course.title) && sameChapter(v.chapter, normalized));
   if (item?.done) throw new Error('此章节已完成，请先在复习池中标记未完成');
-  if (item && item.sources.length >= 2000) throw new Error('此章节关联记录已达上限');
+  if (item && item.sources.length >= MAX_REVIEW_SOURCES) throw new Error('此章节关联记录已达上限');
   if (!item) {
     item = { id: uid(), course: course.title, chapter: normalized, progress: 0, note: '', done: false, sources: [] };
     assertReviewItem(data.reviewPool.items, item); data.reviewPool.items.push(item);
@@ -182,6 +206,42 @@ export function transferStudyToPool(data: Workspace, sourceId: string, chapter: 
     item.previousProgress = item.progress; item.done = true; item.progress = 100;
     item.completedDate = localDate(); item.selectedDate = localDate();
   }
-  assertReviewItem(data.reviewPool.items, item);
+  attachReviewStages(data); assertReviewItem(data.reviewPool.items, item);
   return item;
+}
+
+/** Validate the shared version-6 contract without renaming or discarding legacy records. */
+export function assertReviewPool(pool: ReviewPool): void {
+  if (!pool || pool.version !== 1 || !Array.isArray(pool.items) || pool.items.length > MAX_REVIEW_ITEMS) throw new Error('复习池格式或项目数量无效');
+  const ids = new Set<string>(); const sources = new Set<string>();
+  const validId = (id: string): boolean => typeof id === 'string' && id.length > 0 && id.length <= 120;
+  const validDay = (day: string | undefined): boolean => day === undefined || typeof day === 'string' && validDate(day);
+  for (const item of pool.items) {
+    if (!item || !validId(item.id) || ids.has(item.id) || typeof item.course !== 'string' || !item.course || item.course.length > 500 ||
+      typeof item.chapter !== 'string' || !item.chapter || item.chapter.length > 500 || typeof item.note !== 'string' || item.note.length > 4000 ||
+      typeof item.done !== 'boolean' || !Number.isInteger(item.progress) || item.progress < 0 || item.progress > 100 || item.done !== (item.progress === 100) ||
+      !validDay(item.selectedDate) || !validDay(item.completedDate) || (!item.done && item.completedDate !== undefined) ||
+      (item.previousProgress !== undefined && (!item.done || !Number.isInteger(item.previousProgress) || item.previousProgress < 0 || item.previousProgress > 99))) throw new Error('复习项目编号、完成状态或日期无效');
+    ids.add(item.id);
+    if (!Array.isArray(item.sources) || item.sources.length > MAX_REVIEW_SOURCES || (item.steps !== undefined && (!Array.isArray(item.steps) || item.steps.length > MAX_REVIEW_STEPS))) throw new Error('复习来源或小任务数量无效');
+    const stepIds = new Set<string>();
+    for (const step of item.steps ?? []) {
+      if (!step || !validId(step.id) || stepIds.has(step.id) || typeof step.title !== 'string' || !step.title.trim() || step.title.length > 500 ||
+        typeof step.done !== 'boolean' || !validDay(step.selectedDate) || !validDay(step.completedDate) || (!step.done && step.completedDate !== undefined)) throw new Error('复习小任务编号、内容或完成日期无效');
+      stepIds.add(step.id);
+    }
+    for (const source of item.sources) {
+      if (!source || !['task', 'milestone'].includes(source.kind) || !validId(source.id)) throw new Error('原复习来源缺少有效编号');
+      const key = `${source.kind}:${source.id}`;
+      if (sources.has(key)) throw new Error('原复习来源不能重复归集');
+      sources.add(key);
+    }
+  }
+  if (pool.removedSources !== undefined && (!Array.isArray(pool.removedSources) || pool.removedSources.length > MAX_REVIEW_REMOVED_SOURCES)) throw new Error('已移除复习来源格式或数量无效');
+  for (const source of pool.removedSources ?? []) {
+    if (!source || !['task', 'milestone'].includes(source.kind) || !validId(source.id)) throw new Error('已移除来源缺少有效编号');
+    const key = `${source.kind}:${source.id}`;
+    if (sources.has(key)) throw new Error('已移除来源不能重复归集');
+    sources.add(key);
+  }
 }

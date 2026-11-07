@@ -1,3 +1,4 @@
+import { hdsPageTitle } from '../../ui/navigation/hdsTitleBar';
 import { HdsNavDestination, HdsNavDestinationTitleMode } from '@kit.UIDesignKit';
 import { FinanceEntryDraft, categoryChoices, newFinanceDraft, saveFinanceEntry } from '../../domain/finance/FinanceDomain';
 import { Workspace } from '../../models/Workspace';
@@ -109,7 +110,7 @@ export struct FinanceEntryPage {
         }.width('100%').constraintSize({ maxWidth: 1100 }).padding(20)
       }.width('100%').height('100%').backgroundColor($r('app.color.background'))
     }.titleMode(HdsNavDestinationTitleMode.MINI)
-    .titleBar({ content: { title: { mainTitle: this.entryId ? '编辑账目' : '记一笔' }, backIcon: { action: () => this.leave() } } })
+    .titleBar(hdsPageTitle(this.entryId ? '编辑账目' : '记一笔', () => this.leave()))
     .onBackPressed(() => { this.leave(); return true; })
   }
 }

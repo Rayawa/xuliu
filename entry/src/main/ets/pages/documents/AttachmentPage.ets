@@ -1,3 +1,4 @@
+import { hdsPageTitle } from '../../ui/navigation/hdsTitleBar';
 import { HdsNavDestination, HdsNavDestinationTitleMode } from '@kit.UIDesignKit';
 import { common } from '@kit.AbilityKit';
 import { fileIo as fs, fileUri, picker } from '@kit.CoreFileKit';
@@ -132,6 +133,6 @@ export struct AttachmentPage {
         if (this.message) { Text(this.message).fontColor($r('app.color.text_secondary')) }
       }.width('100%').height('100%').padding(20).backgroundColor($r('app.color.background'))
     }.titleMode(HdsNavDestinationTitleMode.MINI)
-    .titleBar({ content: { title: { mainTitle: '附件预览' }, backIcon: { action: () => this.pageStack.pop() } } })
+    .titleBar(hdsPageTitle('附件预览', () => this.pageStack.pop()))
   }
 }

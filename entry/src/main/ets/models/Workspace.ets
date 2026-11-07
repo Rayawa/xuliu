@@ -309,6 +309,10 @@ export interface CollectionDefinition {
 }
 
 export interface EntryTarget {
+  courseId?: string;
+  linkedCourseId?: string;
+  initialDate?: string;
+  toolKind?: string;
   collection: string;
   id: string;
 }

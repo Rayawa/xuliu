@@ -1,3 +1,4 @@
+import { hdsPageTitle } from '../../ui/navigation/hdsTitleBar';
 import { HdsNavDestination, HdsNavDestinationTitleMode } from '@kit.UIDesignKit';
 import { DailyRecord } from '../../models/Workspace';
 import { emptyDaily, localDate, validDate } from '../../domain/workspace/WorkspaceDomain';
@@ -65,7 +66,7 @@ export struct DailyPage {
         }.width('100%').constraintSize({ maxWidth: 1100 }).padding(20)
       }.width('100%').height('100%').backgroundColor($r('app.color.background'))
     }.titleMode(HdsNavDestinationTitleMode.MINI)
-    .titleBar({ content: { title: { mainTitle: '每日复盘' }, backIcon: { action: () => this.leave() } } })
+    .titleBar(hdsPageTitle('每日复盘', () => this.leave()))
     .onBackPressed(() => { this.leave(); return true; })
   }
 }

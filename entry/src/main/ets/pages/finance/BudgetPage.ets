@@ -1,3 +1,4 @@
+import { hdsPageTitle } from '../../ui/navigation/hdsTitleBar';
 import { HdsNavDestination, HdsNavDestinationTitleMode } from '@kit.UIDesignKit';
 import { Budget } from '../../models/Workspace';
 import { amountCents, amountInput, assertBudget, categoryChoices, validMonth } from '../../domain/finance/FinanceDomain';
@@ -68,7 +69,7 @@ export struct BudgetPage {
         }.width('100%').constraintSize({ maxWidth: 1100 }).padding(20)
       }.width('100%').height('100%').backgroundColor($r('app.color.background'))
     }.titleMode(HdsNavDestinationTitleMode.MINI)
-    .titleBar({ content: { title: { mainTitle: '预算设置' }, backIcon: { action: () => this.leave() } } })
+    .titleBar(hdsPageTitle('预算设置', () => this.leave()))
     .onBackPressed(() => { this.leave(); return true; })
   }
 }

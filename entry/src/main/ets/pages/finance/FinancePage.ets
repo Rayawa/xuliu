@@ -1,6 +1,7 @@
+import { hdsPageTitle } from '../../ui/navigation/hdsTitleBar';
 import { chooseImportFile, importText } from '../../services/files/ImportFile';
 import { readXlsx } from '../../services/workbooks/XlsxReader';
-import { MAX_BILL_IMPORT_BYTES } from '../../config/constants';
+import { MAX_BILL_IMPORT_BYTES, FINANCE_DETAIL_BATCH_SIZE } from '../../config/constants';
 import { LengthMetrics } from '@kit.ArkUI';
 import { HdsNavDestination, HdsNavDestinationTitleMode } from '@kit.UIDesignKit';
 import { common } from '@kit.AbilityKit';
@@ -8,7 +9,9 @@ import { Workspace, FinanceEntry, Budget, ChartDatum } from '../../models/Worksp
 import { KEY_REVISION, ROUTE_FINANCE_ENTRY, ROUTE_FINANCE_BUDGET, ROUTE_FINANCE_SETTINGS, ROUTE_STORED_VALUE } from '../../config/constants';
 import { emptyWorkspace, localDate, money } from '../../domain/workspace/WorkspaceDomain';
 import { categoryChart, financeTotals, financeCsv, monthTrend, FinanceTrendPoint, validMonth } from '../../domain/finance/FinanceDomain';
-import { expenseDetailCategory } from '../../domain/finance/FinanceCategories';
+import { FinanceBreakdownData, emptyFinanceBreakdown, financeBreakdown } from '../../domain/finance/FinanceBreakdown';
+import { FinanceCategorySection } from '../../components/finance/FinanceCategorySection';
+import { FinanceEntryCard } from '../../components/finance/FinanceEntryCard';
 import { mergeImportedEntries, ImportMergeResult, recategorizeMonth } from '../../domain/finance/FinanceRules';
 import { getWorkspace } from '../../services/storage/storage';
 import { changeFinance } from '../../services/storage/financeStorage';
@@ -28,7 +31,7 @@ export struct FinancePage {
   @State private type: string = 'all';
   @State private query: string = '';
   @State private entries: FinanceEntry[] = [];
-  @State private visible: number = 50;
+  @State private visible: number = FINANCE_DETAIL_BATCH_SIZE;
   @State private message: string = '';
   @State private busy: boolean = false;
   @State private pending: BillImportResult | undefined = undefined;
@@ -38,12 +41,13 @@ export struct FinancePage {
   @State private expenseData: ChartDatum[] = [];
   @State private incomeData: ChartDatum[] = [];
   @State private trendData: FinanceTrendPoint[] = [];
+  @State private expenseBreakdown: FinanceBreakdownData = emptyFinanceBreakdown();
+  @State private incomeBreakdown: FinanceBreakdownData = emptyFinanceBreakdown();
   @State private expandedBudgets: boolean = false;
   private searchTimer: number = -1;
   private importGeneration: number = 0;
   private alive: boolean = true;
 
-  aboutToAppear(): void { this.reload(); }
   aboutToDisappear(): void { this.alive = false; this.importGeneration++; this.stopSearch(); }
   private stopSearch(): void { if (this.searchTimer >= 0) clearTimeout(this.searchTimer); this.searchTimer = -1; }
 
@@ -53,6 +57,8 @@ export struct FinancePage {
     this.expenseData = categoryChart(this.data.finance, this.month, 'expense');
     this.incomeData = categoryChart(this.data.finance, this.month, 'income');
     this.trendData = monthTrend(this.data.finance, this.month);
+    this.expenseBreakdown = financeBreakdown(this.data.finance.entries, this.month, 'expense');
+    this.incomeBreakdown = financeBreakdown(this.data.finance.entries, this.month, 'income');
   }
 
   private filter(): void {
@@ -61,7 +67,7 @@ export struct FinancePage {
       (this.type === 'all' || entry.type === this.type) && (!this.filterCategories.length || this.filterCategories.includes(entry.category)) &&
       (!query || `${entry.merchant ?? ''} ${entry.note} ${entry.purpose ?? ''} ${entry.relatedProject} ${entry.category}`.toLowerCase().includes(query)))
       .sort((a, b) => `${b.date}${b.time}${b.updatedAt}`.localeCompare(`${a.date}${a.time}${a.updatedAt}`));
-    this.visible = 50;
+    this.visible = FINANCE_DETAIL_BATCH_SIZE;
   }
 
   private changeMonth(): void {
@@ -74,6 +80,10 @@ export struct FinancePage {
   }
 
   private budget(): Budget | undefined { return this.data.finance.budgets[this.month]; }
+
+  private editEntry(entry: FinanceEntry): void {
+    this.stack.pushPath({ name: ROUTE_FINANCE_ENTRY, param: entry.id });
+  }
 
   private deleteEntry(entry: FinanceEntry): void {
     this.getUIContext().getPromptAction().showDialog({ title: '删除账目？', message: `${entry.date} ${entry.category} ${money(entry.amountCents)}`,
@@ -204,6 +214,10 @@ export struct FinancePage {
               Button('取消导入').onClick(() => { this.pending = undefined; this.previewEntries = []; }).accessibilityText('取消此次账单导入')
             }.width('100%').padding(18).borderRadius(18).backgroundColor($r('app.color.surface'))
           }
+          FinanceCategorySection({ title: '支出分类', month: this.month, revision: this.revision, data: this.expenseBreakdown,
+            onEdit: (entry: FinanceEntry) => this.editEntry(entry), onDelete: (entry: FinanceEntry) => this.deleteEntry(entry) })
+          FinanceCategorySection({ title: '收入分类', month: this.month, revision: this.revision, data: this.incomeBreakdown,
+            onEdit: (entry: FinanceEntry) => this.editEntry(entry), onDelete: (entry: FinanceEntry) => this.deleteEntry(entry) })
           Text(`账目明细 · ${this.entries.length}笔${this.filterCategories.length ? ` · ${this.filterCategories.join('、')}` : ''}`)
             .fontSize(20)
             .fontWeight(FontWeight.Bold)
@@ -220,27 +234,14 @@ export struct FinancePage {
               .accessibilityText('清除类型分类和关键词筛选')
           }
           ForEach(this.entries.slice(0, this.visible), (entry: FinanceEntry) => {
-            Column({ space: 8 }) {
-              Text(`${entry.date} ${entry.time} · ${entry.category}`)
-                .fontWeight(FontWeight.Medium)
-                .fontColor($r('app.color.text_primary'))
-                .width('100%')
-              Text(`${entry.type === 'expense' ? '−' : '+'}${money(entry.amountCents)}${entry.type === 'topup' ? `（实付${money(entry.amountCents - (entry.bonusCents ?? 0))}，赠送${money(entry.bonusCents ?? 0)}）` : ''}`)
-                .fontSize(20).fontColor($r('app.color.text_primary')).width('100%')
-              Text([entry.merchant, entry.type === 'expense' ? expenseDetailCategory(entry) : entry.purpose, entry.note, entry.relatedProject].filter((value) => !!value).join(' · '))
-                .fontSize(14).fontColor($r('app.color.text_secondary')).width('100%')
-              Row({ space: 8 }) {
-                Button('编辑').onClick(() => this.stack.pushPath({ name: ROUTE_FINANCE_ENTRY, param: entry.id })).accessibilityText('编辑这笔账目')
-                Button('删除').onClick(() => this.deleteEntry(entry)).accessibilityText('删除这笔账目')
-              }
-            }.width('100%').padding(16).borderRadius(16).backgroundColor($r('app.color.surface'))
+            FinanceEntryCard({ entry, onEdit: (item: FinanceEntry) => this.editEntry(item), onDelete: (item: FinanceEntry) => this.deleteEntry(item) })
           }, (entry: FinanceEntry) => `${entry.id}-${this.revision}`)
-          if (this.visible < this.entries.length) { Button('显示更多账目').onClick(() => { this.visible += 50; }).accessibilityText('显示下一批50笔账目') }
+          if (this.visible < this.entries.length) { Button('显示更多账目').onClick(() => { this.visible += FINANCE_DETAIL_BATCH_SIZE; }).accessibilityText('显示下一批50笔账目') }
           if (this.message) { Text(this.message).fontColor($r('app.color.text_secondary')) }
         }.width('100%').constraintSize({ maxWidth: 1200 }).padding(20)
       }.width('100%').height('100%').backgroundColor($r('app.color.background'))
     }.titleMode(HdsNavDestinationTitleMode.MINI)
-    .titleBar({ content: { title: { mainTitle: '个人记账' }, backIcon: { action: () => this.stack.pop() } } })
+    .titleBar(hdsPageTitle('个人记账', () => this.stack.pop()))
     .onShown(() => { this.alive = true; this.reload(); }).onHidden(() => { this.stopSearch(); this.importGeneration++; this.busy = false; })
   }
 }

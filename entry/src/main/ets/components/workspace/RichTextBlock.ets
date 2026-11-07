@@ -1,20 +1,36 @@
+import { common } from '@kit.AbilityKit';
+import { KEY_ACTIVE } from '../../config/constants';
+import { readCleanClipboard } from '../../services/documents/ClipboardText';
+import { insertPaste } from '../../domain/documents/CleanPaste';
+import { compactRuns, sliceRuns } from '../../domain/documents/RichText';
 import { LengthMetrics } from '@kit.ArkUI';
 import { Block, InlineRun } from '../../models/Workspace';
 import { editText, formatRuns, normalizedRuns, runAt } from '../../domain/documents/RichText';
 import { DOCUMENT_COLOR_NAMES, DOCUMENT_COLOR_RESOURCES, DOCUMENT_SIZE_NAMES, MAX_BLOCK_TEXT_CHARS, MAX_DOCUMENT_BLOCKS } from '../../config/constants';
 
+interface NativePaste { before: Block; start: number; end: number; }
+
 @Component
 export struct RichTextBlock {
   @Prop @Watch('modelChanged') block: Block = { id: '', type: 'text', text: '' };
   @Prop @Watch('focusChanged') focusRequested: boolean = false;
+  @Prop @Watch('activityChanged') pageVisible: boolean = true;
   @Prop readOnly: boolean = false;
   onChange: (block: Block) => void = () => {};
+  onPendingChange: (pending: boolean) => void = () => {};
+  @StorageLink(KEY_ACTIVE) @Watch('activityChanged') private active: boolean = true;
+  @State private pasteBusy: boolean = false;
+  private alive: boolean = true;
+  private pasteGeneration: number = 0;
+  private nativePaste: NativePaste | undefined;
   @State private showFormat: boolean = false;
   @State private notice: string = '';
   private controller: RichEditorController = new RichEditorController();
-  private ready: boolean = false;
+  @State private ready: boolean = false;
 
   aboutToAppear(): void { this.draft = JSON.parse(JSON.stringify(this.block)) as Block; }
+  aboutToDisappear(): void { this.alive = false; this.pasteGeneration++; this.nativePaste = undefined; this.onPendingChange(false); }
+  private activityChanged(): void { if (!this.active || !this.pageVisible) { this.pasteGeneration++; this.nativePaste = undefined; this.pasteBusy = false; this.onPendingChange(false); } }
   private changing: boolean = false;
   private lastModel: string = '';
   private draft: Block = { id: '', type: 'text', text: '' };
@@ -23,11 +39,12 @@ export struct RichTextBlock {
   private typingStyle: InlineRun | undefined;
 
   private focusChanged(): void {
-    if (this.ready && this.focusRequested) this.getUIContext().getFocusController().requestFocus(`rich-${this.block.id}`);
+    if (this.alive && this.ready && this.pageVisible && this.focusRequested) this.getUIContext().getFocusController().requestFocus(`rich-${this.block.id}`);
   }
 
   private modelChanged(): void {
     if (!this.ready || JSON.stringify(this.block) === this.lastModel) return;
+    this.pasteGeneration++; this.nativePaste = undefined; this.pasteBusy = false; this.onPendingChange(false);
     this.draft = JSON.parse(JSON.stringify(this.block)) as Block;
     this.renderModel();
   }
@@ -81,14 +98,63 @@ export struct RichTextBlock {
   }
 
   private changed(): void {
-    if (this.changing || !this.ready || this.readOnly) return;
+    if (!this.alive || this.changing || !this.ready || this.readOnly) return;
     const spans = this.controller.getSpans();
     if (spans.some((span) => !!(span as RichEditorTextSpanResult).previewText)) return;
     const text = spans.map((span) => (span as RichEditorTextSpanResult).value ?? '').join('');
-    if (text.length > MAX_BLOCK_TEXT_CHARS) { this.notice = '每个正文块最多4000字'; this.renderModel(); return; }
+    if (text.length > MAX_BLOCK_TEXT_CHARS) { this.nativePaste = undefined; this.notice = '每个正文块最多4000字，可使用文档插入菜单粘贴为多个新内容块'; this.renderModel(); return; }
+    if (this.nativePaste) { this.cleanNativePaste(spans as RichEditorTextSpanResult[], text); return; }
     if (text === (this.draft.text ?? '')) return;
     this.draft = editText(this.draft, text, this.typingStyle);
     this.emit();
+  }
+
+  private selection(): [number, number] {
+    const length = (this.draft.text ?? '').length;
+    try {
+      const range = this.controller.getSelection().selection;
+      if (range[0] >= 0 && range[1] >= range[0] && range[1] <= length) return range;
+    } catch (_) {}
+    return [Math.max(0, Math.min(length, this.selectionStart)), Math.max(0, Math.min(length, this.selectionEnd))];
+  }
+  private capturePaste(): void {
+    const range = this.selection();
+    this.nativePaste = { before: JSON.parse(JSON.stringify(this.draft)) as Block, start: Math.min(range[0], range[1]), end: Math.max(range[0], range[1]) };
+  }
+  private cleanNativePaste(spans: RichEditorTextSpanResult[], text: string): void {
+    const paste = this.nativePaste; this.nativePaste = undefined; if (!paste) return;
+    const original = paste.before.text ?? ''; const suffix = original.slice(paste.end); const end = text.length - suffix.length;
+    if (!text.startsWith(original.slice(0, paste.start)) || !text.endsWith(suffix) || end < paste.start) {
+      this.draft = editText(this.draft, text, this.typingStyle); this.renderModel(); this.emit(); return;
+    }
+    const runs: InlineRun[] = spans.map((span): InlineRun => ({ text: span.value ?? '',
+      bold: span.textStyle?.fontWeight >= 600 || undefined, italic: span.textStyle?.fontStyle === FontStyle.Italic || undefined,
+      underline: span.textStyle?.decoration?.type === TextDecorationType.Underline || undefined,
+      strike: span.textStyle?.decoration?.type === TextDecorationType.LineThrough || undefined,
+      fontFamily: /mono|consolas|cascadia/i.test(span.textStyle?.fontFamily ?? '') ? 'mono' : undefined }));
+    const inserted = compactRuns(sliceRuns(runs, paste.start, end).map((run) => {
+      run.text = run.text.replace(/\r\n?/g, '\n').replace(/\u00a0/g, ' '); return run;
+    }));
+    try {
+      this.draft = insertPaste(paste.before, paste.start, paste.end, inserted);
+      this.selectionStart = paste.start + inserted.reduce((sum, run) => sum + run.text.length, 0); this.selectionEnd = this.selectionStart;
+      this.renderModel(); this.emit();
+    } catch (error) { this.notice = (error as Error).message; this.draft = paste.before; this.renderModel(); }
+  }
+  private async pasteClean(): Promise<void> {
+    if (!this.ready || this.readOnly || this.pasteBusy || !this.active || !this.pageVisible) return;
+    const range = this.selection(); const base = JSON.stringify(this.draft); const generation = ++this.pasteGeneration;
+    this.pasteBusy = true; this.onPendingChange(true);
+    try {
+      const value = await readCleanClipboard(this.getUIContext().getHostContext() as common.UIAbilityContext);
+      if (!this.alive || !this.active || !this.pageVisible || this.readOnly || generation !== this.pasteGeneration) return;
+      if (JSON.stringify(this.draft) !== base) throw new Error('粘贴期间正文已变化，未覆盖当前内容，请重新粘贴');
+      if (!value.text) throw new Error('剪贴板没有可加入正文的文字，选区保持原样');
+      this.draft = insertPaste(this.draft, range[0], range[1], value.runs);
+      this.selectionStart = Math.min(range[0], range[1]) + value.text.length; this.selectionEnd = this.selectionStart;
+      this.renderModel(); this.emit(); this.notice = value.notice;
+    } catch (error) { if (this.alive && generation === this.pasteGeneration) this.notice = (error as Error).message; }
+    finally { if (generation === this.pasteGeneration) { this.pasteBusy = false; this.onPendingChange(false); } }
   }
 
   private async colorHex(resource: Resource): Promise<string> {
@@ -99,6 +165,7 @@ export struct RichTextBlock {
   }
 
   private apply(change: (run: InlineRun) => void): void {
+    if (!this.alive || !this.ready || this.readOnly || !this.pageVisible) return;
     const start = Math.min(this.selectionStart, this.selectionEnd);
     const end = Math.max(this.selectionStart, this.selectionEnd);
     if (start === end) {
@@ -164,6 +231,13 @@ export struct RichTextBlock {
       if (!this.readOnly) {
         Button(this.showFormat ? '收起文字格式' : '文字格式').onClick(() => { this.showFormat = !this.showFormat; })
           .accessibilityText('展开或收起局部文字格式工具')
+        Row({ space: 10 }) {
+          Text('整理粘贴').fontSize(14).fontColor($r('app.color.text_secondary'))
+          PasteButton().enabled(this.ready && !this.pasteBusy).onClick((_event: ClickEvent, result: PasteButtonOnClickResult) => {
+            if (result === PasteButtonOnClickResult.SUCCESS) this.pasteClean(); else this.notice = '未获得本次粘贴授权，正文未改变';
+          })
+        }.width('100%').accessibilityDescription('通过系统粘贴按钮整理网页文字，去除网页颜色和外部字体，保留列表与文字格式')
+        if (this.pasteBusy) { Text('正在整理粘贴内容…').fontColor($r('app.color.text_secondary')) }
         if (this.showFormat) { this.formatToolbar() }
       }
       if (this.readOnly) {
@@ -178,13 +252,18 @@ export struct RichTextBlock {
       RichEditor({ controller: this.controller }).id(`rich-${this.block.id}`)
         .width('100%').constraintSize({ minHeight: 100, maxHeight: 600 })
         .backgroundColor($r('app.color.surface_secondary')).borderRadius(12).padding(12)
-        .enabled(!this.readOnly).enablePreviewText(true)
-        .onReady(() => { this.ready = true; this.draft = JSON.parse(JSON.stringify(this.block)) as Block; this.renderModel(); this.focusChanged(); })
+        .enabled(!this.readOnly && !this.pasteBusy).enablePreviewText(true)
+        .onReady(() => { if (!this.alive) return; this.ready = true; this.draft = JSON.parse(JSON.stringify(this.block)) as Block; this.renderModel(); this.focusChanged(); })
         .onSelectionChange((range: RichEditorRange) => {
           this.selectionStart = range.start ?? 0; this.selectionEnd = range.end ?? this.selectionStart;
           if (this.selectionStart !== this.selectionEnd) this.typingStyle = undefined;
         })
-        .onWillChange((value: RichEditorChangeValue) => !this.readOnly && value.replacedImageSpans.length === 0 && value.replacedSymbolSpans.length === 0)
+        .onPaste(() => this.capturePaste())
+        .aboutToIMEInput(() => { this.nativePaste = undefined; return true; })
+        .onWillChange((value: RichEditorChangeValue) => {
+          if (value.replacedImageSpans.length || value.replacedSymbolSpans.length) { this.nativePaste = undefined; this.notice = '图片和文件请通过附件添加'; return false; }
+          return !this.readOnly && (this.changing || this.pageVisible);
+        })
         .onDidChange(() => this.changed())
         .accessibilityText(this.block.type === 'heading' ? '文档标题正文，可选择文字设置格式' : '富文本正文，可选择文字设置格式')
       }

@@ -1,3 +1,4 @@
+import { hdsPageTitle } from '../../ui/navigation/hdsTitleBar';
 import { HdsNavDestination, HdsNavDestinationTitleMode } from '@kit.UIDesignKit';
 import { common } from '@kit.AbilityKit';
 import { LengthMetrics } from '@kit.ArkUI';
@@ -171,7 +172,7 @@ export struct AcademicImportPage {
         }.width('100%').constraintSize({ maxWidth: 1100 }).padding(20)
       }.width('100%').height('100%').backgroundColor($r('app.color.background'))
     }.titleMode(HdsNavDestinationTitleMode.MINI)
-    .titleBar({ content: { title: { mainTitle: '教务课表导入' }, backIcon: { action: () => this.leave() } } })
+    .titleBar(hdsPageTitle('教务课表导入', () => this.leave()))
     .onBackPressed(() => { this.leave(); return true; })
   }
 }

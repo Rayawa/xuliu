@@ -1,126 +1,136 @@
-import { assertReviewItem, normalizeChapter, stepTodaySummary } from '../../domain/workspace/ReviewDomain';
-import { KEY_REVISION } from '../../config/constants';
-import { collectReviewSources } from '../../domain/workspace/StudyPlan';
+import { hdsPageTitle } from '../../ui/navigation/hdsTitleBar';
 import { HdsNavDestination, HdsNavDestinationTitleMode } from '@kit.UIDesignKit';
-import { ReviewItem, ReviewStep } from '../../models/Workspace';
+import { LengthMetrics } from '@kit.ArkUI';
+import { KEY_REVISION, KEY_DAY, ROUTE_REVIEW_DETAIL, MAX_REVIEW_ITEMS } from '../../config/constants';
+import { ReviewItem } from '../../models/Workspace';
+import { ReviewAction, ReviewDeletion, ReviewRow, ReviewListSource, ReviewDraft } from '../../models/ReviewModels';
+import { collectReviewSources } from '../../domain/workspace/StudyPlan';
+import { createReview, deleteReview, restoreReview, completeReview, completeReviewStep, selectReview, requireReview, requireStep } from '../../domain/workspace/ReviewMutation';
+import { changeReview } from '../../services/storage/reviewStorage';
+import { getWorkspace } from '../../services/storage/storage';
 import { localDate, uid } from '../../domain/workspace/WorkspaceDomain';
-import { getWorkspace, saveWorkspace } from '../../services/storage/storage';
+import { courseTitleCandidate } from '../../domain/courses/TimetableRules';
+import { ReviewChapterCard } from '../../components/review/ReviewChapterCard';
 
 @Component
 export struct ReviewPage {
-  @Consume('pageStack') private pageStack: NavPathStack;
+  @Consume('pageStack') private stack: NavPathStack;
   @StorageLink(KEY_REVISION) @Watch('reload') private revision: number = 0;
-  @State private items: ReviewItem[] = [];
+  @StorageLink(KEY_DAY) @Watch('reload') private day: string = localDate();
   @State private course: string = '';
   @State private chapter: string = '';
-  private stepDrafts: Map<string, string> = new Map();
+  @State private note: string = '';
+  @State private courseNames: string[] = [];
   @State private query: string = '';
   @State private error: string = '';
-  @State private deleted: ReviewItem | undefined = undefined;
+  @State private notice: string = '';
+  @State private busy: boolean = false;
+  @State private adding: boolean = false;
+  @State private deleted: ReviewDeletion | undefined = undefined;
+  @State private count: number = 0;
+  @State private shownCount: number = 0;
+  private expanded: Set<string> = new Set();
+  private rows: ReviewListSource = new ReviewListSource();
+  private newId: string = uid();
 
-  aboutToAppear(): void { this.reload(); }
-  private reload(): void { this.items = getWorkspace().reviewPool?.items ?? []; }
-
-  private async update(item: ReviewItem): Promise<void> {
-    try {
-      const data = getWorkspace();
-      if (!data.reviewPool) data.reviewPool = { version: 1, items: [] };
-      item.course = item.course.trim(); item.chapter = normalizeChapter(item.chapter);
-      assertReviewItem(data.reviewPool.items, item);
-      const index = data.reviewPool.items.findIndex((v) => v.id === item.id);
-      if (index < 0) data.reviewPool.items.push(item); else data.reviewPool.items[index] = item;
-      await saveWorkspace(data);
-    } catch (error) { this.error = (error as Error).message; }
+  private reload(): void {
+    const data = getWorkspace(); const items = data.reviewPool?.items ?? []; this.count = items.length;
+    this.courseNames = Array.from(new Set(data.courses.filter((item) => courseTitleCandidate(item.title)).map((item) => item.title).concat(items.map((item) => item.course))));
+    const query = this.query.normalize('NFKC').toLowerCase().replace(/\s+/g, '');
+    const filtered = items.filter((item) => `${item.course}${item.chapter}`.normalize('NFKC').toLowerCase().replace(/\s+/g, '').includes(query));
+    const groups: Map<string, ReviewItem[]> = new Map(); filtered.forEach((item) => groups.set(item.course, (groups.get(item.course) ?? []).concat([item])));
+    const rows: ReviewRow[] = [];
+    groups.forEach((values, course) => {
+      rows.push({ id: `course:${course}`, kind: 'course', title: course });
+      values.forEach((item) => rows.push({ id: item.id, kind: 'chapter', title: item.chapter, item }));
+    });
+    this.rows.replace(rows); this.shownCount = filtered.length;
+  }
+  private async run(action: () => Promise<void>): Promise<void> {
+    if (this.busy) return; this.busy = true; this.error = ''; this.notice = '';
+    try { await action(); } catch (error) { this.error = (error as Error).message; }
+    finally { this.busy = false; }
+  }
+  private act(action: ReviewAction): void {
+    if (action.kind === 'expand') {
+      if (this.expanded.has(action.itemId)) this.expanded.delete(action.itemId); else this.expanded.add(action.itemId);
+      this.reload(); return;
+    }
+    if (action.kind === 'detail') { this.stack.pushPath({ name: ROUTE_REVIEW_DETAIL, param: action.itemId }); return; }
+    this.run(async () => {
+      await changeReview((data) => {
+        const item = requireReview(data, action.itemId);
+        if (action.kind === 'delete') this.deleted = deleteReview(data, action.itemId);
+        else if (action.kind === 'done') completeReview(item, action.value === true, localDate());
+        else if (action.kind === 'selected') selectReview(item, action.value === true, localDate());
+        else if (action.kind === 'step-done') completeReviewStep(requireStep(item, action.stepId ?? ''), action.value === true, localDate());
+        else if (action.kind === 'step-selected') selectReview(requireStep(item, action.stepId ?? ''), action.value === true, localDate());
+      });
+    });
+  }
+  private async addChapter(): Promise<void> {
+    const draft: ReviewDraft = { course: this.course, chapter: this.chapter, note: this.note };
+    await changeReview((data) => { createReview(data, draft, this.newId); });
+    this.chapter = ''; this.note = ''; this.adding = false; this.newId = uid(); this.notice = '已加入复习池，尚未安排到今天';
   }
 
+  @Builder
+  private addForm() {
+    if (this.adding) {
+      Column({ space: 12 }) {
+        TextInput({ text: this.course, placeholder: '选择或填写课程' }).maxLength(500).enabled(!this.busy)
+          .onChange((value: string) => { this.course = value; }).accessibilityText('新增复习项目的课程名称，可直接填写')
+        if (this.courseNames.length) {
+          Select(this.courseNames.map((name): SelectOption => ({ value: name }))).value('选择已有课程').enabled(!this.busy)
+            .onSelect((index: number) => { this.course = this.courseNames[index]; }).accessibilityText('选择工作台或复习池中的已有课程')
+        }
+        TextInput({ text: this.chapter, placeholder: '章节或学习内容' }).maxLength(500).enabled(!this.busy)
+          .onChange((value: string) => { this.chapter = value; }).onSubmit(() => this.run(() => this.addChapter())).accessibilityText('复习章节或学习内容，回车保存')
+        TextArea({ text: this.note, placeholder: '备注（可选）' }).maxLength(4000).enabled(!this.busy)
+          .onChange((value: string) => { this.note = value; }).accessibilityText('新增复习项目备注，最多四千字')
+        Button('加入复习池').enabled(!this.busy).onClick(() => this.run(() => this.addChapter())).accessibilityText('保存新复习项目，不创建普通任务或自动选择今天')
+      }.width('100%').padding(16).borderRadius(16).backgroundColor($r('app.color.surface'))
+    }
+  }
   build() {
     HdsNavDestination() {
-      Scroll() {
-        Column({ space: 16 }) {
-          Text('把复习拆成可以完成的小步').fontSize(24).fontWeight(FontWeight.Bold).fontColor($r('app.color.text_primary'))
-          Search({ value: this.query, placeholder: '搜索课程或章节' }).onChange((v: string) => { this.query = v; }).accessibilityText('搜索复习池')
-          GridRow({ columns: 12, gutter: 16 }) {
-            ForEach(this.items.filter((v) => `${v.course} ${v.chapter}`.includes(this.query)), (item: ReviewItem) => {
-              GridCol({ span: { xs: 12, sm: 12, md: 6, lg: 4 } }) {
-                Column({ space: 10 }) {
-                  TextInput({ text: item.course, placeholder: '课程' }).onChange((v: string) => { item.course = v; })
-                    .onBlur(() => this.update(item)).accessibilityText('修改复习课程')
-                  TextInput({ text: item.chapter, placeholder: '章节' }).onChange((v: string) => { item.chapter = v; })
-                    .onBlur(() => this.update(item)).accessibilityText('修改复习章节')
-                  Text(stepTodaySummary(item, localDate()) || (item.done ? '已完成' : '未完成')).fontColor($r('app.color.text_secondary'))
-                  TextArea({ text: item.note, placeholder: '进度与备注' }).onChange((v: string) => { item.note = v; })
-                    .onBlur(() => this.update(item)).accessibilityText(`${item.chapter}进度与备注`)
-                  ForEach(item.steps ?? [], (step: ReviewStep) => {
-                    Row() {
-                      Checkbox().select(step.done).onChange((value: boolean) => {
-                        step.done = value; step.completedDate = value ? localDate() : undefined; this.update(item);
-                      }).accessibilityText(`完成复习小任务${step.title}`)
-                      Text(step.title).layoutWeight(1).fontColor($r('app.color.text_primary'))
-                      Button('今天学').enabled(!step.done).onClick(() => { step.selectedDate = localDate(); this.update(item); }).accessibilityText(`安排今天学习${step.title}`)
-                      Button('删除')
-                        .onClick(() => { item.steps = item.steps?.filter((v) => v.id !== step.id); this.update(item); })
-                        .accessibilityText(`删除小任务${step.title}`)
-                    }
-                  }, (step: ReviewStep) => step.id)
-                  TextInput({ text: this.stepDrafts.get(item.id) ?? '', placeholder: '新增小任务' })
-                    .onChange((v: string) => { this.stepDrafts.set(item.id, v); })
-                    .accessibilityText('复习小任务标题')
-                  Button('加入小任务').onClick(() => {
-                    const title = this.stepDrafts.get(item.id)?.trim() ?? '';
-                    if (!title) return;
-                    const steps = item.steps ?? []; steps.push({ id: uid(), title, done: false });
-                    item.steps = steps; this.stepDrafts.delete(item.id); this.update(item);
-                  }).accessibilityText('添加复习小任务')
-                  Button(item.done ? '取消完成' : '标记完成').onClick(() => {
-                    if (!item.done) item.previousProgress = item.progress;
-                    item.done = !item.done;
-                    item.progress = item.done ? 100 : item.previousProgress ?? 0;
-                    item.completedDate = item.done ? localDate() : undefined;
-                    if (!item.done) item.previousProgress = undefined;
-                    this.update(item);
-                  }).accessibilityText(`切换${item.chapter}完成状态`)
-                  Button('安排到今天').enabled(!item.done).onClick(() => { item.selectedDate = localDate(); this.update(item); }).accessibilityText('安排该章节今天复习')
-                  Button('以后再学').onClick(() => { item.selectedDate = undefined; this.update(item); }).accessibilityText('移出今日复习安排')
-                  Button('删除章节').onClick(async () => {
-                    try {
-                      const data = getWorkspace(); if (!data.reviewPool) return;
-                      data.reviewPool.items = data.reviewPool.items.filter((v) => v.id !== item.id);
-                      data.reviewPool.removedSources = (data.reviewPool.removedSources ?? []).concat(item.sources);
-                      await saveWorkspace(data); this.deleted = item;
-                    } catch (error) { this.error = (error as Error).message; }
-                  }).accessibilityText('删除此复习章节，保留来源记录，可撤销')
-                }.width('100%').padding(18).borderRadius(18).backgroundColor($r('app.color.surface'))
-              }
-            }, (item: ReviewItem) => `${item.id}-${this.revision}`)
+      List({ space: 14 }) {
+        ListItem() {
+          Column({ space: 14 }) {
+            Text('把复习拆成可以完成的小步').fontSize(24).fontWeight(FontWeight.Bold).fontColor($r('app.color.text_primary')).width('100%')
+            Search({ value: this.query, placeholder: '搜索课程或章节' }).onChange((value: string) => { this.query = value; this.reload(); }).accessibilityText('搜索复习池中的课程或章节')
+            Flex({ wrap: FlexWrap.Wrap, space: { main: LengthMetrics.vp(8), cross: LengthMetrics.vp(8) } }) {
+              Button(this.adding ? '收起新增' : '新增项目').enabled(!this.busy && this.count < MAX_REVIEW_ITEMS)
+                .onClick(() => { this.adding = !this.adding; }).accessibilityText('展开或收起复习池新增项目表单')
+              Button('归集已有复习任务').enabled(!this.busy).onClick(() => this.run(async () => {
+                let count = 0; await changeReview((data) => { count = collectReviewSources(data); }); this.notice = `已归集${count}条复习来源，原记录完整保留`;
+              })).accessibilityText('归集可明确识别的复习来源，排除正式作业和已移除来源')
+            }
+            this.addForm()
+            if (this.deleted) {
+              Text(`已删除${this.deleted.kind === 'step' ? this.deleted.step?.title ?? '' : this.deleted.item?.chapter ?? ''}`).fontColor($r('app.color.text_secondary'))
+              Button('撤销删除').enabled(!this.busy).onClick(() => this.run(async () => {
+                const removed = this.deleted; if (!removed) return;
+                await changeReview((data) => restoreReview(data, removed)); this.deleted = undefined;
+              })).accessibilityText('按原位置恢复最近删除的复习项目，不覆盖现有项目')
+            }
+            if (this.error) { Text(this.error).fontColor($r('app.color.danger')).width('100%') }
+            if (this.notice) { Text(this.notice).fontColor($r('app.color.text_secondary')).width('100%') }
+            Text(`显示${this.shownCount}/${this.count}个项目`).fontSize(13).fontColor($r('app.color.text_secondary')).width('100%')
+          }.width('100%').alignItems(HorizontalAlign.Start)
+        }
+        LazyForEach(this.rows, (row: ReviewRow) => {
+          ListItem() {
+            if (row.kind === 'course') { Text(row.title).fontSize(21).fontWeight(FontWeight.Bold).fontColor($r('app.color.text_primary')).width('100%') }
+            else if (row.item) {
+              ReviewChapterCard({ item: row.item, day: this.day, expanded: this.expanded.has(row.id),
+                busy: this.busy, onAction: (action: ReviewAction) => this.act(action) })
+            }
           }
-          Button('归集已有复习任务').onClick(async () => {
-            try { const data = getWorkspace(); const count = collectReviewSources(data); await saveWorkspace(data); this.error = `已归集 ${count} 条复习来源`; }
-            catch (error) { this.error = (error as Error).message; }
-          }).accessibilityText('将尚未归集的复习任务和课程节点加入复习池')
-          Text('添加复习章节').fontSize(20).fontColor($r('app.color.text_primary'))
-          TextInput({ text: this.course, placeholder: '课程名称' }).onChange((v: string) => { this.course = v; }).accessibilityText('复习课程名称')
-          TextInput({ text: this.chapter, placeholder: '章节名称' }).onChange((v: string) => { this.chapter = v; }).accessibilityText('复习章节名称')
-          Button('添加章节').onClick(async () => {
-            if (!this.course.trim() || !this.chapter.trim()) { this.error = '请填写课程与章节'; return; }
-            await this.update({ id: uid(), course: this.course.trim(), chapter: this.chapter.trim(), progress: 0,
-              note: '', done: false, sources: [], steps: [] });
-            this.chapter = '';
-          }).accessibilityText('添加章节到复习池')
-          if (this.deleted) {
-            Button('撤销删除章节').onClick(async () => {
-              try {
-                const data = getWorkspace(); if (!data.reviewPool || !this.deleted) return;
-                const item = this.deleted;
-                data.reviewPool.items.push(item);
-                data.reviewPool.removedSources = data.reviewPool.removedSources?.filter((s) => !item.sources.some((v) => v.kind === s.kind && v.id === s.id));
-                await saveWorkspace(data); this.deleted = undefined;
-              } catch (error) { this.error = (error as Error).message; }
-            }).accessibilityText('撤销最近一次复习章节删除')
-          }
-          Text(this.error).fontColor($r('app.color.danger'))
-        }.width('100%').constraintSize({ maxWidth: 1200 }).padding(20)
-      }.width('100%').height('100%').backgroundColor($r('app.color.background'))
+        }, (row: ReviewRow) => `${row.kind}:${row.id}-${this.rows.version}`)
+      }.width('100%').height('100%').cachedCount(2).padding(16).constraintSize({ maxWidth: 1100 }).backgroundColor($r('app.color.background'))
     }.titleMode(HdsNavDestinationTitleMode.MINI)
-    .titleBar({ content: { title: { mainTitle: '复习池' }, backIcon: { action: () => this.pageStack.pop() } } })
+    .titleBar(hdsPageTitle('复习池', () => this.stack.pop()))
+    .onShown(() => this.reload())
   }
 }

@@ -1,9 +1,10 @@
+import { hdsPageTitle } from '../../ui/navigation/hdsTitleBar';
 import { currentCloudAccount, currentCloudAccounts } from '../../state/cloudSession';
 import { HdsNavDestination, HdsNavDestinationTitleMode } from '@kit.UIDesignKit';
 import { CloudApi } from '../../services/api/CloudApi';
 import { CloudAccount, CloudRecord } from '../../models/Workspace';
 import { getWorkspace, saveWorkspace } from '../../services/storage/storage';
-import { ROUTE_WEB, CLOUD_ORIGIN } from '../../config/constants';
+import { ROUTE_AI, ROUTE_WEB, CLOUD_ORIGIN } from '../../config/constants';
 
 @Component
 export struct CloudPage {
@@ -54,7 +55,7 @@ export struct CloudPage {
       buttons: [{ text: '取消', color: $r('app.color.accent') }, { text: '下载并替换', color: $r('app.color.danger') }] });
     if (result.index !== 1) return;
     this.busy = true;
-    try { await saveWorkspace(record.data); this.message = '已下载到本机，可离线编辑'; }
+    try { await saveWorkspace(record.data, false); this.message = '已下载到本机，可离线编辑'; }
     catch (error) { this.message = (error as Error).message; }
     finally { this.busy = false; }
   }
@@ -108,13 +109,14 @@ export struct CloudPage {
             }).accessibilityText('退出序流云端账号')
           }
           Text(this.message).fontColor($r('app.color.text_secondary')).accessibilityText(this.message || '云端连接状态')
-          Button('打开完整云端工作台与 AI').onClick(() => this.pageStack.pushPath({ name: ROUTE_WEB }))
-            .accessibilityText('打开官方云端工作台，使用 AI 提案预览、确认与附件能力')
-          Text('云端工作台使用独立的系统 Web 会话，需要单独登录。AI、附件和一言依赖上游服务配置。')
+          Button('原生AI助手').onClick(() => this.pageStack.pushPath({ name: ROUTE_AI })).accessibilityText('使用已登录账号打开原生AI助手')
+          Button('打开完整云端工作台').onClick(() => this.pageStack.pushPath({ name: ROUTE_WEB }))
+            .accessibilityText('打开官方云端工作台网页')
+          Text('网页使用独立会话，需要单独登录。原生AI与附件可使用当前账号，依赖上游服务配置。')
             .fontColor($r('app.color.text_secondary')).fontSize(13)
         }.width('100%').constraintSize({ maxWidth: 720 }).padding(24)
       }.width('100%').height('100%').backgroundColor($r('app.color.background'))
     }.titleMode(HdsNavDestinationTitleMode.MINI)
-    .titleBar({ content: { title: { mainTitle: '账号与云端' }, backIcon: { action: () => this.pageStack.pop() } } })
+    .titleBar(hdsPageTitle('账号与云端', () => this.pageStack.pop()))
   }
 }

@@ -1,15 +1,17 @@
+import { SessionCookies } from './SessionCookies';
+import { CLOUD_ORIGIN } from '../config/constants';
 import { CloudAccount } from '../models/Workspace';
-import { KEY_CLOUD_SESSION } from '../config/constants';
+import { publishCloudSessionChange } from './appState';
 
-let cookie: string = '';
+const cookies = new SessionCookies();
 let account: CloudAccount | undefined;
 let visibleAccounts: CloudAccount[] = [];
 let epoch: number = 0;
 const invalidationListeners: Set<() => void> = new Set();
 
 export function sessionEpoch(): number { return epoch; }
-export function sessionCookie(): string { return cookie; }
-export function acceptSessionCookie(value: string): void { cookie = value; }
+export function sessionCookie(path: string = '/'): string { return cookies.header(path); }
+export function acceptSessionCookies(values: string[], path: string): void { cookies.accept(values, path, CLOUD_ORIGIN.replace(/^https:\/\//, '').split('/')[0]); }
 export function currentCloudAccount(): CloudAccount | undefined {
   return account ? JSON.parse(JSON.stringify(account)) as CloudAccount : undefined;
 }
@@ -19,17 +21,17 @@ export function currentCloudAccounts(): CloudAccount[] {
 
 export function setCloudAccount(value: CloudAccount, accounts: CloudAccount[] = []): void {
   if (account?.id !== value.id) {
-    epoch++;
+    epoch++; cookies.clearPath('/api/yiyan');
     invalidationListeners.forEach((listener) => listener());
   }
   account = value; visibleAccounts = accounts;
-  AppStorage.setOrCreate(KEY_CLOUD_SESSION, epoch);
+  publishCloudSessionChange(epoch);
 }
 
 export function clearCloudSession(): void {
-  epoch++; cookie = ''; account = undefined; visibleAccounts = [];
+  epoch++; cookies.clear(); account = undefined; visibleAccounts = [];
   invalidationListeners.forEach((listener) => listener());
-  AppStorage.setOrCreate(KEY_CLOUD_SESSION, epoch);
+  publishCloudSessionChange(epoch);
 }
 
 export function onSessionInvalidated(listener: () => void): () => void {
